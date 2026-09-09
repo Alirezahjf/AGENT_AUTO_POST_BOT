@@ -1,0 +1,85 @@
+{
+  "woocommerce": {
+    "url": "",
+    "consumer_key": "",
+    "consumer_secret": ""
+  },
+  "messengers": {
+    "bale": {
+      "bot_token": "",
+      "channel_id": "@massager"
+    },
+    "rubika": {
+      "bot_token": "",
+      "chat_id": "@tabligh_massager"
+    },
+    "eitaa": {
+      "bot_token": "",
+      "chat_id": "@post_sender"
+    }
+  },
+  "auto_post": {
+    "enabled": true,
+    "posts_per_day": 4,
+    "schedule": {
+      "saturday": {
+        "enabled": true,
+        "times": [
+          "09:00",
+          "14:00",
+          "20:00",
+          "22:00"
+        ]
+      },
+      "sunday": {
+        "enabled": true,
+        "times": [
+          "09:00",
+          "14:00",
+          "20:00",
+          "22:00"
+        ]
+      },
+      "monday": {
+        "enabled": true,
+        "times": [
+          "09:00",
+          "14:00",
+          "20:00",
+          "22:00"
+        ]
+      },
+      "tuesday": {
+        "enabled": false,
+        "times": []
+      },
+      "wednesday": {
+        "enabled": true,
+        "times": [
+          "15:27",
+          "18:00",
+          "17:00",
+          "19:00"
+        ]
+      },
+      "thursday": {
+        "enabled": false,
+        "times": []
+      },
+      "friday": {
+        "enabled": false,
+        "times": []
+      }
+    }
+  },
+  "wallet_token": "WALLET-TEST-1111111111111111",
+  "admin_chat_id": 724982781,
+  "user_languages": {
+    "724982781": "fa",
+    "335570544": "fa",
+    "1269261725": "fa",
+    "656086293": "fa",
+    "1440916717": "fa",
+    "261406913": "fa"
+  }
+}

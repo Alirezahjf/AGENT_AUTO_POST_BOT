@@ -1,0 +1,73 @@
+{
+  "woocommerce": {
+    "url": "",
+    "consumer_key": "",
+    "consumer_secret": ""
+  },
+  "messengers": {
+    "bale": {
+      "bot_token": "",
+      "channel_id": "@mobocover"
+    },
+    "rubika": {
+      "bot_token": "",
+      "chat_id": ""
+    },
+    "eitaa": {
+      "bot_token": "",
+      "chat_id": "mobocover"
+    }
+  },
+  "auto_post": {
+    "enabled": true,
+    "posts_per_day": 10,
+    "schedule": {
+      "saturday": {
+        "enabled": true,
+        "times": [
+          "11:11",
+          "23:11"
+        ]
+      },
+      "sunday": {
+        "enabled": true,
+        "times": [
+          "11:11"
+        ]
+      },
+      "monday": {
+        "enabled": true,
+        "times": [
+          "11:11",
+          "23:11"
+        ]
+      },
+      "tuesday": {
+        "enabled": true,
+        "times": [
+          "11:11",
+          "23:11"
+        ]
+      },
+      "wednesday": {
+        "enabled": true,
+        "times": [
+          "11:11",
+          "16:00",
+          "23:11"
+        ]
+      },
+      "thursday": {
+        "enabled": false,
+        "times": []
+      },
+      "friday": {
+        "enabled": true,
+        "times": [
+          "11:11",
+          "23:11"
+        ]
+      }
+    }
+  }
+}
