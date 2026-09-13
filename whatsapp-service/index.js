@@ -90,14 +90,24 @@ async function createSession(userId, phoneNumber = null) {
         if (connection === 'close') {
             const statusCode = lastDisconnect?.error?.output?.statusCode
             const reason = lastDisconnect?.error?.message || 'unknown'
-            console.log(`❌ Closed for ${userIdStr} code=${statusCode} reason=${reason}`)
+            const reasonStr = JSON.stringify(lastDisconnect?.error) || reason
+            console.log(`❌ Closed for ${userIdStr} code=${statusCode} reason=${reason} full=${reasonStr.slice(0,500)}`)
             session.isConnected = false
             if (statusCode === DisconnectReason.loggedOut) {
-                console.log(`🚫 Logged out ${userIdStr}`)
-                try { fs.rmSync(authFolder, { recursive: true, force: true }) } catch(e) {}
-                delete sessions[userIdStr]
+                console.log(`🚫 Logged out ${userIdStr} - KEEPING auth folder for manual recovery, not deleting automatically`)
+                console.log(`🚫 If you want to delete, call DELETE /session?userId=${userIdStr}`)
+                // Don't delete automatically - keep for debugging
+                // try { fs.rmSync(authFolder, { recursive: true, force: true }) } catch(e) {}
+                // delete sessions[userIdStr]
+                // Instead, keep session in memory but mark not connected, so /status shows exists=true but connected=false
+                // And will try reconnect in 10s
+                console.log(`🔄 Logged out but keeping session, will try reconnect in 10s...`)
+                setTimeout(() => {
+                    console.log(`🔄 Attempting reconnect after logout for ${userIdStr}...`)
+                    createSession(userIdStr, phoneNumber)
+                }, 10000)
             } else {
-                console.log(`🔄 Reconnect ${userIdStr} in 5s...`)
+                console.log(`🔄 Reconnect ${userIdStr} in 5s... code=${statusCode}`)
                 setTimeout(() => createSession(userIdStr, phoneNumber), 5000)
             }
         } else if (connection === 'open') {
@@ -420,26 +430,41 @@ app.post('/send', async (req, res) => {
     const finalUserId = userId || user_id
     let session = sessions[String(finalUserId)]
     
-    console.log(`📤 Send request: to=${to} userId=${finalUserId} sessionsInMem=${Object.keys(sessions).length} hasSession=${!!session} connected=${session?.isConnected}`)
+    console.log(`📤 Send request: to=${to} userId=${finalUserId} sessionsInMem=${Object.keys(sessions).length} keys=[${Object.keys(sessions).join(',')}] hasSession=${!!session} connected=${session?.isConnected} authBase=${AUTH_BASE_DIR} baseExists=${fs.existsSync(AUTH_BASE_DIR)}`)
     
     // اگر هیچ سشنی در حافظه نیست، سعی کن همه را از دیسک بازگردانی کنی
     if (Object.keys(sessions).length === 0) {
-        console.log(`⚠️ No sessions in memory at all, trying to restore from disk... authBase=${AUTH_BASE_DIR} exists=${fs.existsSync(AUTH_BASE_DIR)}`)
+        console.log(`⚠️ No sessions in memory at all, trying to restore from disk... authBase=${AUTH_BASE_DIR} exists=${fs.existsSync(AUTH_BASE_DIR)} folders=${fs.existsSync(AUTH_BASE_DIR) ? fs.readdirSync(AUTH_BASE_DIR).join(',') : 'none'}`)
         try {
             await restoreSessionsFromDisk()
             // Wait a bit
             await new Promise(r => setTimeout(r, 3000))
             session = sessions[String(finalUserId)]
-            console.log(`📊 After restore all: sessions=${Object.keys(sessions).length} target=${finalUserId} found=${!!session}`)
+            console.log(`📊 After restore all: sessions=${Object.keys(sessions).length} keys=[${Object.keys(sessions).join(',')}] target=${finalUserId} found=${!!session} connected=${session?.isConnected}`)
         } catch (e) {
             console.error(`❌ Restore all failed: ${e} ${e.stack}`)
+        }
+        // اگر هنوز هیچ سشنی نیست، خطای دقیق بده
+        if (Object.keys(sessions).length === 0) {
+            const baseExists = fs.existsSync(AUTH_BASE_DIR)
+            const folders = baseExists ? fs.readdirSync(AUTH_BASE_DIR) : []
+            console.log(`❌ Still no sessions after restore all. baseExists=${baseExists} folders=${folders.join(',')}`)
+            return res.status(500).json({ 
+                ok: false, 
+                error: `No sessions in memory after restore - auth base exists=${baseExists} folders=${folders.length} [${folders.join(',')}] - please check whatsapp.log`, 
+                to: to,
+                authBase: AUTH_BASE_DIR,
+                baseExists,
+                folders,
+                sessionsInMem: Object.keys(sessions).length
+            })
         }
     }
     
     // اگر سشن در حافظه نیست ولی پوشه auth وجود دارد، سعی کن بازگردانی کنی
     if (!finalUserId || !session) {
         const authFolder = path.join(AUTH_BASE_DIR, String(finalUserId))
-        console.log(`🔍 Send: session ${finalUserId} not in memory, checking ${authFolder} exists=${fs.existsSync(authFolder)} baseExists=${fs.existsSync(AUTH_BASE_DIR)}`)
+        console.log(`🔍 Send: session ${finalUserId} not in memory, checking ${authFolder} exists=${fs.existsSync(authFolder)} baseExists=${fs.existsSync(AUTH_BASE_DIR)} sessionsKeys=[${Object.keys(sessions).join(',')}]`)
         if (fs.existsSync(authFolder)) {
             const files = fs.readdirSync(authFolder)
             console.log(`♻️ Session ${finalUserId} not in memory but auth exists (${files.length} files), restoring... files=${files.slice(0,5).join(',')}`)
@@ -450,17 +475,17 @@ app.post('/send', async (req, res) => {
                 while (!session.isConnected && attempts < 40) {
                     await new Promise(r => setTimeout(r, 500))
                     attempts++
-                    if (attempts % 10 === 0) console.log(`⏳ Waiting for ${finalUserId} connection... ${attempts*0.5}s connected=${session.isConnected}`)
+                    if (attempts % 10 === 0) console.log(`⏳ Waiting for ${finalUserId} connection... ${attempts*0.5}s connected=${session.isConnected} sessionsKeys=[${Object.keys(sessions).join(',')}]`)
                 }
-                console.log(`📊 After restore: connected=${session.isConnected} for ${finalUserId} attempts=${attempts}`)
+                console.log(`📊 After restore: connected=${session.isConnected} for ${finalUserId} attempts=${attempts} sessionsKeys=[${Object.keys(sessions).join(',')}]`)
             } catch (e) {
                 console.error(`❌ Failed to restore session ${finalUserId}: ${e} ${e.stack}`)
             }
         } else {
-            console.log(`❌ Auth folder not found for ${finalUserId} at ${authFolder}, listing base: ${fs.existsSync(AUTH_BASE_DIR) ? fs.readdirSync(AUTH_BASE_DIR).join(', ') : 'base not exists'}`)
+            console.log(`❌ Auth folder not found for ${finalUserId} at ${authFolder}, listing base: ${fs.existsSync(AUTH_BASE_DIR) ? fs.readdirSync(AUTH_BASE_DIR).join(', ') : 'base not exists'} sessionsKeys=[${Object.keys(sessions).join(',')}]`)
         }
         if (!session) {
-            return res.status(404).json({ ok: false, error: `Session ${finalUserId} not found - please reconnect WhatsApp via QR. Auth folder exists: ${fs.existsSync(path.join(AUTH_BASE_DIR, String(finalUserId)))}`, authBase: AUTH_BASE_DIR, baseExists: fs.existsSync(AUTH_BASE_DIR), folders: fs.existsSync(AUTH_BASE_DIR) ? fs.readdirSync(AUTH_BASE_DIR) : [] })
+            return res.status(404).json({ ok: false, error: `Session ${finalUserId} not found - please reconnect WhatsApp via QR. Auth folder exists: ${fs.existsSync(path.join(AUTH_BASE_DIR, String(finalUserId)))} sessionsInMem=${Object.keys(sessions).length} keys=[${Object.keys(sessions).join(',')}]`, authBase: AUTH_BASE_DIR, baseExists: fs.existsSync(AUTH_BASE_DIR), folders: fs.existsSync(AUTH_BASE_DIR) ? fs.readdirSync(AUTH_BASE_DIR) : [], sessionsKeys: Object.keys(sessions) })
         }
     }
     
@@ -500,8 +525,11 @@ app.post('/send', async (req, res) => {
         let result
         const { mediaType } = req.body
         
+        console.log(`📤 Attempting send to ${finalTo} via ${finalUserId} connected=${session.isConnected} sockExists=${!!session.sock}`)
+        
         if (imageBase64) {
             const buffer = Buffer.from(imageBase64, 'base64')
+            console.log(`📎 Media: type=${mediaType} size=${buffer.length} to=${finalTo}`)
             if (mediaType === 'video') {
                 result = await session.sock.sendMessage(finalTo, { video: buffer, caption: text || '' })
                 console.log(`✅ Sent video to ${finalTo} via ${finalUserId}`)
@@ -519,8 +547,8 @@ app.post('/send', async (req, res) => {
         }
         res.json({ ok: true, messageId: result.key.id, to: finalTo })
     } catch(e) {
-        console.error(`❌ Send error to ${finalTo} via ${finalUserId}: ${e}`)
-        res.status(500).json({ ok: false, error: e.message, to: finalTo })
+        console.error(`❌ Send error to ${finalTo} via ${finalUserId}: ${e} stack=${e.stack} sessionsKeys=[${Object.keys(sessions).join(',')}] connected=${session?.isConnected}`)
+        res.status(500).json({ ok: false, error: e.message, to: finalTo, stack: e.stack?.slice(0,500), sessionsKeys: Object.keys(sessions), connected: session?.isConnected })
     }
 })
 
@@ -528,8 +556,22 @@ app.listen(PORT, '0.0.0.0', async () => {
     console.log(`🚀 WhatsApp with pairing code on 0.0.0.0:${PORT}`)
     console.log(`✅ Ready - QR + pairing code!`)
     console.log(`📱 QR: http://localhost:${PORT}/qr?userId=xxx&phone=989...`)
+    console.log(`📁 Auth base: ${AUTH_BASE_DIR}`)
     // Restore sessions from disk on startup
     setTimeout(() => {
         restoreSessionsFromDisk()
     }, 2000)
+    
+    // Periodic check: if no sessions but auth exists, restore every 60s
+    setInterval(async () => {
+        if (Object.keys(sessions).length === 0) {
+            if (fs.existsSync(AUTH_BASE_DIR)) {
+                const folders = fs.readdirSync(AUTH_BASE_DIR)
+                if (folders.length > 0) {
+                    console.log(`⏰ Periodic check: no sessions in memory but ${folders.length} folders on disk [${folders.join(',')}], restoring...`)
+                    await restoreSessionsFromDisk()
+                }
+            }
+        }
+    }, 60000)
 })
