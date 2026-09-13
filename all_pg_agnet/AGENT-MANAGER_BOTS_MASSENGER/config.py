@@ -7,6 +7,34 @@ PRODUCTS_FILE = "known_products.json"
 NEW_PRODUCTS_FILE = "new_products.json"
 SENT_PRODUCTS_FILE = "sent_products.json"
 
+MESSENGER_LIST = ["bale", "rubika", "eitaa", "telegram", "whatsapp"]
+
+MESSENGER_CONFIGS = {
+    "bale": {
+        "bot_token": "",
+        "channel_id": ""
+    },
+    "rubika": {
+        "bot_token": "",
+        "chat_id": ""
+    },
+    "eitaa": {
+        "bot_token": "",
+        "chat_id": ""
+    },
+    "telegram": {
+        "bot_token": "",
+        "chat_id": ""
+    },
+    "whatsapp": {
+        "chat_id": "",
+        "provider": "baileys",
+        "service_url": "http://localhost:3001",
+        "bot_token": "",
+        "phone_id": ""
+    }
+}
+
 DEFAULT_CONFIG = {
     "woocommerce": {
         "url": "",
@@ -25,11 +53,26 @@ DEFAULT_CONFIG = {
         "eitaa": {
             "bot_token": "",
             "chat_id": ""
+        },
+        "telegram": {
+            "bot_token": "",
+            "chat_id": ""
+        },
+        "whatsapp": {
+            "chat_id": "",
+            "provider": "baileys",
+            "service_url": "http://localhost:3001",
+            "bot_token": "",
+            "phone_id": ""
         }
     },
     "auto_post": {
         "enabled": False,
+        "live_new_product": True,
         "posts_per_day": 1,
+        "categories": [],
+        "category_mode": "all",
+        "resend_after_all": False,
         "schedule": {
             "saturday": {"enabled": False, "times": []},
             "sunday": {"enabled": False, "times": []},
@@ -71,18 +114,17 @@ def load_config():
     # ترکیب عمیق با DEFAULT_CONFIG
     config = deep_merge(DEFAULT_CONFIG, saved)
     
-    # اطمینان از وجود کلیدهای ضروری
+    # اطمینان از وجود کلیدهای ضروری - داینامیک برای همه پیام‌رسان‌ها
     if "messengers" not in config:
         config["messengers"] = DEFAULT_CONFIG["messengers"].copy()
     
-    if "eitaa" not in config["messengers"]:
-        config["messengers"]["eitaa"] = DEFAULT_CONFIG["messengers"]["eitaa"].copy()
-    
-    if "rubika" not in config["messengers"]:
-        config["messengers"]["rubika"] = DEFAULT_CONFIG["messengers"]["rubika"].copy()
-    
-    if "bale" not in config["messengers"]:
-        config["messengers"]["bale"] = DEFAULT_CONFIG["messengers"]["bale"].copy()
+    # بررسی همه پیام‌رسان‌ها به صورت داینامیک
+    for messenger_name in MESSENGER_LIST:
+        if messenger_name not in config["messengers"]:
+            config["messengers"][messenger_name] = DEFAULT_CONFIG["messengers"].get(
+                messenger_name, 
+                MESSENGER_CONFIGS.get(messenger_name, {"bot_token": "", "chat_id": ""})
+            ).copy()
     
     if "woocommerce" not in config:
         config["woocommerce"] = DEFAULT_CONFIG["woocommerce"].copy()
