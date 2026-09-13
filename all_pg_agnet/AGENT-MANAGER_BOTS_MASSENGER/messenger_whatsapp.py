@@ -123,10 +123,18 @@ def _send_via_baileys(to, text, image_bytes=None, service_url=None, user_id=None
             payload["mediaType"] = media_type
 
     try:
+        # اول یک بار status چک کن تا اگر نیاز به restore دارد، trigger شود
+        try:
+            if user_id:
+                requests.get(f"{service_url}/status", params={"userId": str(user_id)}, timeout=5)
+                time.sleep(1)
+        except:
+            pass
+
         resp = requests.post(
             f"{service_url}/send",
             json=payload,
-            timeout=30
+            timeout=45
         )
         if resp.status_code == 200:
             data = resp.json()
@@ -134,27 +142,40 @@ def _send_via_baileys(to, text, image_bytes=None, service_url=None, user_id=None
                 logger.info(f"✅ WhatsApp sent to {final_to} via {user_id}")
                 return True
             else:
-                logger.warning(f"⚠️ WhatsApp send failed to {final_to}: {data}")
+                logger.warning(f"⚠️ WhatsApp send failed to {final_to}: {data} full={resp.text[:1000]}")
                 # اگر No sessions, یعنی سرویس سشن ندارد - باید دوباره وصل شود
                 if "No sessions" in str(data) or "Session" in str(data.get("error","")):
                     logger.error(f"❌ WhatsApp service has no sessions for {user_id} - needs QR reconnect")
                 return False
         else:
-            logger.warning(f"⚠️ Baileys service returned {resp.status_code}: {resp.text[:500]} for to={final_to} user={user_id}")
-            # اگر 404 یا 500 با No sessions
-            if resp.status_code in [404, 500] and ("Session" in resp.text or "No sessions" in resp.text):
-                logger.error(f"❌ WhatsApp session {user_id} not found on service (status {resp.status_code}) - user needs to reconnect via QR. Response: {resp.text[:200]}")
-                # سعی کن یک بار دیگر restore کنی و دوباره تلاش کنی
+            full_text = resp.text[:2000]
+            logger.warning(f"⚠️ Baileys service returned {resp.status_code}: {full_text} for to={final_to} user={user_id}")
+            # اگر 404 یا 500 یا 503 با No sessions / Session not found / Not connected
+            if resp.status_code in [404, 500, 503] and ("Session" in resp.text or "No sessions" in resp.text or "Not connected" in resp.text or "not found" in resp.text.lower()):
+                logger.error(f"❌ WhatsApp session {user_id} issue on service (status {resp.status_code}) - trying restore. Response: {full_text[:500]}")
+                # سعی کن restore کنی
                 try:
-                    import time
+                    # 1. تلاش restore
+                    logger.info(f"♻️ Trying to restore session {user_id} via /restore endpoint...")
+                    restore_resp = requests.get(f"{service_url}/restore", params={"userId": str(user_id)}, timeout=15)
+                    logger.info(f"♻️ Restore response: {restore_resp.status_code} {restore_resp.text[:500]}")
+                    time.sleep(3)
+                    
+                    # 2. چک status دوباره
+                    status_resp = requests.get(f"{service_url}/status", params={"userId": str(user_id)}, timeout=10)
+                    logger.info(f"📊 Status after restore: {status_resp.text[:500]}")
+                    
+                    # 3. دوباره تلاش ارسال
                     time.sleep(2)
-                    # دوباره تلاش
-                    resp2 = requests.post(f"{service_url}/send", json=payload, timeout=30)
+                    resp2 = requests.post(f"{service_url}/send", json=payload, timeout=45)
+                    logger.info(f"🔄 Retry send response: {resp2.status_code} {resp2.text[:500]}")
                     if resp2.status_code == 200 and resp2.json().get("ok"):
                         logger.info(f"✅ WhatsApp retry succeeded to {final_to}")
                         return True
-                except:
-                    pass
+                    else:
+                        logger.error(f"❌ Retry failed: {resp2.text[:500]}")
+                except Exception as e:
+                    logger.error(f"❌ Restore retry exception: {e}", exc_info=True)
             return False
     except Exception as e:
         logger.error(f"❌ Baileys send error to {final_to} via {user_id}: {e}", exc_info=True)

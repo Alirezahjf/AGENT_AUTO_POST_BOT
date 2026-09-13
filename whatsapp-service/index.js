@@ -14,45 +14,58 @@ app.use(express.json({limit: '50mb'}))
 const PORT = 3001
 const logger = pino({ level: 'silent' })
 const sessions = {}
+const AUTH_BASE_DIR = path.join(__dirname, 'auth')  // Absolute path - fixes cwd issues
 
 async function restoreSessionsFromDisk() {
     try {
-        const authDir = path.join('auth')
+        const authDir = AUTH_BASE_DIR
+        console.log(`🔍 Checking auth dir: ${authDir}`)
         if (!fs.existsSync(authDir)) {
-            console.log('📁 No auth dir, skipping restore')
+            console.log(`📁 No auth dir at ${authDir}, creating...`)
+            fs.mkdirSync(authDir, { recursive: true })
             return
         }
         const userDirs = fs.readdirSync(authDir)
-        console.log(`🔄 Found ${userDirs.length} auth folders to restore: ${userDirs.join(', ')}`)
+        console.log(`🔄 Found ${userDirs.length} auth folders to restore: ${userDirs.join(', ')} at ${authDir}`)
         for (const userId of userDirs) {
             const userAuthPath = path.join(authDir, userId)
-            if (fs.statSync(userAuthPath).isDirectory()) {
-                try {
-                    // Check if has creds file
+            try {
+                if (fs.statSync(userAuthPath).isDirectory()) {
                     const files = fs.readdirSync(userAuthPath)
+                    console.log(`📂 ${userId}: ${files.length} files in ${userAuthPath} - ${files.slice(0,3).join(', ')}`)
                     if (files.length > 0) {
                         console.log(`♻️ Restoring session for ${userId} (${files.length} files)`)
                         await createSession(userId)
                         // Wait a bit for connection
-                        await new Promise(r => setTimeout(r, 2000))
+                        await new Promise(r => setTimeout(r, 3000))
+                    } else {
+                        console.log(`⚠️ Empty auth folder for ${userId}, skipping`)
                     }
-                } catch (e) {
-                    console.error(`❌ Failed to restore ${userId}: ${e.message}`)
                 }
+            } catch (e) {
+                console.error(`❌ Failed to restore ${userId}: ${e.message} ${e.stack}`)
             }
         }
-        console.log(`✅ Restore check done, ${Object.keys(sessions).length} sessions in memory`)
+        console.log(`✅ Restore check done, ${Object.keys(sessions).length} sessions in memory. Sessions: ${Object.keys(sessions).join(', ')}`)
     } catch (e) {
-        console.error(`❌ restoreSessionsFromDisk error: ${e}`)
+        console.error(`❌ restoreSessionsFromDisk error: ${e} ${e.stack}`)
     }
 }
 
 async function createSession(userId, phoneNumber = null) {
     const userIdStr = String(userId)
-    console.log(`🔧 Creating session for ${userIdStr} phone=${phoneNumber}`)
-    if (sessions[userIdStr] && sessions[userIdStr].isConnected) return sessions[userIdStr]
-    if (sessions[userIdStr] && sessions[userIdStr].sock) { try { sessions[userIdStr].sock.end() } catch(e) {} }
-    const authFolder = path.join('auth', userIdStr)
+    console.log(`🔧 Creating session for ${userIdStr} phone=${phoneNumber} authBase=${AUTH_BASE_DIR}`)
+    if (sessions[userIdStr] && sessions[userIdStr].isConnected) {
+        console.log(`♻️ Session ${userIdStr} already connected, returning existing`)
+        return sessions[userIdStr]
+    }
+    if (sessions[userIdStr] && sessions[userIdStr].sock) { 
+        try { 
+            console.log(`🔄 Closing existing sock for ${userIdStr}`)
+            sessions[userIdStr].sock.end() 
+        } catch(e) {} 
+    }
+    const authFolder = path.join(AUTH_BASE_DIR, userIdStr)
     if (!fs.existsSync(authFolder)) fs.mkdirSync(authFolder, { recursive: true })
     const { state, saveCreds } = await useMultiFileAuthState(authFolder)
     const { version } = await fetchLatestBaileysVersion()
@@ -224,13 +237,14 @@ app.get('/qr-image', async (req, res) => {
 
 app.get('/status', async (req, res) => {
     const userId = req.query.userId || req.query.user_id
-    if (!userId) return res.json({ ok: true, count: Object.keys(sessions).length, sessions: Object.keys(sessions).map(uid => ({ userId: uid, connected: sessions[uid].isConnected, hasQR: !!sessions[uid].qr, hasCode: !!sessions[uid].pairingCode, pairingCode: sessions[uid].pairingCode })) })
+    if (!userId) return res.json({ ok: true, count: Object.keys(sessions).length, sessions: Object.keys(sessions).map(uid => ({ userId: uid, connected: sessions[uid].isConnected, hasQR: !!sessions[uid].qr, hasCode: !!sessions[uid].pairingCode, pairingCode: sessions[uid].pairingCode })), authBase: AUTH_BASE_DIR, authExists: fs.existsSync(AUTH_BASE_DIR), authFolders: fs.existsSync(AUTH_BASE_DIR) ? fs.readdirSync(AUTH_BASE_DIR) : [] })
     let session = sessions[String(userId)]
     if (!session) {
         // Check if auth folder exists - if yes, session exists on disk but not in memory
-        const authFolder = path.join('auth', String(userId))
+        const authFolder = path.join(AUTH_BASE_DIR, String(userId))
+        console.log(`🔍 Status check for ${userId}: not in memory, checking ${authFolder} exists=${fs.existsSync(authFolder)}`)
         if (fs.existsSync(authFolder)) {
-            console.log(`♻️ Status check: ${userId} not in memory but auth exists, restoring...`)
+            console.log(`♻️ Status check: ${userId} not in memory but auth exists (${fs.readdirSync(authFolder).length} files), restoring...`)
             try {
                 session = await createSession(String(userId))
                 // Don't wait too long for status check
@@ -239,12 +253,15 @@ app.get('/status', async (req, res) => {
                     await new Promise(r => setTimeout(r, 500))
                     attempts++
                 }
+                console.log(`📊 After status restore: ${userId} connected=${session.isConnected} hasQR=${!!session.qr}`)
             } catch (e) {
-                console.error(`❌ Restore failed for status ${userId}: ${e}`)
+                console.error(`❌ Restore failed for status ${userId}: ${e} ${e.stack}`)
             }
+        } else {
+            console.log(`❌ Auth folder not found for ${userId} at ${authFolder}, base exists=${fs.existsSync(AUTH_BASE_DIR)} folders=${fs.existsSync(AUTH_BASE_DIR) ? fs.readdirSync(AUTH_BASE_DIR).join(',') : 'none'}`)
         }
     }
-    if (!session) return res.json({ ok: false, connected: false, exists: false, userId: String(userId) })
+    if (!session) return res.json({ ok: false, connected: false, exists: false, userId: String(userId), authBase: AUTH_BASE_DIR, authExists: fs.existsSync(path.join(AUTH_BASE_DIR, String(userId))) })
     res.json({ ok: true, connected: session.isConnected, exists: true, hasQR: !!session.qr, hasCode: !!session.pairingCode, pairingCode: session.pairingCode, phone: session.phoneNumber, userId: String(userId) })
 })
 
@@ -253,7 +270,8 @@ app.get('/chats', async (req, res) => {
     if (!userId) return res.status(400).json({ ok: false, error: 'userId required' })
     let session = sessions[String(userId)]
     if (!session) {
-        const authFolder = path.join('auth', String(userId))
+        const authFolder = path.join(AUTH_BASE_DIR, String(userId))
+        console.log(`🔍 Chats check for ${userId}: not in memory, checking ${authFolder}`)
         if (fs.existsSync(authFolder)) {
             console.log(`♻️ Chats: ${userId} not in memory but auth exists, restoring...`)
             try {
@@ -264,7 +282,7 @@ app.get('/chats', async (req, res) => {
                     attempts++
                 }
             } catch (e) {
-                console.error(`❌ Restore failed for chats ${userId}: ${e}`)
+                console.error(`❌ Restore failed for chats ${userId}: ${e} ${e.stack}`)
             }
         }
     }
@@ -367,8 +385,34 @@ app.post('/connect', async (req, res) => {
 app.delete('/session', async (req, res) => {
     const userId = req.query.userId || req.query.user_id || req.body?.userId
     const session = sessions[String(userId)]
-    if (session) { try { await session.sock.logout() } catch(e) {} try { fs.rmSync(path.join('auth', String(userId)), { recursive: true, force: true }) } catch(e) {} delete sessions[String(userId)] }
+    if (session) { try { await session.sock.logout() } catch(e) {} try { fs.rmSync(path.join(AUTH_BASE_DIR, String(userId)), { recursive: true, force: true }) } catch(e) {} delete sessions[String(userId)] }
     res.json({ ok: true })
+})
+
+app.get('/restore', async (req, res) => {
+    const userId = req.query.userId || req.query.user_id
+    console.log(`🔄 Manual restore requested for ${userId || 'all'}`)
+    if (userId) {
+        const authFolder = path.join(AUTH_BASE_DIR, String(userId))
+        if (fs.existsSync(authFolder)) {
+            try {
+                const session = await createSession(String(userId))
+                let attempts = 0
+                while (!session.isConnected && attempts < 20) {
+                    await new Promise(r => setTimeout(r, 500))
+                    attempts++
+                }
+                return res.json({ ok: true, restored: true, connected: session.isConnected, userId: String(userId), files: fs.readdirSync(authFolder).length })
+            } catch (e) {
+                return res.status(500).json({ ok: false, error: e.message, userId: String(userId) })
+            }
+        } else {
+            return res.status(404).json({ ok: false, error: `Auth folder not found at ${authFolder}`, authBase: AUTH_BASE_DIR, exists: fs.existsSync(AUTH_BASE_DIR), folders: fs.existsSync(AUTH_BASE_DIR) ? fs.readdirSync(AUTH_BASE_DIR) : [] })
+        }
+    } else {
+        await restoreSessionsFromDisk()
+        return res.json({ ok: true, sessions: Object.keys(sessions).length, list: Object.keys(sessions).map(uid => ({ userId: uid, connected: sessions[uid].isConnected })) })
+    }
 })
 
 app.post('/send', async (req, res) => {
@@ -376,44 +420,62 @@ app.post('/send', async (req, res) => {
     const finalUserId = userId || user_id
     let session = sessions[String(finalUserId)]
     
+    console.log(`📤 Send request: to=${to} userId=${finalUserId} sessionsInMem=${Object.keys(sessions).length} hasSession=${!!session} connected=${session?.isConnected}`)
+    
     // اگر هیچ سشنی در حافظه نیست، سعی کن همه را از دیسک بازگردانی کنی
     if (Object.keys(sessions).length === 0) {
-        console.log(`⚠️ No sessions in memory at all, trying to restore from disk...`)
+        console.log(`⚠️ No sessions in memory at all, trying to restore from disk... authBase=${AUTH_BASE_DIR} exists=${fs.existsSync(AUTH_BASE_DIR)}`)
         try {
             await restoreSessionsFromDisk()
             // Wait a bit
             await new Promise(r => setTimeout(r, 3000))
             session = sessions[String(finalUserId)]
+            console.log(`📊 After restore all: sessions=${Object.keys(sessions).length} target=${finalUserId} found=${!!session}`)
         } catch (e) {
-            console.error(`❌ Restore all failed: ${e}`)
+            console.error(`❌ Restore all failed: ${e} ${e.stack}`)
         }
     }
     
     // اگر سشن در حافظه نیست ولی پوشه auth وجود دارد، سعی کن بازگردانی کنی
     if (!finalUserId || !session) {
-        const authFolder = path.join('auth', String(finalUserId))
+        const authFolder = path.join(AUTH_BASE_DIR, String(finalUserId))
+        console.log(`🔍 Send: session ${finalUserId} not in memory, checking ${authFolder} exists=${fs.existsSync(authFolder)} baseExists=${fs.existsSync(AUTH_BASE_DIR)}`)
         if (fs.existsSync(authFolder)) {
-            console.log(`♻️ Session ${finalUserId} not in memory but auth exists (${fs.readdirSync(authFolder).length} files), restoring...`)
+            const files = fs.readdirSync(authFolder)
+            console.log(`♻️ Session ${finalUserId} not in memory but auth exists (${files.length} files), restoring... files=${files.slice(0,5).join(',')}`)
             try {
                 session = await createSession(finalUserId)
                 // Wait for connection - longer
                 let attempts = 0
-                while (!session.isConnected && attempts < 30) {
+                while (!session.isConnected && attempts < 40) {
                     await new Promise(r => setTimeout(r, 500))
                     attempts++
-                    if (attempts % 10 === 0) console.log(`⏳ Waiting for ${finalUserId} connection... ${attempts*0.5}s`)
+                    if (attempts % 10 === 0) console.log(`⏳ Waiting for ${finalUserId} connection... ${attempts*0.5}s connected=${session.isConnected}`)
                 }
-                console.log(`📊 After restore: connected=${session.isConnected} for ${finalUserId}`)
+                console.log(`📊 After restore: connected=${session.isConnected} for ${finalUserId} attempts=${attempts}`)
             } catch (e) {
-                console.error(`❌ Failed to restore session ${finalUserId}: ${e}`)
+                console.error(`❌ Failed to restore session ${finalUserId}: ${e} ${e.stack}`)
             }
+        } else {
+            console.log(`❌ Auth folder not found for ${finalUserId} at ${authFolder}, listing base: ${fs.existsSync(AUTH_BASE_DIR) ? fs.readdirSync(AUTH_BASE_DIR).join(', ') : 'base not exists'}`)
         }
         if (!session) {
-            return res.status(404).json({ ok: false, error: `Session ${finalUserId} not found - please reconnect WhatsApp via QR. Auth folder exists: ${fs.existsSync(path.join('auth', String(finalUserId)))}` })
+            return res.status(404).json({ ok: false, error: `Session ${finalUserId} not found - please reconnect WhatsApp via QR. Auth folder exists: ${fs.existsSync(path.join(AUTH_BASE_DIR, String(finalUserId)))}`, authBase: AUTH_BASE_DIR, baseExists: fs.existsSync(AUTH_BASE_DIR), folders: fs.existsSync(AUTH_BASE_DIR) ? fs.readdirSync(AUTH_BASE_DIR) : [] })
         }
     }
     
-    if (!session.isConnected) return res.status(503).json({ ok: false, error: 'Not connected - please scan QR again' })
+    if (!session.isConnected) {
+        console.log(`⚠️ Session ${finalUserId} exists but not connected, waiting 5s more...`)
+        let attempts = 0
+        while (!session.isConnected && attempts < 20) {
+            await new Promise(r => setTimeout(r, 500))
+            attempts++
+        }
+        if (!session.isConnected) {
+            console.log(`❌ Still not connected after wait for ${finalUserId}, qr=${!!session.qr}`)
+            return res.status(503).json({ ok: false, error: `Not connected - please scan QR again. hasQR=${!!session.qr} authExists=${fs.existsSync(path.join(AUTH_BASE_DIR, String(finalUserId)))}`, hasQR: !!session.qr, exists: true })
+        }
+    }
     if (!to) return res.status(400).json({ ok: false, error: 'to required' })
     // نرمال‌سازی مقصد - گروه @g.us یا شخصی @s.whatsapp.net
     let finalTo = to

@@ -18,8 +18,10 @@ if [ ! -d "node_modules" ]; then
     echo -e "${YELLOW}📦 نصب وابستگی‌های WhatsApp...${NC}"
     NODE_OPTIONS="--dns-result-order=ipv4first" npm install --legacy-peer-deps --no-audit --no-fund
 fi
-# اطمینان از وجود پوشه auth
+# اطمینان از وجود پوشه auth با لاگ
 mkdir -p auth
+echo -e "${BLUE}📁 Auth: $(pwd)/auth - $(ls auth 2>/dev/null | wc -l) session(s)${NC}"
+ls -1 auth 2>/dev/null | head -5
 # بستن پروسه‌های قدیمی روی پورت 3001
 fuser -k 3001/tcp 2>/dev/null || true
 pkill -f "node.*index.js" 2>/dev/null || true
