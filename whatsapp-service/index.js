@@ -9,13 +9,8 @@ const pino = require('pino')
 const fs = require('fs')
 const path = require('path')
 
-// ===== Global crash protection =====
-process.on('uncaughtException', (err) => {
-    console.error(`💥 Uncaught Exception: ${err.message}\n${err.stack}`)
-})
-process.on('unhandledRejection', (reason, promise) => {
-    console.error(`💥 Unhandled Rejection:`, reason instanceof Error ? reason.message + '\n' + reason.stack : reason)
-})
+process.on('uncaughtException', (err) => { console.error(`💥 Uncaught Exception: ${err.message}\n${err.stack}`) })
+process.on('unhandledRejection', (reason) => { console.error(`💥 Unhandled Rejection:`, reason instanceof Error ? reason.message + '\n' + reason.stack : reason) })
 
 const app = express()
 app.use(express.json({limit: '50mb'}))
@@ -36,21 +31,11 @@ function loadSessionsDB() {
     } catch (e) { console.error(`❌ Failed to load sessions DB: ${e}`) }
     return {}
 }
-function saveSessionsDB(db) {
-    try { fs.writeFileSync(SESSIONS_DB_FILE, JSON.stringify(db, null, 2), 'utf-8') } catch (e) { console.error(`❌ Failed to save sessions DB: ${e}`) }
-}
+function saveSessionsDB(db) { try { fs.writeFileSync(SESSIONS_DB_FILE, JSON.stringify(db, null, 2), 'utf-8') } catch (e) { console.error(`❌ Failed to save sessions DB: ${e}`) } }
 function updateSessionInDB(userId, info) {
     try {
         const db = loadSessionsDB()
-        db[String(userId)] = {
-            ...db[String(userId)],
-            ...info,
-            userId: String(userId),
-            lastUpdate: new Date().toISOString(),
-            authPath: path.join(AUTH_BASE_DIR, String(userId)),
-            authExists: fs.existsSync(path.join(AUTH_BASE_DIR, String(userId))),
-            authFiles: fs.existsSync(path.join(AUTH_BASE_DIR, String(userId))) ? fs.readdirSync(path.join(AUTH_BASE_DIR, String(userId))).length : 0
-        }
+        db[String(userId)] = { ...db[String(userId)], ...info, userId: String(userId), lastUpdate: new Date().toISOString(), authPath: path.join(AUTH_BASE_DIR, String(userId)), authExists: fs.existsSync(path.join(AUTH_BASE_DIR, String(userId))), authFiles: fs.existsSync(path.join(AUTH_BASE_DIR, String(userId))) ? fs.readdirSync(path.join(AUTH_BASE_DIR, String(userId))).length : 0 }
         saveSessionsDB(db)
         try {
             if (fs.existsSync(BACKUP_BASE_DIR)) {
@@ -61,12 +46,7 @@ function updateSessionInDB(userId, info) {
         } catch (e) {}
     } catch (e) { console.error(`❌ updateSessionInDB error: ${e}`) }
 }
-function deleteSessionFromDB(userId) {
-    try {
-        const db = loadSessionsDB()
-        if (db[String(userId)]) { delete db[String(userId)]; saveSessionsDB(db); console.log(`🗑️ Deleted ${userId} from sessions DB`) }
-    } catch (e) { console.error(`❌ deleteSessionFromDB error: ${e}`) }
-}
+function deleteSessionFromDB(userId) { try { const db = loadSessionsDB(); if (db[String(userId)]) { delete db[String(userId)]; saveSessionsDB(db); console.log(`🗑️ Deleted ${userId} from sessions DB`) } } catch (e) { console.error(`❌ deleteSessionFromDB error: ${e}`) } }
 function backupAuthFolder(userId) {
     try {
         const authFolder = path.join(AUTH_BASE_DIR, String(userId))
@@ -75,13 +55,7 @@ function backupAuthFolder(userId) {
             const backupDir = path.join(BACKUP_BASE_DIR, String(userId), 'whatsapp_auth_backup', String(userId))
             fs.mkdirSync(backupDir, { recursive: true })
             const files = fs.readdirSync(authFolder)
-            for (const file of files) {
-                try {
-                    const src = path.join(authFolder, file)
-                    const dest = path.join(backupDir, file)
-                    if (fs.statSync(src).isFile()) fs.copyFileSync(src, dest)
-                } catch (e) {}
-            }
+            for (const file of files) { try { const src = path.join(authFolder, file); const dest = path.join(backupDir, file); if (fs.statSync(src).isFile()) fs.copyFileSync(src, dest) } catch (e) {} }
             console.log(`💾 Backed up ${files.length} auth files for ${userId}`)
         }
     } catch (e) { console.error(`❌ backupAuthFolder error for ${userId}: ${e}`) }
@@ -101,8 +75,6 @@ function restoreFromUserBackup(userId) {
     } catch (e) { console.error(`❌ restoreFromUserBackup error for ${userId}: ${e}`) }
     return false
 }
-
-// ✅ v4: fullyDeleteSession now also deletes backup when deleteBackup=true (fixes 401 loop)
 function fullyDeleteSession(userId, deleteBackup = false) {
     const userIdStr = String(userId)
     console.log(`🗑️ Fully deleting session ${userIdStr} - deleteBackup=${deleteBackup}`)
@@ -110,57 +82,33 @@ function fullyDeleteSession(userId, deleteBackup = false) {
         const session = sessions[userIdStr]
         if (session && session.sock) {
             try {
-                // Only call end() if websocket is actually open, otherwise it throws "WebSocket was closed before..."
                 const wsState = session.sock.ws?.readyState
-                // 1 = OPEN
-                if (wsState === 1) {
-                    try { session.sock.end(undefined) } catch(e) {}
-                } else {
-                    try { session.sock.ws?.close() } catch(e) {}
-                }
+                if (wsState === 1) { try { session.sock.end(undefined) } catch(e) {} } else { try { session.sock.ws?.close() } catch(e) {} }
                 try { session.sock.ev?.removeAllListeners?.('connection.update') } catch(e) {}
                 try { session.sock.ev?.removeAllListeners?.('creds.update') } catch(e) {}
             } catch(e) {}
         }
     } catch(e) {}
     try { delete sessions[userIdStr] } catch(e) {}
-    try {
-        const authFolder = path.join(AUTH_BASE_DIR, userIdStr)
-        if (fs.existsSync(authFolder)) {
-            fs.rmSync(authFolder, { recursive: true, force: true })
-            console.log(`🗑️ Deleted auth folder ${authFolder}`)
-        }
-    } catch(e) { console.error(`❌ Failed to delete auth folder for ${userIdStr}: ${e}`) }
+    try { const authFolder = path.join(AUTH_BASE_DIR, userIdStr); if (fs.existsSync(authFolder)) { fs.rmSync(authFolder, { recursive: true, force: true }); console.log(`🗑️ Deleted auth folder ${authFolder}`) } } catch(e) { console.error(`❌ Failed to delete auth folder for ${userIdStr}: ${e}`) }
     try { deleteSessionFromDB(userIdStr) } catch(e) {}
     if (deleteBackup) {
         try {
             const backupDir = path.join(BACKUP_BASE_DIR, userIdStr, 'whatsapp_auth_backup', userIdStr)
-            if (fs.existsSync(backupDir)) {
-                fs.rmSync(backupDir, { recursive: true, force: true })
-                console.log(`🗑️ Deleted backup folder ${backupDir}`)
-            }
+            if (fs.existsSync(backupDir)) { fs.rmSync(backupDir, { recursive: true, force: true }); console.log(`🗑️ Deleted backup folder ${backupDir}`) }
             const backupParent = path.join(BACKUP_BASE_DIR, userIdStr, 'whatsapp_auth_backup')
-            if (fs.existsSync(backupParent) && fs.readdirSync(backupParent).length === 0) {
-                fs.rmdirSync(backupParent)
-            }
+            if (fs.existsSync(backupParent) && fs.readdirSync(backupParent).length === 0) { fs.rmdirSync(backupParent) }
         } catch(e) { console.error(`❌ Failed to delete backup for ${userIdStr}: ${e}`) }
     }
     console.log(`✅ Fully deleted session ${userIdStr} - ready for fresh QR (backupDeleted=${deleteBackup})`)
 }
-
 async function restoreSessionsFromDisk() {
     try {
         const authDir = AUTH_BASE_DIR
         if (!fs.existsSync(authDir)) fs.mkdirSync(authDir, { recursive: true })
         const db = loadSessionsDB()
         console.log(`📂 Sessions DB has ${Object.keys(db).length} entries: ${Object.keys(db).join(', ')}`)
-        for (const userId of Object.keys(db)) {
-            const authPath = path.join(authDir, userId)
-            if (!fs.existsSync(authPath)) {
-                console.log(`⚠️ Auth folder missing for ${userId} from DB, trying user backup...`)
-                restoreFromUserBackup(userId)
-            }
-        }
+        for (const userId of Object.keys(db)) { const authPath = path.join(authDir, userId); if (!fs.existsSync(authPath)) { console.log(`⚠️ Auth folder missing for ${userId} from DB, trying user backup...`); restoreFromUserBackup(userId) } }
         if (fs.existsSync(BACKUP_BASE_DIR)) {
             try {
                 const userFolders = fs.readdirSync(BACKUP_BASE_DIR)
@@ -188,10 +136,7 @@ async function restoreSessionsFromDisk() {
                         console.log(`♻️ Restoring session for ${userId} (${files.length} files)`)
                         try { await createSession(userId) } catch (e) { console.error(`❌ Restore createSession failed for ${userId}: ${e.message}`) }
                         await new Promise(r => setTimeout(r, 3000))
-                    } else {
-                        console.log(`⚠️ Empty/corrupted auth folder for ${userId} (${files.length} files), deleting`)
-                        fullyDeleteSession(userId, false)
-                    }
+                    } else { console.log(`⚠️ Empty/corrupted auth folder for ${userId} (${files.length} files), deleting`); fullyDeleteSession(userId, false) }
                 }
             } catch (e) { console.error(`❌ Failed to restore ${userId}: ${e.message}`) }
         }
@@ -206,7 +151,7 @@ async function createSession(userId, phoneNumber = null, force = false) {
 
     if (force) {
         console.log(`🔥 Force flag - fully deleting old session ${userIdStr} before creating new (with backup delete)`)
-        fullyDeleteSession(userIdStr, true) // v4: delete backup too on force
+        fullyDeleteSession(userIdStr, true)
         await new Promise(r => setTimeout(r, 800))
     }
 
@@ -216,21 +161,12 @@ async function createSession(userId, phoneNumber = null, force = false) {
         return sessions[userIdStr]
     }
     if (sessions[userIdStr] && sessions[userIdStr].sock) { 
-        try { 
-            console.log(`🔄 Closing existing sock for ${userIdStr}`)
-            const wsState = sessions[userIdStr].sock.ws?.readyState
-            if (wsState === 1) sessions[userIdStr].sock.end(undefined)
-        } catch(e) {} 
+        try { console.log(`🔄 Closing existing sock for ${userIdStr}`); const wsState = sessions[userIdStr].sock.ws?.readyState; if (wsState === 1) sessions[userIdStr].sock.end(undefined) } catch(e) {} 
     }
     
-    // v4 FIX: Don't restore backup when force=true, otherwise we loop 401
     const authFolderCheck = path.join(AUTH_BASE_DIR, userIdStr)
-    if (!force && !fs.existsSync(authFolderCheck)) {
-        restoreFromUserBackup(userIdStr)
-    } else if (force && fs.existsSync(authFolderCheck)) {
-        console.log(`⚠️ Force=true but auth folder still exists for ${userIdStr}, deleting again`)
-        try { fs.rmSync(authFolderCheck, { recursive: true, force: true }) } catch(e) {}
-    }
+    if (!force && !fs.existsSync(authFolderCheck)) { restoreFromUserBackup(userIdStr) }
+    else if (force && fs.existsSync(authFolderCheck)) { console.log(`⚠️ Force=true but auth folder still exists for ${userIdStr}, deleting again`); try { fs.rmSync(authFolderCheck, { recursive: true, force: true }) } catch(e) {} }
     
     const authFolder = path.join(AUTH_BASE_DIR, userIdStr)
     updateSessionInDB(userIdStr, { phoneNumber, authPath: authFolder, creating: true })
@@ -254,6 +190,8 @@ async function createSession(userId, phoneNumber = null, force = false) {
     try { const v = await fetchLatestBaileysVersion(); version = v.version } catch (e) { version = [2, 3000, 1023223821] }
     console.log(`📦 Baileys version ${version} for ${userIdStr}`)
 
+    // v6: cachedGroupMetadata support - helps Baileys keep group cache
+    const sessionPlaceholder = { groups: {} }
     let sock
     try {
         sock = makeWASocket({ 
@@ -264,7 +202,20 @@ async function createSession(userId, phoneNumber = null, force = false) {
             browser: ['Ubuntu', 'Chrome', '20.0.04'],
             markOnlineOnConnect: false,
             syncFullHistory: false,
-            getMessage: async (key) => undefined
+            getMessage: async (key) => undefined,
+            cachedGroupMetadata: async (jid) => {
+                try {
+                    // Return from memory cache if available
+                    const memSession = sessions[userIdStr]
+                    if (memSession && memSession.groups && memSession.groups[jid]) {
+                        return memSession.groups[jid]
+                    }
+                    if (sessionPlaceholder.groups[jid]) {
+                        return sessionPlaceholder.groups[jid]
+                    }
+                    return undefined
+                } catch { return undefined }
+            }
         })
     } catch (e) {
         console.error(`❌ makeWASocket failed for ${userIdStr}: ${e.message} ${e.stack}`)
@@ -281,18 +232,18 @@ async function createSession(userId, phoneNumber = null, force = false) {
         sock.ev.on('groups.upsert', (groups) => {
             try {
                 console.log(`📋 groups.upsert for ${userIdStr}: ${groups.length} groups`)
-                for (const g of groups) { if (g.id) session.groups[g.id] = g }
+                for (const g of groups) { if (g.id) { session.groups[g.id] = g; sessionPlaceholder.groups[g.id] = g } }
                 session.groupsCacheTime = new Date()
             } catch(e) {}
         })
         sock.ev.on('groups.update', (updates) => {
-            try { for (const u of updates) { if (u.id && session.groups[u.id]) session.groups[u.id] = { ...session.groups[u.id], ...u } } } catch(e) {}
+            try { for (const u of updates) { if (u.id && session.groups[u.id]) { session.groups[u.id] = { ...session.groups[u.id], ...u }; sessionPlaceholder.groups[u.id] = session.groups[u.id] } } } catch(e) {}
         })
         sock.ev.on('chats.upsert', (chats) => {
             try {
                 for (const c of chats) {
                     if (c.id && c.id.endsWith('@g.us')) {
-                        if (!session.groups[c.id]) session.groups[c.id] = { id: c.id, subject: c.name || c.id, participants: [] }
+                        if (!session.groups[c.id]) { session.groups[c.id] = { id: c.id, subject: c.name || c.id, participants: [] }; sessionPlaceholder.groups[c.id] = session.groups[c.id] }
                     }
                 }
             } catch(e) {}
@@ -322,26 +273,16 @@ async function createSession(userId, phoneNumber = null, force = false) {
                     console.log(`🚫 Logged out ${userIdStr} - deleting auth AND backup, need fresh QR. Call /qr?force=true`)
                     try {
                         const authF = path.join(AUTH_BASE_DIR, userIdStr)
-                        if (fs.existsSync(authF)) {
-                            // Don't backup corrupted logged-out session
-                            fs.rmSync(authF, { recursive: true, force: true })
-                        }
-                        // v4: also delete backup to prevent loop
+                        if (fs.existsSync(authF)) { fs.rmSync(authF, { recursive: true, force: true }) }
                         const backupDir = path.join(BACKUP_BASE_DIR, userIdStr, 'whatsapp_auth_backup', userIdStr)
-                        if (fs.existsSync(backupDir)) {
-                            fs.rmSync(backupDir, { recursive: true, force: true })
-                            console.log(`🗑️ Deleted corrupted backup for ${userIdStr} after 401`)
-                        }
+                        if (fs.existsSync(backupDir)) { fs.rmSync(backupDir, { recursive: true, force: true }); console.log(`🗑️ Deleted corrupted backup for ${userIdStr} after 401`) }
                     } catch(e) {}
                     delete sessions[userIdStr]
                     try { deleteSessionFromDB(userIdStr) } catch(e) {}
                     return
                 }
 
-                if (session.reconnectAttempts > 5) {
-                    console.log(`⚠️ Too many reconnect attempts (${session.reconnectAttempts}) for ${userIdStr}, giving up - need fresh QR via /qr?force=true`)
-                    return
-                }
+                if (session.reconnectAttempts > 5) { console.log(`⚠️ Too many reconnect attempts (${session.reconnectAttempts}) for ${userIdStr}, giving up - need fresh QR via /qr?force=true`); return }
 
                 const delay = statusCode === 428 ? 5000 : 3000
                 console.log(`🔄 Reconnect ${userIdStr} in ${delay/1000}s... code=${statusCode} attempt=${session.reconnectAttempts}`)
@@ -357,6 +298,17 @@ async function createSession(userId, phoneNumber = null, force = false) {
                 session.reconnectAttempts = 0
                 try { updateSessionInDB(userIdStr, { connected: true, phoneNumber, connectedAt: new Date().toISOString(), lastConnected: new Date().toISOString() }) } catch(e) {}
                 setTimeout(() => { try { backupAuthFolder(userIdStr) } catch(e) {} }, 2000)
+                // v6: after connect, proactively fetch groups to populate cache + sender keys
+                setTimeout(async () => {
+                    try {
+                        console.log(`🔄 Auto-fetching groups for ${userIdStr} after connect...`)
+                        const groups = await session.sock.groupFetchAllParticipating()
+                        console.log(`✅ Auto-fetched ${Object.keys(groups).length} groups for ${userIdStr}`)
+                        session.groups = { ...session.groups, ...groups }
+                        session.groupsCacheTime = new Date()
+                        session.lastGroupsFetch = new Date()
+                    } catch (e) { console.log(`⚠️ Auto group fetch failed for ${userIdStr}: ${e.message}`) }
+                }, 3000)
                 try {
                     setTimeout(async () => {
                         try {
@@ -397,9 +349,9 @@ async function getPairingCodeWithRetry(sock, phoneNumber, retries = 3) {
 
 app.get('/', (req, res) => {
     try {
-        const list = Object.keys(sessions).map(uid => ({ userId: uid, connected: sessions[uid].isConnected, hasQR: !!sessions[uid].qr, hasCode: !!sessions[uid].pairingCode, phone: sessions[uid].phoneNumber }))
-        res.json({ status: 'ok', service: 'whatsapp-fixed-v5-group-retry', uptime: process.uptime(), sessionsCount: list.length, sessions: list })
-    } catch (e) { res.json({ status: 'ok', service: 'whatsapp-fixed-v5-group-retry', uptime: process.uptime(), error: e.message }) }
+        const list = Object.keys(sessions).map(uid => ({ userId: uid, connected: sessions[uid].isConnected, hasQR: !!sessions[uid].qr, hasCode: !!sessions[uid].pairingCode, phone: sessions[uid].phoneNumber, groups: Object.keys(sessions[uid].groups||{}).length }))
+        res.json({ status: 'ok', service: 'whatsapp-fixed-v6-group-participants', uptime: process.uptime(), sessionsCount: list.length, sessions: list })
+    } catch (e) { res.json({ status: 'ok', service: 'whatsapp-fixed-v6-group-participants', uptime: process.uptime(), error: e.message }) }
 })
 
 app.get('/qr', async (req, res) => {
@@ -411,11 +363,7 @@ app.get('/qr', async (req, res) => {
     if (!userId) return res.status(400).json({ ok: false, error: 'userId required' })
     try {
         let session = sessions[String(userId)]
-        if (force) {
-            console.log(`🔥 /qr force=true for ${userId} - deleting old session + backup=${deleteBackup}`)
-            fullyDeleteSession(userId, deleteBackup)
-            session = null
-        }
+        if (force) { console.log(`🔥 /qr force=true for ${userId} - deleting old session + backup=${deleteBackup}`); fullyDeleteSession(userId, deleteBackup); session = null }
         if (!session) {
             console.log(`🆕 New QR request for ${userId} phone=${phone} ownPhone=${ownPhone} force=${force}`)
             session = await createSession(userId, ownPhone || phone, force)
@@ -427,29 +375,15 @@ app.get('/qr', async (req, res) => {
             updateSessionInDB(String(userId), { phoneNumber: session.phoneNumber, lastQRRequest: new Date().toISOString() })
         }
 
-        if (session.isConnected && !force) {
-            return res.json({ ok: true, connected: true, userId: String(userId), phoneNumber: session.phoneNumber })
-        }
+        if (session.isConnected && !force) { return res.json({ ok: true, connected: true, userId: String(userId), phoneNumber: session.phoneNumber }) }
 
         const phoneForCode = ownPhone || phone || session.phoneNumber
         if (phoneForCode && !session.pairingCode) {
-            try {
-                const code = await getPairingCodeWithRetry(session.sock, phoneForCode, 2)
-                if (code) { session.pairingCode = code; updateSessionInDB(String(userId), { pairingCode: code, phoneForCode }) }
-            } catch (e) {}
+            try { const code = await getPairingCodeWithRetry(session.sock, phoneForCode, 2); if (code) { session.pairingCode = code; updateSessionInDB(String(userId), { pairingCode: code, phoneForCode }) } } catch (e) {}
         }
 
         if (session.qr) {
-            return res.json({ 
-                ok: true, connected: false, hasQR: true, qr: session.qr, qrImage: session.qrImage,
-                pairingCode: session.pairingCode,
-                pairingCodePlain: session.pairingCode ? session.pairingCode.replace(/-/g, '') : null,
-                pairingCodeFormatted: session.pairingCode,
-                userId: String(userId), phoneNumber: session.phoneNumber, phoneForPairing: phoneForCode,
-                instructions: 'Scan QR or enter pairing code',
-                copyableCode: session.pairingCode,
-                howTo: { qr: 'WhatsApp -> Settings -> Linked Devices -> Link a Device -> Scan QR', code: `WhatsApp -> Settings -> Linked Devices -> Link with phone number -> Enter code: ${session.pairingCode}` }
-            })
+            return res.json({ ok: true, connected: false, hasQR: true, qr: session.qr, qrImage: session.qrImage, pairingCode: session.pairingCode, pairingCodePlain: session.pairingCode ? session.pairingCode.replace(/-/g, '') : null, pairingCodeFormatted: session.pairingCode, userId: String(userId), phoneNumber: session.phoneNumber, phoneForPairing: phoneForCode, instructions: 'Scan QR or enter pairing code', copyableCode: session.pairingCode, howTo: { qr: 'WhatsApp -> Settings -> Linked Devices -> Link a Device -> Scan QR', code: `WhatsApp -> Settings -> Linked Devices -> Link with phone number -> Enter code: ${session.pairingCode}` } })
         }
         return res.json({ ok: false, connected: false, hasQR: false, error: 'QR not ready, try again in 2s', userId: String(userId), pairingCode: session.pairingCode })
     } catch (e) { console.error(`QR error: ${e} ${e.stack}`); res.status(500).json({ ok: false, error: e.message }) }
@@ -459,36 +393,24 @@ app.get('/qr-image', async (req, res) => {
     const userId = req.query.userId || req.query.user_id
     const session = sessions[String(userId)]
     if (!session || !session.qrImage) return res.status(404).json({ ok: false, error: 'QR not ready, call /qr first' })
-    try {
-        const base64Data = session.qrImage.replace(/^data:image\/png;base64,/, '')
-        const imgBuffer = Buffer.from(base64Data, 'base64')
-        res.set('Content-Type', 'image/png'); res.send(imgBuffer)
-    } catch (e) { res.status(500).json({ ok: false, error: e.message }) }
+    try { const base64Data = session.qrImage.replace(/^data:image\/png;base64,/, ''); const imgBuffer = Buffer.from(base64Data, 'base64'); res.set('Content-Type', 'image/png'); res.send(imgBuffer) } catch (e) { res.status(500).json({ ok: false, error: e.message }) }
 })
 
 app.get('/status', async (req, res) => {
     const userId = req.query.userId || req.query.user_id
-    if (!userId) return res.json({ ok: true, count: Object.keys(sessions).length, sessions: Object.keys(sessions).map(uid => ({ userId: uid, connected: sessions[uid].isConnected, hasQR: !!sessions[uid].qr, hasCode: !!sessions[uid].pairingCode, pairingCode: sessions[uid].pairingCode })), authBase: AUTH_BASE_DIR, authExists: fs.existsSync(AUTH_BASE_DIR), authFolders: fs.existsSync(AUTH_BASE_DIR) ? fs.readdirSync(AUTH_BASE_DIR) : [] })
+    if (!userId) return res.json({ ok: true, count: Object.keys(sessions).length, sessions: Object.keys(sessions).map(uid => ({ userId: uid, connected: sessions[uid].isConnected, hasQR: !!sessions[uid].qr, hasCode: !!sessions[uid].pairingCode, pairingCode: sessions[uid].pairingCode, groups: Object.keys(sessions[uid].groups||{}).length })), authBase: AUTH_BASE_DIR, authExists: fs.existsSync(AUTH_BASE_DIR), authFolders: fs.existsSync(AUTH_BASE_DIR) ? fs.readdirSync(AUTH_BASE_DIR) : [] })
     let session = sessions[String(userId)]
     if (!session) {
         const authFolder = path.join(AUTH_BASE_DIR, String(userId))
         if (fs.existsSync(authFolder)) {
             const files = fs.readdirSync(authFolder)
-            if (files.length < 2) {
-                console.log(`⚠️ Auth folder empty/corrupted for ${userId} at ${authFolder} - deleting`)
-                fullyDeleteSession(userId, false)
-                return res.json({ ok: false, connected: false, exists: false, empty: true, userId: String(userId), message: 'Auth folder empty - deleted, ready for fresh QR. Call /qr?force=true' })
-            }
+            if (files.length < 2) { console.log(`⚠️ Auth folder empty/corrupted for ${userId} at ${authFolder} - deleting`); fullyDeleteSession(userId, false); return res.json({ ok: false, connected: false, exists: false, empty: true, userId: String(userId), message: 'Auth folder empty - deleted, ready for fresh QR. Call /qr?force=true' }) }
             console.log(`♻️ Status check: ${userId} not in memory but auth exists (${files.length} files), restoring...`)
-            try {
-                session = await createSession(String(userId))
-                let attempts = 0
-                while (!session.isConnected && !session.qr && attempts < 10) { await new Promise(r => setTimeout(r, 500)); attempts++ }
-            } catch (e) { console.error(`❌ Restore failed for status ${userId}: ${e} ${e.stack}`) }
+            try { session = await createSession(String(userId)); let attempts = 0; while (!session.isConnected && !session.qr && attempts < 10) { await new Promise(r => setTimeout(r, 500)); attempts++ } } catch (e) { console.error(`❌ Restore failed for status ${userId}: ${e} ${e.stack}`) }
         }
     }
     if (!session) return res.json({ ok: false, connected: false, exists: false, userId: String(userId), authExists: fs.existsSync(path.join(AUTH_BASE_DIR, String(userId))) })
-    res.json({ ok: true, connected: session.isConnected, exists: true, hasQR: !!session.qr, hasCode: !!session.pairingCode, pairingCode: session.pairingCode, phone: session.phoneNumber, userId: String(userId) })
+    res.json({ ok: true, connected: session.isConnected, exists: true, hasQR: !!session.qr, hasCode: !!session.pairingCode, pairingCode: session.pairingCode, phone: session.phoneNumber, userId: String(userId), groups: Object.keys(session.groups||{}).length })
 })
 
 app.get('/chats', async (req, res) => {
@@ -498,11 +420,7 @@ app.get('/chats', async (req, res) => {
     if (!session) {
         const authFolder = path.join(AUTH_BASE_DIR, String(userId))
         if (fs.existsSync(authFolder)) {
-            try {
-                session = await createSession(String(userId))
-                let attempts = 0
-                while (!session.isConnected && attempts < 20) { await new Promise(r => setTimeout(r, 500)); attempts++ }
-            } catch (e) {}
+            try { session = await createSession(String(userId)); let attempts = 0; while (!session.isConnected && attempts < 20) { await new Promise(r => setTimeout(r, 500)); attempts++ } } catch (e) {}
         }
     }
     if (!session) return res.status(404).json({ ok: false, error: 'Session not found - please reconnect WhatsApp via QR', code: 'SESSION_NOT_FOUND' })
@@ -545,19 +463,12 @@ app.get('/pairing-code', async (req, res) => {
     if (!userId || !phone) return res.status(400).json({ ok: false, error: 'userId and phone required' })
     let session = sessions[String(userId)]
     if (!session) {
-        try {
-            session = await createSession(String(userId), phone)
-            let attempts = 0
-            while (!session.sock && attempts < 10) { await new Promise(r => setTimeout(r, 500)); attempts++ }
-        } catch (e) { return res.status(500).json({ ok: false, error: `Failed to create session: ${e.message}` }) }
+        try { session = await createSession(String(userId), phone); let attempts = 0; while (!session.sock && attempts < 10) { await new Promise(r => setTimeout(r, 500)); attempts++ } } catch (e) { return res.status(500).json({ ok: false, error: `Failed to create session: ${e.message}` }) }
     }
     try {
         const code = await getPairingCodeWithRetry(session.sock, phone, 3)
-        if (code) {
-            session.pairingCode = code; session.phoneNumber = phone
-            updateSessionInDB(String(userId), { pairingCode: code, phoneNumber: phone })
-            return res.json({ ok: true, pairingCode: code, pairingCodePlain: code.replace(/-/g, ''), userId: String(userId), phone })
-        } else { return res.status(500).json({ ok: false, error: `Failed to get pairing code for ${phone}` }) }
+        if (code) { session.pairingCode = code; session.phoneNumber = phone; updateSessionInDB(String(userId), { pairingCode: code, phoneNumber: phone }); return res.json({ ok: true, pairingCode: code, pairingCodePlain: code.replace(/-/g, ''), userId: String(userId), phone }) }
+        else { return res.status(500).json({ ok: false, error: `Failed to get pairing code for ${phone}` }) }
     } catch (e) { res.status(500).json({ ok: false, error: e.message }) }
 })
 
@@ -590,10 +501,7 @@ app.delete('/session', async (req, res) => {
     const deleteBackup = req.query.deleteBackup === 'true' || req.query.deleteBackup === '1' || force
     if (!userId) return res.status(400).json({ ok: false, error: 'userId required' })
     console.log(`🗑️ DELETE /session for ${userId} force=${force} deleteBackup=${deleteBackup}`)
-    try {
-        fullyDeleteSession(userId, deleteBackup)
-        res.json({ ok: true, deleted: true, userId: String(userId), force, deleteBackup, message: 'Session fully deleted - ready for fresh QR. Call /qr?force=true' })
-    } catch (e) { res.status(500).json({ ok: false, error: e.message }) }
+    try { fullyDeleteSession(userId, deleteBackup); res.json({ ok: true, deleted: true, userId: String(userId), force, deleteBackup, message: 'Session fully deleted - ready for fresh QR. Call /qr?force=true' }) } catch (e) { res.status(500).json({ ok: false, error: e.message }) }
 })
 
 app.post('/reset', async (req, res) => {
@@ -619,17 +527,36 @@ app.get('/restore', async (req, res) => {
         if (fs.existsSync(authFolder)) {
             const files = fs.readdirSync(authFolder)
             if (files.length < 2) { fullyDeleteSession(userId, false); return res.status(404).json({ ok: false, error: 'Auth folder empty - deleted, ready for fresh QR', empty: true, code: 'EMPTY_AUTH' }) }
-            try {
-                const session = await createSession(String(userId))
-                let attempts = 0
-                while (!session.isConnected && attempts < 20) { await new Promise(r => setTimeout(r, 500)); attempts++ }
-                return res.json({ ok: true, restored: true, connected: session.isConnected, userId: String(userId), files: files.length })
-            } catch (e) { return res.status(500).json({ ok: false, error: e.message }) }
+            try { const session = await createSession(String(userId)); let attempts = 0; while (!session.isConnected && attempts < 20) { await new Promise(r => setTimeout(r, 500)); attempts++ }; return res.json({ ok: true, restored: true, connected: session.isConnected, userId: String(userId), files: files.length }) } catch (e) { return res.status(500).json({ ok: false, error: e.message }) }
         } else { return res.status(404).json({ ok: false, error: `Auth folder not found`, code: 'NOT_FOUND' }) }
-    } else {
-        await restoreSessionsFromDisk()
-        return res.json({ ok: true, sessions: Object.keys(sessions).length, list: Object.keys(sessions).map(uid => ({ userId: uid, connected: sessions[uid].isConnected })) })
-    }
+    } else { await restoreSessionsFromDisk(); return res.json({ ok: true, sessions: Object.keys(sessions).length, list: Object.keys(sessions).map(uid => ({ userId: uid, connected: sessions[uid].isConnected })) }) }
+})
+
+// v6: clean sender keys and session files to force re-creation (fixes group No sessions)
+app.post('/clean-sessions', async (req, res) => {
+    const userId = req.body?.userId || req.query.userId || req.query.user_id
+    if (!userId) return res.status(400).json({ ok: false, error: 'userId required' })
+    try {
+        const authFolder = path.join(AUTH_BASE_DIR, String(userId))
+        if (!fs.existsSync(authFolder)) return res.status(404).json({ ok: false, error: 'Auth folder not found' })
+        const files = fs.readdirSync(authFolder)
+        let deleted = []
+        for (const f of files) {
+            if (f.startsWith('session-') || f.startsWith('sender-key-') || f.startsWith('app-state-sync-key-')) {
+                try { fs.rmSync(path.join(authFolder, f)); deleted.push(f) } catch(e) {}
+            }
+        }
+        console.log(`🧹 Cleaned ${deleted.length} session/sender-key files for ${userId}: ${deleted.join(', ')}`)
+        // Force reconnect to regenerate
+        try {
+            const session = sessions[String(userId)]
+            if (session && session.sock) { try { session.sock.end(undefined) } catch(e) {} }
+            delete sessions[String(userId)]
+            await new Promise(r => setTimeout(r, 1000))
+            await createSession(userId)
+        } catch(e) {}
+        res.json({ ok: true, deleted: deleted.length, files: deleted, message: 'Cleaned session files, reconnecting...' })
+    } catch (e) { res.status(500).json({ ok: false, error: e.message }) }
 })
 
 app.post('/send', async (req, res) => {
@@ -676,7 +603,6 @@ app.post('/send', async (req, res) => {
         }
     }
     
-    // v5: group No sessions retry logic
     async function doSend() {
         const { mediaType } = req.body
         if (imageBase64) {
@@ -699,44 +625,88 @@ app.post('/send', async (req, res) => {
         const errStack = e.stack || ''
         console.error(`❌ Send error to ${finalTo} via ${finalUserId}: ${errMsg}`)
 
-        // v5: If group and No sessions, try to fetch groups and retry once (common Baileys issue right after connect)
         const isGroup = finalTo.endsWith('@g.us')
         const isNoSessions = errMsg.includes('No sessions') || errStack.includes('No sessions') || errMsg.includes('SessionError')
 
         if (isGroup && isNoSessions) {
-            console.log(`🔄 Group No sessions for ${finalTo} - trying groupFetchAllParticipating + retry in 3s (auth has ${fs.existsSync(path.join(AUTH_BASE_DIR, String(finalUserId))) ? fs.readdirSync(path.join(AUTH_BASE_DIR, String(finalUserId))).length : 0} files)`)
+            console.log(`🔄 Group No sessions for ${finalTo} - trying advanced fix (auth has ${fs.existsSync(path.join(AUTH_BASE_DIR, String(finalUserId))) ? fs.readdirSync(path.join(AUTH_BASE_DIR, String(finalUserId))).length : 0} files)`)
             try {
-                // Force fetch groups to populate signal sessions
+                // Step 1: fetch groups and metadata
+                let participants = []
                 try {
                     const groups = await session.sock.groupFetchAllParticipating()
-                    console.log(`📋 Fetched ${Object.keys(groups).length} groups for retry`)
+                    console.log(`📋 Fetched ${Object.keys(groups).length} groups`)
                     session.groups = { ...session.groups, ...groups }
-                } catch (fetchErr) {
-                    console.log(`⚠️ groupFetch failed: ${fetchErr.message}, trying groupMetadata`)
+                    if (groups[finalTo]) {
+                        const meta = groups[finalTo]
+                        participants = (meta.participants || []).map(p => p.id || p)
+                        console.log(`👥 Group ${finalTo} participants from cache: ${participants.length}`)
+                    }
+                } catch (fetchErr) { console.log(`⚠️ groupFetch failed: ${fetchErr.message}`) }
+
+                if (participants.length === 0) {
                     try {
                         const meta = await session.sock.groupMetadata(finalTo)
                         console.log(`📋 groupMetadata for ${finalTo}: ${meta.subject} participants=${meta.participants?.length}`)
-                    } catch (metaErr) {
-                        console.log(`⚠️ groupMetadata failed: ${metaErr.message}`)
+                        participants = (meta.participants || []).map(p => p.id || p)
+                        session.groups[finalTo] = meta
+                    } catch (metaErr) { console.log(`⚠️ groupMetadata failed: ${metaErr.message}`) }
+                }
+
+                // Step 2: Try to ensure sessions for participants via onWhatsApp
+                if (participants.length > 0) {
+                    console.log(`🔍 Ensuring sessions for ${participants.length} participants...`)
+                    for (const p of participants.slice(0, 10)) { // limit to 10 to avoid spam
+                        try {
+                            if (p.includes('@s.whatsapp.net')) {
+                                await session.sock.onWhatsApp(p)
+                                await new Promise(r => setTimeout(r, 200))
+                            }
+                        } catch (e2) {}
                     }
                 }
+
                 await new Promise(r => setTimeout(r, 3000))
-                console.log(`🔄 Retrying send to ${finalTo} after group sync...`)
+                console.log(`🔄 Retrying send to ${finalTo} after participant sync...`)
                 const retryResult = await doSend()
                 console.log(`✅ Retry succeeded for ${finalTo}`)
-                return res.json({ ok: true, messageId: retryResult.key.id, to: finalTo, retried: true })
+                return res.json({ ok: true, messageId: retryResult.key.id, to: finalTo, retried: true, participants: participants.length })
             } catch (retryErr) {
                 console.error(`❌ Retry failed for ${finalTo}: ${retryErr.message}`)
-                // Don't delete session - it's valid, just group sync issue
+                // v6: Try cleaning sender-key files and retry one more time
+                try {
+                    console.log(`🧹 Trying to clean sender-key files for ${finalUserId} and retry...`)
+                    const authFolder = path.join(AUTH_BASE_DIR, String(finalUserId))
+                    if (fs.existsSync(authFolder)) {
+                        const files = fs.readdirSync(authFolder)
+                        let cleaned = 0
+                        for (const f of files) {
+                            if (f.startsWith('sender-key-') || f.startsWith('session-')) {
+                                try { fs.rmSync(path.join(authFolder, f)); cleaned++ } catch(e) {}
+                            }
+                        }
+                        console.log(`🧹 Cleaned ${cleaned} sender/session files`)
+                        if (cleaned > 0) {
+                            await new Promise(r => setTimeout(r, 2000))
+                            const retry2 = await doSend()
+                            console.log(`✅ Retry2 after cleaning succeeded for ${finalTo}`)
+                            return res.json({ ok: true, messageId: retry2.key.id, to: finalTo, retried: true, cleaned })
+                        }
+                    }
+                } catch (cleanErr) {
+                    console.error(`❌ Clean retry failed: ${cleanErr.message}`)
+                }
+
                 return res.status(500).json({ 
                     ok: false, 
-                    error: `No sessions for group ${finalTo} - group sync incomplete. Try again in 10s, or send group ID manually. If persists, leave and rejoin group or try different group.`, 
+                    error: `No sessions for group ${finalTo} - participants sessions missing. Baileys needs to receive a message in group first to get sender keys. Ask someone to send a message in group, or send from your main phone, then try again.`, 
                     to: finalTo, 
                     code: 'NO_SESSIONS_GROUP_RETRY_FAILED',
                     authFiles: fs.existsSync(path.join(AUTH_BASE_DIR, String(finalUserId))) ? fs.readdirSync(path.join(AUTH_BASE_DIR, String(finalUserId))).length : 0,
                     groupsCached: Object.keys(session.groups||{}).length,
-                    stack: retryErr.stack?.slice(0,500),
-                    suggestion: `Wait 15s, then call /chats?userId=${finalUserId} to sync groups, then retry send. Or try sending to your own number first: ${finalUserId}@s.whatsapp.net`
+                    stack: retryErr.stack?.slice(0,800),
+                    suggestion: `1. Ask someone to send a message in group ${finalTo} 2. Wait 10s 3. Call /chats?userId=${finalUserId} 4. Retry send. Or try POST /clean-sessions?userId=${finalUserId} then retry.`,
+                    fix: `curl -X POST http://localhost:3001/clean-sessions?userId=${finalUserId}`
                 })
             }
         }
@@ -763,7 +733,7 @@ app.post('/send', async (req, res) => {
 })
 
 app.listen(PORT, '0.0.0.0', async () => {
-    console.log(`🚀 WhatsApp FIXED v5 group-retry on 0.0.0.0:${PORT} - fixes 401 loop + 428 crashproof + group No sessions retry`)
+    console.log(`🚀 WhatsApp FIXED v6 group-participants on 0.0.0.0:${PORT} - fixes 401 loop + 428 crashproof + group No sessions with participant sync + sender-key clean`)
     console.log(`📁 Auth base: ${AUTH_BASE_DIR}`)
     setTimeout(() => { try { restoreSessionsFromDisk() } catch(e) { console.error(`Restore startup error: ${e}`) } }, 2000)
     setInterval(async () => {
