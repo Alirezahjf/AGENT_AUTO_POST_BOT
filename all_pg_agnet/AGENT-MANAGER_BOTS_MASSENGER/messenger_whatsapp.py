@@ -99,7 +99,7 @@ def _send_via_baileys(to, text, image_bytes=None, service_url=None, user_id=None
         except:
             pass
 
-        resp = requests.post(f"{service_url}/send", json=payload, timeout=45)
+        resp = requests.post(f"{service_url}/send", json=payload, timeout=60)
         if resp.status_code == 200:
             data = resp.json()
             if data.get("ok"):
@@ -112,24 +112,57 @@ def _send_via_baileys(to, text, image_bytes=None, service_url=None, user_id=None
                     logger.error(f"❌ WhatsApp No sessions for {user_id} - corrupted, needs force reset")
                 return False
         else:
-            full_text = resp.text[:2000]
+            full_text = resp.text[:3000]
             logger.warning(f"⚠️ Baileys {resp.status_code}: {full_text} for to={final_to} user={user_id}")
             try:
                 j = resp.json()
                 code = j.get("code","")
+                err_text = j.get("error","")
+                # v5: group No sessions is recoverable - don't delete, just sync groups and retry
+                if code == "NO_SESSIONS_GROUP_RETRY_FAILED":
+                    logger.info(f"🔄 Group No sessions for {final_to} - syncing groups then retrying...")
+                    try:
+                        # Force group sync
+                        chats_resp = requests.get(f"{service_url}/chats", params={"userId": str(user_id)}, timeout=45)
+                        logger.info(f"📋 Group sync for {user_id}: {chats_resp.status_code} {chats_resp.text[:500]}")
+                        time.sleep(3)
+                        # Retry send
+                        resp2 = requests.post(f"{service_url}/send", json=payload, timeout=60)
+                        if resp2.status_code == 200 and resp2.json().get("ok"):
+                            logger.info(f"✅ WhatsApp retry after group sync succeeded to {final_to}")
+                            return True
+                        else:
+                            logger.warning(f"⚠️ Retry after sync failed: {resp2.status_code} {resp2.text[:500]}")
+                    except Exception as sync_e:
+                        logger.error(f"❌ Group sync retry error: {sync_e}")
+                    return False
+
                 if code in ["NO_SESSIONS_CORRUPTED", "NO_SESSIONS_CORRUPTED_DELETED", "EMPTY_AUTH_CORRUPTED", "SESSION_NOT_FOUND", "EMPTY_AUTH"]:
                     logger.error(f"❌ WhatsApp corrupted code={code} for {user_id} - needs fresh QR")
                     return False
                 if resp.status_code in [404, 500, 503] and ("Session" in resp.text or "No sessions" in resp.text or "Not connected" in resp.text or "not found" in resp.text.lower()):
-                    logger.info(f"♻️ Trying restore for {user_id}...")
-                    restore_resp = requests.get(f"{service_url}/restore", params={"userId": str(user_id)}, timeout=15)
-                    time.sleep(2)
-                    status_resp = requests.get(f"{service_url}/status", params={"userId": str(user_id)}, timeout=10)
-                    time.sleep(1)
-                    resp2 = requests.post(f"{service_url}/send", json=payload, timeout=45)
-                    if resp2.status_code == 200 and resp2.json().get("ok"):
-                        logger.info(f"✅ WhatsApp retry succeeded to {final_to}")
-                        return True
+                    # For group No sessions, try group sync instead of restore
+                    if "@g.us" in final_to and "NO_SESSIONS" in resp.text:
+                        logger.info(f"♻️ Group No sessions - trying group sync for {user_id}...")
+                        try:
+                            requests.get(f"{service_url}/chats", params={"userId": str(user_id)}, timeout=30)
+                            time.sleep(3)
+                            resp2 = requests.post(f"{service_url}/send", json=payload, timeout=60)
+                            if resp2.status_code == 200 and resp2.json().get("ok"):
+                                logger.info(f"✅ WhatsApp group retry succeeded to {final_to}")
+                                return True
+                        except Exception as e2:
+                            logger.debug(f"Group sync retry error: {e2}")
+                    else:
+                        logger.info(f"♻️ Trying restore for {user_id}...")
+                        restore_resp = requests.get(f"{service_url}/restore", params={"userId": str(user_id)}, timeout=15)
+                        time.sleep(2)
+                        status_resp = requests.get(f"{service_url}/status", params={"userId": str(user_id)}, timeout=10)
+                        time.sleep(1)
+                        resp2 = requests.post(f"{service_url}/send", json=payload, timeout=60)
+                        if resp2.status_code == 200 and resp2.json().get("ok"):
+                            logger.info(f"✅ WhatsApp retry succeeded to {final_to}")
+                            return True
             except Exception as e:
                 logger.debug(f"Restore parse error: {e}")
             return False

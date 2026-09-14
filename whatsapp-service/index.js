@@ -398,8 +398,8 @@ async function getPairingCodeWithRetry(sock, phoneNumber, retries = 3) {
 app.get('/', (req, res) => {
     try {
         const list = Object.keys(sessions).map(uid => ({ userId: uid, connected: sessions[uid].isConnected, hasQR: !!sessions[uid].qr, hasCode: !!sessions[uid].pairingCode, phone: sessions[uid].phoneNumber }))
-        res.json({ status: 'ok', service: 'whatsapp-fixed-v4-nobackuploop', uptime: process.uptime(), sessionsCount: list.length, sessions: list })
-    } catch (e) { res.json({ status: 'ok', service: 'whatsapp-fixed-v4-nobackuploop', uptime: process.uptime(), error: e.message }) }
+        res.json({ status: 'ok', service: 'whatsapp-fixed-v5-group-retry', uptime: process.uptime(), sessionsCount: list.length, sessions: list })
+    } catch (e) { res.json({ status: 'ok', service: 'whatsapp-fixed-v5-group-retry', uptime: process.uptime(), error: e.message }) }
 })
 
 app.get('/qr', async (req, res) => {
@@ -676,29 +676,78 @@ app.post('/send', async (req, res) => {
         }
     }
     
-    try {
-        await new Promise(r => setTimeout(r, 500))
-        let result
+    // v5: group No sessions retry logic
+    async function doSend() {
         const { mediaType } = req.body
-        console.log(`📤 Attempting send to ${finalTo} via ${finalUserId}`)
         if (imageBase64) {
             const buffer = Buffer.from(imageBase64, 'base64')
-            if (mediaType === 'video') result = await session.sock.sendMessage(finalTo, { video: buffer, caption: text || '' })
-            else if (mediaType === 'document') result = await session.sock.sendMessage(finalTo, { document: buffer, mimetype: 'application/octet-stream', fileName: 'file', caption: text || '' })
-            else result = await session.sock.sendMessage(finalTo, { image: buffer, caption: text || '' })
-        } else { result = await session.sock.sendMessage(finalTo, { text: text || 'Hi' }) }
+            if (mediaType === 'video') return await session.sock.sendMessage(finalTo, { video: buffer, caption: text || '' })
+            else if (mediaType === 'document') return await session.sock.sendMessage(finalTo, { document: buffer, mimetype: 'application/octet-stream', fileName: 'file', caption: text || '' })
+            else return await session.sock.sendMessage(finalTo, { image: buffer, caption: text || '' })
+        } else {
+            return await session.sock.sendMessage(finalTo, { text: text || 'Hi' })
+        }
+    }
+
+    try {
+        await new Promise(r => setTimeout(r, 800))
+        console.log(`📤 Attempting send to ${finalTo} via ${finalUserId} (groups cache: ${Object.keys(session.groups||{}).length})`)
+        let result = await doSend()
         res.json({ ok: true, messageId: result.key.id, to: finalTo })
     } catch(e) {
         const errMsg = e.message || ''
         const errStack = e.stack || ''
         console.error(`❌ Send error to ${finalTo} via ${finalUserId}: ${errMsg}`)
-        if (errMsg.includes('No sessions') || errStack.includes('No sessions') || errMsg.includes('SessionError')) {
-            console.log(`🔥 No sessions detected for ${finalUserId} - signal keys corrupted!`)
+
+        // v5: If group and No sessions, try to fetch groups and retry once (common Baileys issue right after connect)
+        const isGroup = finalTo.endsWith('@g.us')
+        const isNoSessions = errMsg.includes('No sessions') || errStack.includes('No sessions') || errMsg.includes('SessionError')
+
+        if (isGroup && isNoSessions) {
+            console.log(`🔄 Group No sessions for ${finalTo} - trying groupFetchAllParticipating + retry in 3s (auth has ${fs.existsSync(path.join(AUTH_BASE_DIR, String(finalUserId))) ? fs.readdirSync(path.join(AUTH_BASE_DIR, String(finalUserId))).length : 0} files)`)
+            try {
+                // Force fetch groups to populate signal sessions
+                try {
+                    const groups = await session.sock.groupFetchAllParticipating()
+                    console.log(`📋 Fetched ${Object.keys(groups).length} groups for retry`)
+                    session.groups = { ...session.groups, ...groups }
+                } catch (fetchErr) {
+                    console.log(`⚠️ groupFetch failed: ${fetchErr.message}, trying groupMetadata`)
+                    try {
+                        const meta = await session.sock.groupMetadata(finalTo)
+                        console.log(`📋 groupMetadata for ${finalTo}: ${meta.subject} participants=${meta.participants?.length}`)
+                    } catch (metaErr) {
+                        console.log(`⚠️ groupMetadata failed: ${metaErr.message}`)
+                    }
+                }
+                await new Promise(r => setTimeout(r, 3000))
+                console.log(`🔄 Retrying send to ${finalTo} after group sync...`)
+                const retryResult = await doSend()
+                console.log(`✅ Retry succeeded for ${finalTo}`)
+                return res.json({ ok: true, messageId: retryResult.key.id, to: finalTo, retried: true })
+            } catch (retryErr) {
+                console.error(`❌ Retry failed for ${finalTo}: ${retryErr.message}`)
+                // Don't delete session - it's valid, just group sync issue
+                return res.status(500).json({ 
+                    ok: false, 
+                    error: `No sessions for group ${finalTo} - group sync incomplete. Try again in 10s, or send group ID manually. If persists, leave and rejoin group or try different group.`, 
+                    to: finalTo, 
+                    code: 'NO_SESSIONS_GROUP_RETRY_FAILED',
+                    authFiles: fs.existsSync(path.join(AUTH_BASE_DIR, String(finalUserId))) ? fs.readdirSync(path.join(AUTH_BASE_DIR, String(finalUserId))).length : 0,
+                    groupsCached: Object.keys(session.groups||{}).length,
+                    stack: retryErr.stack?.slice(0,500),
+                    suggestion: `Wait 15s, then call /chats?userId=${finalUserId} to sync groups, then retry send. Or try sending to your own number first: ${finalUserId}@s.whatsapp.net`
+                })
+            }
+        }
+
+        if (isNoSessions) {
+            console.log(`🔥 No sessions detected for ${finalUserId} - checking auth corruption`)
             try {
                 const authFolder = path.join(AUTH_BASE_DIR, String(finalUserId))
                 if (fs.existsSync(authFolder)) {
                     const files = fs.readdirSync(authFolder)
-                    console.log(`📂 Auth folder for ${finalUserId} has ${files.length} files: ${files.join(', ')}`)
+                    console.log(`📂 Auth folder for ${finalUserId} has ${files.length} files`)
                     if (files.length < 3) {
                         console.log(`🔥 Auth folder corrupted (<3 files), fully deleting for ${finalUserId}`)
                         fullyDeleteSession(finalUserId, true)
@@ -706,14 +755,15 @@ app.post('/send', async (req, res) => {
                     }
                 }
             } catch (delErr) { console.error(`Failed to auto-delete corrupted session: ${delErr}`) }
-            return res.status(500).json({ ok: false, error: `No sessions - signal keys missing for ${finalTo}. Session corrupted, need to reset: DELETE /session?userId=${finalUserId}&force=true then /qr?force=true`, to: finalTo, code: 'NO_SESSIONS_CORRUPTED', stack: errStack.slice(0,500), sessionsKeys: Object.keys(sessions), connected: session?.isConnected, suggestion: `curl -X DELETE http://localhost:3001/session?userId=${finalUserId}&force=true && curl http://localhost:3001/qr?userId=${finalUserId}&force=true&phone=YOUR_OWN_NUMBER` })
+            return res.status(500).json({ ok: false, error: `No sessions - signal keys missing for ${finalTo}. For groups, wait 15s after connect and call /chats first. If private chat, need to reset: DELETE /session?userId=${finalUserId}&force=true then /qr?force=true`, to: finalTo, code: 'NO_SESSIONS_CORRUPTED', stack: errStack.slice(0,500), sessionsKeys: Object.keys(sessions), connected: session?.isConnected, suggestion: `curl -X DELETE http://localhost:3001/session?userId=${finalUserId}&force=true && curl http://localhost:3001/qr?userId=${finalUserId}&force=true&phone=YOUR_OWN_NUMBER` })
         }
+
         res.status(500).json({ ok: false, error: e.message, to: finalTo, stack: e.stack?.slice(0,500), code: 'SEND_FAILED' })
     }
 })
 
 app.listen(PORT, '0.0.0.0', async () => {
-    console.log(`🚀 WhatsApp FIXED v4 nobackuploop on 0.0.0.0:${PORT} - fixes 401 loop + 428 crashproof`)
+    console.log(`🚀 WhatsApp FIXED v5 group-retry on 0.0.0.0:${PORT} - fixes 401 loop + 428 crashproof + group No sessions retry`)
     console.log(`📁 Auth base: ${AUTH_BASE_DIR}`)
     setTimeout(() => { try { restoreSessionsFromDisk() } catch(e) { console.error(`Restore startup error: ${e}`) } }, 2000)
     setInterval(async () => {
