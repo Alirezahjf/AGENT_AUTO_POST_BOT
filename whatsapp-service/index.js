@@ -592,7 +592,7 @@ app.post('/restore-appstate', async (req, res) => {
     } catch (e) { res.status(500).json({ ok: false, error: e.message }) }
 })
 
-// v7: Force sync group participants and build sessions
+// v7: Force sync group participants and build sessions - with LID support
 app.post('/force-group-sync', async (req, res) => {
     const userId = req.body?.userId || req.query.userId || req.query.user_id
     const groupId = req.body?.groupId || req.query.groupId || '120363312386194255@g.us'
@@ -601,27 +601,44 @@ app.post('/force-group-sync', async (req, res) => {
     if (!session) return res.status(404).json({ ok: false, error: 'Session not found' })
     if (!session.isConnected) return res.status(503).json({ ok: false, error: 'Not connected' })
     try {
-        console.log(`🔧 Force group sync for ${userId} group ${groupId}`)
+        console.log(`🔧 Force group sync for ${userId} group ${groupId} (LID support)`)
         let participants = []
+        let meta = null
         try {
-            const meta = await session.sock.groupMetadata(groupId)
+            meta = await session.sock.groupMetadata(groupId)
             participants = (meta.participants || []).map(p => p.id || p)
-            console.log(`👥 Group ${groupId} has ${participants.length} participants`)
+            console.log(`👥 Group ${groupId} has ${participants.length} participants: ${participants.slice(0,3).join(', ')}...`)
             session.groups[groupId] = meta
         } catch (e) { console.log(`groupMetadata failed: ${e.message}`) }
 
         let onWhatsAppResults = []
+        let lidMappings = []
         for (const p of participants) {
-            if (!p.includes('@s.whatsapp.net')) continue
             if (p === session.sock.user?.id) continue
             try {
-                const result = await session.sock.onWhatsApp(p)
-                onWhatsAppResults.push({ jid: p, exists: result?.[0]?.exists })
+                if (p.endsWith('@lid')) {
+                    // Try to get PN for LID via lidMapping
+                    try {
+                        const pn = await session.sock.signalRepository?.lidMapping?.getPNForLID(p)
+                        console.log(`   LID ${p} -> PN ${pn}`)
+                        if (pn) {
+                            lidMappings.push({ lid: p, pn })
+                            const result = await session.sock.onWhatsApp(pn)
+                            onWhatsAppResults.push({ jid: p, pn, exists: result?.[0]?.exists, type: 'lid->pn' })
+                        } else {
+                            onWhatsAppResults.push({ jid: p, error: 'No PN mapping found', type: 'lid' })
+                        }
+                    } catch (e) {
+                        onWhatsAppResults.push({ jid: p, error: e.message, type: 'lid' })
+                    }
+                } else if (p.includes('@s.whatsapp.net')) {
+                    const result = await session.sock.onWhatsApp(p)
+                    onWhatsAppResults.push({ jid: p, exists: result?.[0]?.exists, type: 'pn' })
+                }
                 await new Promise(r => setTimeout(r, 300))
             } catch (e) { onWhatsAppResults.push({ jid: p, error: e.message }) }
         }
 
-        // Try to get sender keys by waiting for messages
         await new Promise(r => setTimeout(r, 2000))
 
         const authFolder = path.join(AUTH_BASE_DIR, String(userId))
@@ -629,8 +646,8 @@ app.post('/force-group-sync', async (req, res) => {
         const senderKeys = files.filter(f => f.startsWith('sender-key-') && f.includes(groupId.split('@')[0]))
         const sessionFiles = files.filter(f => f.startsWith('session-'))
 
-        res.json({ ok: true, groupId, participants: participants.length, participantList: participants, onWhatsApp: onWhatsAppResults, senderKeys: senderKeys.length, senderKeyFiles: senderKeys, sessionFiles: sessionFiles.length, authFiles: files.length })
-    } catch (e) { res.status(500).json({ ok: false, error: e.message, stack: e.stack?.slice(0,500) }) }
+        res.json({ ok: true, groupId, participants: participants.length, participantList: participants, onWhatsApp: onWhatsAppResults, lidMappings, senderKeys: senderKeys.length, senderKeyFiles: senderKeys, sessionFiles: sessionFiles.length, authFiles: files.length })
+    } catch (e) { res.status(500).json({ ok: false, error: e.message, stack: e.stack?.slice(0,800) }) }
 })
 
 app.post('/send', async (req, res) => {
