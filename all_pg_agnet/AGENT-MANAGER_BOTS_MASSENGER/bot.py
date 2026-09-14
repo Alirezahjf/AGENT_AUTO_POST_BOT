@@ -534,21 +534,31 @@ def parse_date_input(chat_id, text_input):
 # ========== توابع کمکی - ارسال پیام ==========
 
 def send_message(chat_id, text, keyboard=None):
-    """ارسال پیام"""
+    """ارسال پیام - با retry مقاوم در برابر قطعی DNS/اینترنت"""
     global config
     api = f"https://tapi.bale.ai/bot{config['messengers']['bale']['bot_token']}"
     data = {"chat_id": chat_id, "text": text}
     if keyboard:
         data["reply_markup"] = keyboard
 
-    try:
-        requests.post(f"{api}/sendMessage", json=data, timeout=10)
-    except Exception as e:
-        logger.error(f"❌ خطا در ارسال پیام: {e}")
+    for attempt in range(3):
+        try:
+            resp = requests.post(f"{api}/sendMessage", json=data, timeout=15)
+            if resp.status_code == 200:
+                return True
+            else:
+                logger.error(f"❌ send_message HTTP {resp.status_code} attempt {attempt+1}: {resp.text[:200]}")
+                if attempt < 2:
+                    import time; time.sleep(1+attempt)
+        except Exception as e:
+            logger.error(f"❌ خطا در ارسال پیام (attempt {attempt+1}/3): {e}")
+            if attempt < 2:
+                import time; time.sleep(2)
+    return False
 
 
 def edit_message(chat_id, message_id, text, keyboard=None):
-    """ویرایش پیام"""
+    """ویرایش پیام - با retry"""
     global config
     api = f"https://tapi.bale.ai/bot{config['messengers']['bale']['bot_token']}"
     data = {
@@ -559,14 +569,19 @@ def edit_message(chat_id, message_id, text, keyboard=None):
     if keyboard:
         data["reply_markup"] = keyboard
 
-    try:
-        requests.post(f"{api}/editMessageText", json=data, timeout=10)
-    except Exception as e:
-        logger.error(f"❌ خطا در ویرایش پیام: {e}")
+    for attempt in range(3):
+        try:
+            requests.post(f"{api}/editMessageText", json=data, timeout=15)
+            return True
+        except Exception as e:
+            logger.error(f"❌ خطا در ویرایش پیام attempt {attempt+1}: {e}")
+            if attempt < 2:
+                import time; time.sleep(1)
+    return False
 
 
 def send_photo(chat_id, photo_id, caption=None, keyboard=None):
-    """ارسال عکس"""
+    """ارسال عکس - با retry"""
     global config
     api = f"https://tapi.bale.ai/bot{config['messengers']['bale']['bot_token']}"
     data = {"chat_id": chat_id, "photo": photo_id}
@@ -575,14 +590,19 @@ def send_photo(chat_id, photo_id, caption=None, keyboard=None):
     if keyboard:
         data["reply_markup"] = keyboard
 
-    try:
-        requests.post(f"{api}/sendPhoto", json=data, timeout=10)
-    except Exception as e:
-        logger.error(f"❌ خطا در ارسال عکس: {e}")
+    for attempt in range(3):
+        try:
+            requests.post(f"{api}/sendPhoto", json=data, timeout=20)
+            return True
+        except Exception as e:
+            logger.error(f"❌ خطا در ارسال عکس attempt {attempt+1}: {e}")
+            if attempt < 2:
+                import time; time.sleep(1)
+    return False
 
 
 def send_video(chat_id, video_id, caption=None, keyboard=None):
-    """ارسال ویدیو"""
+    """ارسال ویدیو - با retry"""
     global config
     api = f"https://tapi.bale.ai/bot{config['messengers']['bale']['bot_token']}"
     data = {"chat_id": chat_id, "video": video_id}
@@ -591,10 +611,15 @@ def send_video(chat_id, video_id, caption=None, keyboard=None):
     if keyboard:
         data["reply_markup"] = keyboard
 
-    try:
-        requests.post(f"{api}/sendVideo", json=data, timeout=10)
-    except Exception as e:
-        logger.error(f"❌ خطا در ارسال ویدیو: {e}")
+    for attempt in range(3):
+        try:
+            requests.post(f"{api}/sendVideo", json=data, timeout=20)
+            return True
+        except Exception as e:
+            logger.error(f"❌ خطا در ارسال ویدیو attempt {attempt+1}: {e}")
+            if attempt < 2:
+                import time; time.sleep(1)
+    return False
 
 
 def send_local_photo(chat_id, file_path, caption=None, keyboard=None):
@@ -1966,22 +1991,45 @@ def handle_message(message, callback_data=None):
     if text and text != "/start":
         auth_manager.log_activity(chat_id, "action", text[:50])
 
+    # ========== خرید حتی برای کاربران تایید شده (تستی که می‌خواهد دائمی بخرد) =========
+    if text in ["/buy", "💳 خرید دسترسی", "خرید", "buy"] or (callback_data == "auth_buy_access" and user_is_approved):
+        from auth_handlers import _handle_buy_access
+        _handle_buy_access(chat_id, username, bot_token, user_states)
+        return
+    if callback_data == "auth_confirm_purchase" and user_is_approved:
+        from auth_handlers import handle_purchase_confirm
+        handle_purchase_confirm(chat_id, username, bot_token)
+        clear_state(chat_id)
+        return
+    if callback_data == "auth_back_to_menu" and user_is_approved:
+        clear_state(chat_id)
+        send_message(chat_id, t(chat_id, "main_menu"), create_main_keyboard(chat_id))
+        return
+
     # ========== انتخاب زبان ==========
     if text == "/start":
         if str(chat_id) not in config.get("user_languages", {}):
             keyboard = create_language_keyboard()
             send_message(chat_id, LANGUAGES["en"]["welcome"], keyboard)
         else:
-            # اگر کاربر تستی است، باقی مانده تست را نمایش بده
+            # اگر کاربر تستی است، باقی مانده تست را نمایش بده + دکمه خرید
             trial_msg = ""
+            extra_keyboard = None
             if user_info and user_info.get('is_trial') and not user_info.get('trial_expired'):
                 remaining_h = user_info.get('trial_remaining_hours', 24)
                 trial_end = user_info.get('trial_end', '')
                 if get_user_lang(chat_id) == "fa":
                     trial_msg = f"\n\n🎁 *تست رایگان فعال:* {remaining_h:.1f} ساعت باقی مانده\n⏰ تا: {trial_end}\n💡 پس از اتمام، خرید 20 میلیون برای دائمی"
+                    extra_keyboard = {
+                        "inline_keyboard": [
+                            [{"text": "💳 خرید دسترسی دائمی - 20 میلیون", "callback_data": "auth_buy_access"}]
+                        ]
+                    }
                 else:
                     trial_msg = f"\n\n🎁 Trial: {remaining_h:.1f}h left until {trial_end}"
             send_message(chat_id, t(chat_id, "main_menu") + trial_msg, create_main_keyboard(chat_id))
+            if extra_keyboard:
+                send_message(chat_id, "💳 برای خرید دائمی و حذف محدودیت تست:", extra_keyboard)
         return
 
     elif callback_data and callback_data.startswith("lang_"):
@@ -5301,18 +5349,25 @@ def handle_message(message, callback_data=None):
 # ========== دریافت آپدیت‌ها ==========
 
 def get_updates(offset=None):
-    """دریافت update‌های جدید"""
+    """دریافت update‌های جدید - با retry مقاوم"""
     global config
     api = f"https://tapi.bale.ai/bot{config['messengers']['bale']['bot_token']}"
     params = {"timeout": 30}
     if offset:
         params["offset"] = offset
 
-    try:
-        response = requests.get(f"{api}/getUpdates", params=params, timeout=35)
-        return response.json()
-    except Exception:
-        return {"ok": False}
+    for attempt in range(3):
+        try:
+            response = requests.get(f"{api}/getUpdates", params=params, timeout=35)
+            return response.json()
+        except Exception as e:
+            if attempt == 0:
+                logger.warning(f"⚠️ getUpdates failed attempt {attempt+1}: {e} - retrying...")
+            if attempt < 2:
+                import time; time.sleep(2)
+            else:
+                logger.error(f"❌ getUpdates failed after 3 attempts: {e} - likely DNS/internet issue")
+                return {"ok": False}
 
 
 # ========== تابع اصلی ==========

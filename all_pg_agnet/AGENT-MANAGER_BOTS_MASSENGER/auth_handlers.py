@@ -61,7 +61,7 @@ def create_auth_keyboard_en():
 # ========== ارسال پیام ==========
 
 def send_message(chat_id, text, keyboard=None, bot_token=None):
-    """ارسال پیام به کاربر"""
+    """ارسال پیام به کاربر - با retry مقاوم در برابر قطعی DNS/اینترنت"""
     if not bot_token:
         config = load_config()
         bot_token = config['messengers']['bale']['bot_token']
@@ -72,36 +72,50 @@ def send_message(chat_id, text, keyboard=None, bot_token=None):
     if keyboard:
         data["reply_markup"] = keyboard
 
-    try:
-        response = requests.post(f"{api}/sendMessage", json=data, timeout=10)
-        if response.status_code == 200:
-            logger.debug(f"✅ پیام برای {chat_id} ارسال شد")
-        else:
-            logger.error(f"❌ خطا در ارسال پیام: {response.status_code}")
-    except Exception as e:
-        logger.error(f"❌ خطا در ارسال پیام: {e}")
+    # Retry 3 بار برای مقاومت در برابر قطعی موقت DNS/اینترنت
+    for attempt in range(3):
+        try:
+            response = requests.post(f"{api}/sendMessage", json=data, timeout=15)
+            if response.status_code == 200:
+                logger.debug(f"✅ پیام برای {chat_id} ارسال شد (attempt {attempt+1})")
+                return True
+            else:
+                logger.error(f"❌ خطا در ارسال پیام: {response.status_code} - {response.text[:200]} (attempt {attempt+1})")
+                if attempt < 2:
+                    import time; time.sleep(1 + attempt)
+        except Exception as e:
+            logger.error(f"❌ خطا در ارسال پیام (attempt {attempt+1}/3): {e}")
+            if attempt < 2:
+                import time; time.sleep(2)
+            else:
+                logger.error(f"❌ ارسال پیام برای {chat_id} پس از 3 تلاش ناموفق ماند - احتمال قطعی اینترنت/DNS سرور")
+    return False
 
 
 def send_invoice_to_user(chat_id, bot_token):
     """
-    ارسال درخواست پرداخت (invoice) به کاربر
-
-    Args:
-        chat_id: شناسه چت کاربر
-        bot_token: توکن ربات
-
-    Returns:
-        bool: موفقیت ارسال
+    ارسال درخواست پرداخت (invoice) به کاربر - با retry و پیام‌های واضح
     """
     wallet_token = get_wallet_token()
 
     if not wallet_token:
-        logger.error("❌ wallet_token در config.json تنظیم نشده!")
-        send_message(
-            chat_id,
-            "❌ سیستم پرداخت در حال حاضر در دسترس نیست. لطفاً با پشتیبانی تماس بگیرید.",
-            bot_token=bot_token
+        logger.error("❌ wallet_token در config.json تنظیم نشده! پرداخت ممکن نیست")
+        msg = (
+            "❌ *سیستم پرداخت خودکار تنظیم نشده*\n\n"
+            "💡 ادمین باید `wallet_token` را در `config.json` تنظیم کند.\n\n"
+            "🔧 راه‌حل موقت:\n"
+            "• با پشتیبانی تماس بگیرید\n"
+            "• یا از ادمین بخواهید دستی شما را تایید کند\n"
+            "• یا اگر تست رایگان دارید، فعلاً از ربات استفاده کنید\n\n"
+            "📞 برای پرداخت دستی به ادمین پیام دهید."
         )
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "📝 درخواست دسترسی به ادمین", "callback_data": "auth_request_access"}],
+                [{"text": "🔙 بازگشت", "callback_data": "auth_back_to_menu"}]
+            ]
+        }
+        send_message(chat_id, msg, keyboard, bot_token=bot_token)
         return False
 
     api = f"https://tapi.bale.ai/bot{bot_token}"
@@ -128,31 +142,46 @@ def send_invoice_to_user(chat_id, bot_token):
         ]
     }
 
-    try:
-        response = requests.post(f"{api}/sendInvoice", json=data, timeout=15)
-        result = response.json()
+    for attempt in range(3):
+        try:
+            response = requests.post(f"{api}/sendInvoice", json=data, timeout=20)
+            result = response.json()
 
-        if result.get("ok"):
-            logger.info(f"✅ فاکتور پرداخت برای {chat_id} ارسال شد")
-            return True
-        else:
-            error_desc = result.get('description', 'خطای نامشخص')
-            logger.error(f"❌ خطا در ارسال فاکتور: {error_desc}")
-            send_message(
-                chat_id,
-                f"❌ خطا در ایجاد درخواست پرداخت: {error_desc}",
-                bot_token=bot_token
-            )
-            return False
+            if result.get("ok"):
+                logger.info(f"✅ فاکتور پرداخت برای {chat_id} ارسال شد (attempt {attempt+1})")
+                return True
+            else:
+                error_desc = result.get('description', 'خطای نامشخص')
+                logger.error(f"❌ خطا در ارسال فاکتور (attempt {attempt+1}): {error_desc} - full={result}")
+                if "PAYMENT_PROVIDER_INVALID" in error_desc or "provider" in error_desc.lower():
+                    send_message(
+                        chat_id,
+                        f"❌ توکن کیف پول نامعتبر است!\n\nادمین باید wallet_token را چک کند.\nخطا: {error_desc}\n\nلطفاً با ادمین تماس بگیرید.",
+                        bot_token=bot_token
+                    )
+                    return False
+                if attempt < 2:
+                    time.sleep(2)
+                else:
+                    send_message(
+                        chat_id,
+                        f"❌ خطا در ایجاد درخواست پرداخت: {error_desc}\n\nلطفاً دوباره تلاش کنید یا با پشتیبانی تماس بگیرید.",
+                        bot_token=bot_token
+                    )
+                    return False
 
-    except Exception as e:
-        logger.error(f"❌ Exception در send_invoice: {e}")
-        send_message(
-            chat_id,
-            "❌ خطا در اتصال به سرویس پرداخت. لطفاً دوباره تلاش کنید.",
-            bot_token=bot_token
-        )
-        return False
+        except Exception as e:
+            logger.error(f"❌ Exception در send_invoice attempt {attempt+1}: {e}")
+            if attempt < 2:
+                time.sleep(2)
+            else:
+                send_message(
+                    chat_id,
+                    "❌ خطا در اتصال به سرویس پرداخت (احتمال قطعی اینترنت سرور).\nلطفاً 1 دقیقه بعد دوباره روی پرداخت بزنید.",
+                    bot_token=bot_token
+                )
+                return False
+    return False
 
 
 def answer_pre_checkout_query(pre_checkout_query_id, bot_token,
@@ -208,11 +237,13 @@ def handle_unauthenticated_user(message, bot_token):
                     f"👋 {username} عزیز، تست رایگان 1 روزه شما به پایان رسید.\n\n"
                     f"💳 برای ادامه استفاده، لطفاً اشتراک تهیه کنید:\n"
                     f"💰 مبلغ: {amount_toman:,} تومان (20 میلیون)\n\n"
-                    f"✅ پس از پرداخت دسترسی دائمی خواهید داشت"
+                    f"✅ پس از پرداخت دسترسی دائمی خواهید داشت\n\n"
+                    f"یا درخواست دسترسی به ادمین بدهید:"
                 )
                 keyboard = {
                     "inline_keyboard": [
-                        [{"text": "💳 خرید دسترسی - 20 میلیون", "callback_data": "auth_buy_access"}]
+                        [{"text": "💳 خرید دسترسی - 20 میلیون", "callback_data": "auth_buy_access"}],
+                        [{"text": "📝 درخواست دسترسی به ادمین", "callback_data": "auth_request_access"}]
                     ]
                 }
                 send_message(chat_id, msg, keyboard, bot_token=bot_token)
@@ -245,7 +276,7 @@ def handle_unauthenticated_user(message, bot_token):
             send_message(chat_id, msg, keyboard, bot_token=bot_token)
             return False
 
-    # کاربر جدید - خودکار تست 1 روزه رایگان بده
+    # کاربر جدید - خودکار تست 1 روزه رایگان بده (درخواست دسترسی حذف نشده، فقط خودکار تست می‌دهد)
     logger.info(f"🆕 کاربر جدید {chat_id} - ثبت با تست 1 روزه رایگان")
     result = auth_manager.register_user(chat_id, username)
     if result.get('success') and result.get('is_trial'):
@@ -265,16 +296,18 @@ def handle_unauthenticated_user(message, bot_token):
         keyboard = {
             "inline_keyboard": [
                 [{"text": "🚀 شروع استفاده", "callback_data": "main_menu"}],
-                [{"text": "💳 خرید دسترسی دائمی - 20 میلیون", "callback_data": "auth_buy_access"}]
+                [{"text": "💳 خرید دسترسی دائمی - 20 میلیون", "callback_data": "auth_buy_access"}],
+                [{"text": "📝 درخواست دسترسی به ادمین", "callback_data": "auth_request_access"}]
             ]
         }
         send_message(chat_id, msg, keyboard, bot_token=bot_token)
         return True
     else:
-        # fallback قدیمی
+        # fallback قدیمی - اگر ثبت با تست شکست خورد، روش قدیمی را نشان بده
         msg = (
             f"👋 خوش‌آمدید {username}!\n\n"
-            f"🔐 برای استفاده از ربات، لطفاً یکی از روش‌های زیر را انتخاب کنید:"
+            f"🔐 برای استفاده از ربات، لطفاً یکی از روش‌های زیر را انتخاب کنید:\n\n"
+            f"🎁 کاربران جدید 1 روز تست رایگان دارند!"
         )
         keyboard = create_auth_keyboard_fa()
         send_message(chat_id, msg, keyboard, bot_token=bot_token)
