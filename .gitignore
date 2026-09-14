@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+
+# Config & secrets
+config.json
+users/
+*.db
+*.sqlite
+*.sqlite3
+.env
+.env.local
+
+# Logs & PIDs
+*.log
+logs/
+*.pid
+whatsapp.log
+bot.log
+
+# WhatsApp sessions & node_modules
+whatsapp-service/node_modules/
+whatsapp-service/auth/
+whatsapp-service/package-lock.json
+node_modules/
+
+# Product caches - ID only now
+known_products.json
+new_products.json
+sent_products.json
+known_product_ids.json
+sent_product_ids.json
+
+# Backups & Zips
+*.zip
+*.tar.gz
+AGENT_AUTO_POST_BOT_*.zip
+*BACKUP*.zip
+*backup*.zip
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Arena
+.arena/

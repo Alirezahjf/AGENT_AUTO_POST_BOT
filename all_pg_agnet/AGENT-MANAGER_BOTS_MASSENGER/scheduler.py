@@ -24,6 +24,27 @@ from config import (
 import messenger_bale
 import messenger_rubika
 import messenger_eitaa
+import messenger_telegram
+import messenger_whatsapp
+
+# Cache AuthManager to avoid recreating every 30s
+_auth_manager_instance = None
+def get_auth_manager():
+    global _auth_manager_instance
+    if _auth_manager_instance is None:
+        from auth_manager import AuthManager
+        _auth_manager_instance = AuthManager()
+    return _auth_manager_instance
+
+
+MESSENGER_LIST = ["bale", "rubika", "eitaa", "telegram", "whatsapp"]
+MESSENGER_EMOJIS = {
+    "bale": "🔵 Bale",
+    "rubika": "🟢 Rubika",
+    "eitaa": "🟡 Eitaa",
+    "telegram": "✈️ Telegram",
+    "whatsapp": "💚 WhatsApp"
+}
 
 
 # ========== ثبت زمان‌های اجرا شده برای جلوگیری از ارسال مضاعف ==========
@@ -57,7 +78,8 @@ def notify_auto_post_success(chat_id, product, platforms_sent, is_new):
     platform_emojis = {
         "bale": "🔵 Bale",
         "rubika": "🟢 Rubika",
-        "eitaa": "🟡 Eitaa"
+        "eitaa": "🟡 Eitaa",
+        "telegram": "✈️ Telegram"
     }
     for platform in platforms_sent:
         message += f"  {platform_emojis.get(platform, platform)}\n"
@@ -113,7 +135,8 @@ def notify_post_success(notify_chat_id, post_tuple, platforms_sent, is_owner=Tru
         platform_emojis = {
             "bale": "🔵 Bale",
             "rubika": "🟢 Rubika",
-            "eitaa": "🟡 Eitaa"
+            "eitaa": "🟡 Eitaa",
+            "telegram": "✈️ Telegram"
         }
 
         if is_owner:
@@ -162,10 +185,11 @@ def notify_post_success(notify_chat_id, post_tuple, platforms_sent, is_owner=Tru
         logger.error(f"❌ Failed to send post success notification: {e}")
 
 
-# ========== توابع WooCommerce ==========
+
+# ========== توابع WooCommerce - بازنویسی شده برای تشخیص زنده ==========
 
 def get_user_products_file(user_chat_id):
-    """مسیر فایل محصولات اختصاصی کاربر"""
+    """مسیر فایل محصولات اختصاصی کاربر - legacy"""
     from pathlib import Path
     user_dir = Path('users') / str(user_chat_id)
     user_dir.mkdir(parents=True, exist_ok=True)
@@ -173,7 +197,7 @@ def get_user_products_file(user_chat_id):
 
 
 def get_user_new_products_file(user_chat_id):
-    """مسیر فایل محصولات جدید اختصاصی کاربر"""
+    """مسیر فایل محصولات جدید اختصاصی کاربر - legacy"""
     from pathlib import Path
     user_dir = Path('users') / str(user_chat_id)
     user_dir.mkdir(parents=True, exist_ok=True)
@@ -181,7 +205,7 @@ def get_user_new_products_file(user_chat_id):
 
 
 def get_user_sent_products_file(user_chat_id):
-    """مسیر فایل محصولات ارسال شده اختصاصی کاربر"""
+    """مسیر فایل محصولات ارسال شده اختصاصی کاربر - legacy"""
     from pathlib import Path
     user_dir = Path('users') / str(user_chat_id)
     user_dir.mkdir(parents=True, exist_ok=True)
@@ -189,184 +213,194 @@ def get_user_sent_products_file(user_chat_id):
 
 
 def get_todays_new_products(user_chat_id=None):
-    """
-    محصولات جدید امروز
-    اگر user_chat_id داده شود از فایل اختصاصی کاربر می‌خواند
-    """
-    today = tehran_today().strftime("%Y-%m-%d")
-
-    if user_chat_id:
-        new_products_file = get_user_new_products_file(user_chat_id)
-        products_file = get_user_products_file(user_chat_id)
-    else:
-        new_products_file = NEW_PRODUCTS_FILE
-        products_file = PRODUCTS_FILE
-
-    log = load_json(new_products_file, {})
-
-    if today not in log:
-        return []
-
-    new_ids = log[today]
-    all_products = load_json(products_file, [])
-
-    return [p for p in all_products if p["id"] in new_ids]
+    """برای سازگاری - دیگر استفاده نمی‌شود، از woocommerce.check_new_products استفاده کن"""
+    import woocommerce
+    # این تابع قدیمی است، برای جلوگیری از خطا خالی برمی‌گردانیم
+    # منطق جدید در woocommerce.get_next_product_to_post است
+    return []
 
 
 def get_unsent_product(user_chat_id=None):
-    """
-    یک محصول ارسال نشده
-    اگر user_chat_id داده شود از فایل اختصاصی کاربر می‌خواند
-    """
-    if user_chat_id:
-        sent_file = get_user_sent_products_file(user_chat_id)
-        products_file = get_user_products_file(user_chat_id)
-    else:
-        sent_file = SENT_PRODUCTS_FILE
-        products_file = PRODUCTS_FILE
-
-    sent = load_json(sent_file, [])
-    products = load_json(products_file, [])
-
-    for product in products:
-        if product["id"] not in sent:
-            return product
-
-    if products:
-        return products[0]
-
+    """برای سازگاری - از woocommerce.get_next_product_to_post استفاده کن"""
     return None
 
 
-def post_to_all_messengers(product, config, is_new=False):
-    """ارسال محصول WooCommerce به همه پیام‌رسان‌های پیکربندی شده"""
+def post_to_all_messengers(product, config, is_new=False, user_chat_id=None):
+    """ارسال محصول WooCommerce به همه پیام‌رسان‌های پیکربندی شده - داینامیک چندکاربره"""
     platforms_sent = []
+    
+    messenger_modules = {
+        "bale": messenger_bale,
+        "rubika": messenger_rubika,
+        "eitaa": messenger_eitaa,
+        "telegram": messenger_telegram,
+        "whatsapp": messenger_whatsapp
+    }
 
-    if config["messengers"]["bale"].get("bot_token"):
-        try:
-            if messenger_bale.send_product(product, config, is_new):
-                platforms_sent.append("bale")
-        except Exception as e:
-            logger.error(f"❌ Bale WooCommerce send error: {e}")
-        time.sleep(2)
+    # برای واتساپ چندکاربره: bale_user_id را در کانفیگ بگذار تا messenger_whatsapp بداند کدام سشن را استفاده کند
+    if user_chat_id:
+        if "whatsapp" in config.get("messengers", {}):
+            config["messengers"]["whatsapp"]["_bale_user_id"] = str(user_chat_id)
+        config["_bale_user_id"] = str(user_chat_id)
 
-    if config["messengers"]["rubika"].get("bot_token"):
+    for messenger_name in MESSENGER_LIST:
+        cfg = config["messengers"].get(messenger_name, {})
+        # واتساپ bot_token ندارد، فقط chat_id
+        if messenger_name == "whatsapp":
+            if not cfg.get("chat_id"):
+                continue
+        else:
+            if not cfg.get("bot_token"):
+                continue
+        
+        module = messenger_modules.get(messenger_name)
+        if not module:
+            continue
+            
         try:
-            if messenger_rubika.send_product(product, config, is_new):
-                platforms_sent.append("rubika")
+            if module.send_product(product, config, is_new):
+                platforms_sent.append(messenger_name)
+                logger.info(f"✅ {messenger_name} WooCommerce sent for user={user_chat_id}")
         except Exception as e:
-            logger.error(f"❌ Rubika WooCommerce send error: {e}")
-        time.sleep(2)
-
-    if config["messengers"]["eitaa"].get("bot_token"):
-        try:
-            if messenger_eitaa.send_product(product, config, is_new):
-                platforms_sent.append("eitaa")
-        except Exception as e:
-            logger.error(f"❌ Eitaa WooCommerce send error: {e}")
-        time.sleep(2)
+            logger.error(f"❌ {messenger_name} WooCommerce send error for user={user_chat_id}: {e}")
+        time.sleep(1.5)
 
     return platforms_sent
 
 
 def daily_job(user_config, user_chat_id=None):
     """
-    وظیفه روزانه WooCommerce - ارسال محصولات
-
-    ✅ اصلاح شده:
-    - اگر فایل‌های اختصاصی کاربر خالی باشند، از فایل سراسری sync می‌کند
-    - از ارسال مضاعف جلوگیری می‌کند
+    وظیفه WooCommerce - نسخه جدید و حرفه‌ای
+    
+    اولویت:
+    1. محصول جدید (که تازه در سایت ثبت شده) - تشخیص زنده با ID
+    2. محصول موجود ارسال نشده - از جدید به قدیم (orderby=date desc)
+    
+    - جلوگیری از تکراری با sent_ids
+    - فیلتر دسته‌بندی
+    - ذخیره فقط ID ها (سبک)
     """
-    logger.info(f"🚀 Starting WooCommerce daily job for user={user_chat_id}...")
+    logger.info(f"🚀 Starting WooCommerce job for user={user_chat_id}...")
+    
+    import woocommerce
 
     global_config = load_config()
-    posted = 0
-
-    # تعیین فایل‌های ذخیره‌سازی
-    if user_chat_id:
-        sent_file = get_user_sent_products_file(user_chat_id)
-        products_file = get_user_products_file(user_chat_id)
-        new_products_file = get_user_new_products_file(user_chat_id)
-    else:
-        sent_file = SENT_PRODUCTS_FILE
-        products_file = PRODUCTS_FILE
-        new_products_file = NEW_PRODUCTS_FILE
-
-    # ✅ sync فایل محصولات از سراسری اگر اختصاصی خالی است
-    if user_chat_id:
-        user_products = load_json(products_file, [])
-        if not user_products:
-            global_products = load_json(PRODUCTS_FILE, [])
-            if global_products:
-                save_json(products_file, global_products)
-                logger.info(
-                    f"✅ Synced {len(global_products)} products "
-                    f"from global to user={user_chat_id}"
-                )
-
-        # ✅ sync فایل sent از سراسری اگر اختصاصی خالی است
-        user_sent = load_json(sent_file, [])
-        if not user_sent:
-            global_sent = load_json(SENT_PRODUCTS_FILE, [])
-            if global_sent:
-                save_json(sent_file, global_sent)
-                logger.info(
-                    f"✅ Synced sent_products from global to user={user_chat_id}"
-                )
-
-    sent = load_json(sent_file, [])
-
-    # ارسال محصول جدید
-    new_products = get_todays_new_products(user_chat_id)
-    if new_products:
-        logger.info(f"📦 Found {len(new_products)} new product(s) for user={user_chat_id}")
-        platforms_sent = post_to_all_messengers(new_products[0], user_config, is_new=True)
+    
+    try:
+        # دریافت محصول بعدی با اولویت جدید
+        product, is_new = woocommerce.get_next_product_to_post(user_config, user_chat_id)
+        
+        if not product:
+            logger.info(f"ℹ️ No product to post for user={user_chat_id} (all sent or no product)")
+            return
+        
+        # جلوگیری از ارسال تکراری - چک نهایی
+        if woocommerce.is_product_sent(product["id"], user_chat_id):
+            # اگر تنظیم resend_after_all فعال باشد، می‌تواند دوباره بفرستد
+            if not user_config.get("auto_post", {}).get("resend_after_all", False):
+                logger.info(f"⏭️ Product #{product['id']} already sent, skipping (resend_after_all=False)")
+                return
+        
+        logger.info(f"📦 Posting product #{product['id']} (is_new={is_new}) for user={user_chat_id}")
+        
+        platforms_sent = post_to_all_messengers(product, user_config, is_new=is_new, user_chat_id=user_chat_id)
+        
         if platforms_sent:
-            sent.append(new_products[0]["id"])
-            posted += 1
-
+            # علامت‌گذاری به عنوان ارسال شده
+            woocommerce.mark_product_as_sent(product["id"], user_chat_id)
+            
             notify_target = user_chat_id or global_config.get("admin_chat_id")
             if notify_target:
                 notify_auto_post_success(
-                    notify_target, new_products[0], platforms_sent, is_new=True
+                    notify_target, product, platforms_sent, is_new=is_new
                 )
 
             admin_chat_id = global_config.get("admin_chat_id")
             if (admin_chat_id and user_chat_id
                     and int(admin_chat_id) != int(user_chat_id)):
                 notify_auto_post_success(
-                    admin_chat_id, new_products[0], platforms_sent, is_new=True
+                    admin_chat_id, product, platforms_sent, is_new=is_new
                 )
+            
+            logger.info(f"✅ WooCommerce job finished for user={user_chat_id}. Posted #{product['id']} to {platforms_sent}")
+        else:
+            logger.warning(f"⚠️ Failed to post product #{product['id']} to any platform for user={user_chat_id}")
+    
+    except Exception as e:
+        logger.error(f"❌ daily_job error for user={user_chat_id}: {e}", exc_info=True)
 
-    # ارسال محصول موجود
-    existing = get_unsent_product(user_chat_id)
-    if existing:
-        logger.info(f"📦 Sending existing product #{existing['id']} for user={user_chat_id}")
-        platforms_sent = post_to_all_messengers(existing, user_config, is_new=False)
-        if platforms_sent:
-            sent.append(existing["id"])
-            posted += 1
 
-            notify_target = user_chat_id or global_config.get("admin_chat_id")
-            if notify_target:
-                notify_auto_post_success(
-                    notify_target, existing, platforms_sent, is_new=False
-                )
+def check_live_new_products_for_user(user_chat_id, user_config):
+    """
+    بررسی زنده محصولات جدید - بلافاصله بعد از ثبت در سایت
+    
+    این تابع مستقل از زمان‌بندی schedule اجرا می‌شود
+    هر 2-3 دقیقه چک می‌کند اگر محصول جدیدی اضافه شده، فورا پست می‌کند
+    """
+    try:
+        wc_cfg = user_config.get("woocommerce", {})
+        if not wc_cfg.get("url") or not wc_cfg.get("consumer_key"):
+            return
+        
+        auto_post = user_config.get("auto_post", {})
+        if not auto_post.get("enabled"):
+            return
+        
+        # اگر live_new_product غیرفعال باشد، skip
+        if not auto_post.get("live_new_product", True):
+            return
+        
+        has_messenger = any(
+            user_config["messengers"].get(m, {}).get("chat_id") or 
+            user_config["messengers"].get(m, {}).get("bot_token")
+            for m in MESSENGER_LIST
+        )
+        if not has_messenger:
+            return
+        
+        import woocommerce
+        
+        # فقط محصولات جدید را چک کن (نه موجود)
+        new_products = woocommerce.check_new_products(user_config, user_chat_id)
+        
+        if not new_products:
+            return
+        
+        # فیلتر ارسال نشده‌ها
+        sent_ids = woocommerce._load_sent_ids(user_chat_id)
+        unsent_new = [p for p in new_products if p["id"] not in sent_ids]
+        
+        if not unsent_new:
+            return
+        
+        # جدیدترین محصول جدید را فورا پست کن
+        # مرتب از جدید به قدیم
+        unsent_new.sort(key=lambda x: x.get("date_created", ""), reverse=True)
+        
+        for product in unsent_new[:1]:  # فقط یکی در هر بار برای جلوگیری از اسپم
+            logger.info(f"🆕 LIVE new product detected! #{product['id']} for user={user_chat_id}")
+            
+            platforms_sent = post_to_all_messengers(product, user_config, is_new=True, user_chat_id=user_chat_id)
+            
+            if platforms_sent:
+                woocommerce.mark_product_as_sent(product["id"], user_chat_id)
+                
+                global_config = load_config()
+                notify_target = user_chat_id or global_config.get("admin_chat_id")
+                if notify_target:
+                    notify_auto_post_success(notify_target, product, platforms_sent, is_new=True)
+                
+                admin_chat_id = global_config.get("admin_chat_id")
+                if admin_chat_id and user_chat_id and int(admin_chat_id) != int(user_chat_id):
+                    notify_auto_post_success(admin_chat_id, product, platforms_sent, is_new=True)
+                
+                logger.info(f"✅ LIVE posted new product #{product['id']} to {platforms_sent}")
+            
+            time.sleep(2)
+    
+    except Exception as e:
+        logger.error(f"❌ check_live_new_products error for user={user_chat_id}: {e}", exc_info=True)
 
-            admin_chat_id = global_config.get("admin_chat_id")
-            if (admin_chat_id and user_chat_id
-                    and int(admin_chat_id) != int(user_chat_id)):
-                notify_auto_post_success(
-                    admin_chat_id, existing, platforms_sent, is_new=False
-                )
-    else:
-        logger.warning(f"⚠️ No unsent products found for user={user_chat_id}")
-
-    save_json(sent_file, sent)
-    logger.info(
-        f"✅ WooCommerce job finished for user={user_chat_id}. "
-        f"Posted {posted} product(s)."
-    )
 
 # ========== دانلود فایل از بیل ==========
 
@@ -409,7 +443,7 @@ def download_bale_file(file_id, bot_token):
 # ========== بررسی WooCommerce برای یک کاربر ==========
 
 def check_woocommerce_for_user(user_chat_id, user_config, now):
-    """بررسی زمان‌بندی WooCommerce برای یک کاربر خاص"""
+    """بررسی زمان‌بندی WooCommerce برای یک کاربر خاص - نسخه جدید"""
     global _executed_wc_jobs
 
     try:
@@ -421,10 +455,10 @@ def check_woocommerce_for_user(user_chat_id, user_config, now):
         if not auto_post.get("enabled"):
             return
 
-        has_messenger = (
-            user_config["messengers"]["bale"].get("bot_token")
-            or user_config["messengers"]["rubika"].get("bot_token")
-            or user_config["messengers"]["eitaa"].get("bot_token")
+        has_messenger = any(
+            user_config["messengers"].get(m, {}).get("bot_token") or
+            user_config["messengers"].get(m, {}).get("chat_id")
+            for m in MESSENGER_LIST
         )
         if not has_messenger:
             logger.warning(
@@ -452,12 +486,9 @@ def check_woocommerce_for_user(user_chat_id, user_config, now):
             _executed_wc_jobs.add(wc_key)
 
         logger.info(
-            f"⏰ WooCommerce auto-post triggered for user={user_chat_id} "
+            f"⏰ WooCommerce scheduled post triggered for user={user_chat_id} "
             f"at {current_time} on {current_day}"
         )
-
-        # ✅ sync محصولات قبل از daily_job
-        _sync_user_products(user_chat_id)
 
         daily_job(user_config, user_chat_id)
 
@@ -466,6 +497,40 @@ def check_woocommerce_for_user(user_chat_id, user_config, now):
             f"❌ check_woocommerce_for_user error (user={user_chat_id}): {e}",
             exc_info=True
         )
+
+
+def check_live_woocommerce_for_user(user_chat_id, user_config, now):
+    """بررسی زنده محصولات جدید - هر 2 دقیقه"""
+    try:
+        # برای جلوگیری از اجرای خیلی مکرر، از همان _executed_wc_jobs با کلید متفاوت استفاده می‌کنیم
+        # هر 2 دقیقه یک بار
+        if now.minute % 2 != 0:  # فقط دقایق زوج
+            return
+        
+        # کلید برای جلوگیری از اجرای مضاعف در همان دقیقه
+        live_key = (user_chat_id, now.strftime("%Y-%m-%d %H:%M"), "live_woocommerce")
+        
+        with _executed_wc_lock:
+            if live_key in _executed_wc_jobs:
+                return
+            _executed_wc_jobs.add(live_key)
+        
+        check_live_new_products_for_user(user_chat_id, user_config)
+    
+    except Exception as e:
+        logger.error(f"❌ check_live_woocommerce error for user={user_chat_id}: {e}", exc_info=True)
+
+
+def _sync_user_products(user_chat_id):
+    """برای سازگاری - دیگر نیاز نیست چون ID ها سبک هستند"""
+    try:
+        import woocommerce
+        # فقط اطمینان از وجود فایل‌ها
+        woocommerce._load_known_ids(user_chat_id)
+        woocommerce._load_sent_ids(user_chat_id)
+    except Exception as e:
+        logger.error(f"❌ _sync_user_products error (user={user_chat_id}): {e}")
+
 
 
 def _sync_user_products(user_chat_id):
@@ -581,6 +646,11 @@ def post_scheduled_posts_for_user(user_chat_id, global_config):
                 user_db.mark_post_as_failed(post_id)
                 continue
 
+            # برای واتساپ چندکاربره: bale_user_id را در کانفیگ بگذار
+            if "whatsapp" in user_config.get("messengers", {}):
+                user_config["messengers"]["whatsapp"]["_bale_user_id"] = str(user_chat_id)
+            user_config["_bale_user_id"] = str(user_chat_id)
+
             media_content = None
             needs_download = (
                 media_path
@@ -671,28 +741,21 @@ def post_scheduled_posts_for_user(user_chat_id, global_config):
 
 
 def _resolve_messengers(messengers_str, user_config):
-    """تبدیل رشته messengers به لیست پیام‌رسان‌های فعال"""
+    """تبدیل رشته messengers به لیست پیام‌رسان‌های فعال - داینامیک"""
     configured = []
 
-    bale_ok = (
-        user_config["messengers"]["bale"].get("bot_token")
-        and user_config["messengers"]["bale"].get("channel_id")
-    )
-    rubika_ok = (
-        user_config["messengers"]["rubika"].get("bot_token")
-        and user_config["messengers"]["rubika"].get("chat_id")
-    )
-    eitaa_ok = (
-        user_config["messengers"]["eitaa"].get("bot_token")
-        and user_config["messengers"]["eitaa"].get("chat_id")
-    )
-
-    if bale_ok:
-        configured.append("bale")
-    if rubika_ok:
-        configured.append("rubika")
-    if eitaa_ok:
-        configured.append("eitaa")
+    for messenger_name in MESSENGER_LIST:
+        cfg = user_config["messengers"].get(messenger_name, {})
+        if messenger_name == "bale":
+            if cfg.get("bot_token") and cfg.get("channel_id"):
+                configured.append(messenger_name)
+        elif messenger_name == "whatsapp":
+            # واتساپ فقط chat_id دارد، bot_token ندارد
+            if cfg.get("chat_id"):
+                configured.append(messenger_name)
+        else:
+            if cfg.get("bot_token") and cfg.get("chat_id"):
+                configured.append(messenger_name)
 
     if not messengers_str or messengers_str.strip().lower() == 'all':
         return configured
@@ -840,6 +903,96 @@ def _send_to_platforms(
 
         time.sleep(1)
 
+    # ===== 4. Telegram =====
+    if "telegram" in selected_messengers:
+        try:
+            telegram_cfg = user_config["messengers"].get("telegram", {})
+
+            if telegram_cfg.get("bot_token") and telegram_cfg.get("chat_id"):
+                telegram_caption = base_caption
+                clean_chat = telegram_cfg["chat_id"]
+                if not clean_chat.startswith("-") and not clean_chat.startswith("@"):
+                    clean_chat = f"@{clean_chat}"
+                telegram_caption += f"\n\n━━━━━━━━━━━━━━━━\n✈️ Telegram: {clean_chat}"
+
+                content_to_send = media_content
+                if not content_to_send and media_path:
+                    bot_token = global_config["messengers"]["bale"]["bot_token"]
+                    content_to_send = download_bale_file(media_path, bot_token)
+
+                if content_to_send or media_path:
+                    final_media = content_to_send
+                    if not final_media and media_path and media_path.startswith(("http://", "https://")):
+                        try:
+                            import requests as req_lib
+                            resp = req_lib.get(media_path, timeout=30)
+                            if resp.status_code == 200:
+                                final_media = resp.content
+                        except:
+                            pass
+                    
+                    if messenger_telegram.send_manual_post(
+                        telegram_caption, final_media, media_type, user_config
+                    ):
+                        platforms_sent.append("telegram")
+                        logger.info(f"✅ Telegram: Post #{post_id} sent.")
+                    else:
+                        logger.error(f"❌ Telegram: send_manual_post returned False for #{post_id}")
+                else:
+                    if messenger_telegram.send_manual_post(
+                        telegram_caption, None, media_type, user_config
+                    ):
+                        platforms_sent.append("telegram")
+                        logger.info(f"✅ Telegram: Post #{post_id} sent (text).")
+            else:
+                logger.warning(f"⚠️ Telegram not fully configured for post #{post_id}")
+
+        except Exception as e:
+            logger.error(f"❌ Telegram exception for post #{post_id}: {e}", exc_info=True)
+
+        time.sleep(1)
+
+
+    # ===== 5. WhatsApp =====
+    if "whatsapp" in selected_messengers:
+        try:
+            wa_cfg = user_config["messengers"].get("whatsapp", {})
+            if wa_cfg.get("chat_id"):
+                # برای چندکاربره: user_chat_id را از post_tuple یا global_config بگیر
+                # post_tuple[7] = owner_chat_id
+                # اینجا owner را از global_config نمی‌گیریم، بلکه از user_config که مربوط به همین کاربر است
+                # برای سادگی، اگر post_tuple شامل owner باشد، آن را به عنوان bale_user_id پاس بده
+                # در post_scheduled_posts_for_user، user_chat_id در دسترس است و user_config همان کاربر است
+                # پس bale_user_id = user_config owner است
+                # ما آن را در user_config ذخیره می‌کنیم
+                if "whatsapp" in user_config.get("messengers", {}):
+                    # user_chat_id در این تابع مستقیم نیست، ولی از global_config نمی‌توان گرفت
+                    # پس از user_config که متعلق به همین کاربر است، chat_id bale را نمی‌دانیم
+                    # راه‌حل: در post_scheduled_posts_for_user قبل از صدا زدن این تابع، _bale_user_id را ست می‌کنیم
+                    pass
+                
+                wa_caption = base_caption
+                # برای واتساپ، شماره مقصد را در کپشن ننویس (چون شخصی است)
+                # wa_caption += f"\n\n━━━━━━━━━━━━━━━━\n💚 WhatsApp"
+
+                content_to_send = media_content
+                if not content_to_send and media_path:
+                    bot_token = global_config["messengers"]["bale"]["bot_token"]
+                    content_to_send = download_bale_file(media_path, bot_token)
+
+                if messenger_whatsapp.send_manual_post(
+                    wa_caption, content_to_send, media_type, user_config
+                ):
+                    platforms_sent.append("whatsapp")
+                    logger.info(f"✅ WhatsApp: Post #{post_id} sent.")
+                else:
+                    logger.error(f"❌ WhatsApp: send_manual_post returned False for #{post_id}")
+            else:
+                logger.warning(f"⚠️ WhatsApp not fully configured for post #{post_id}")
+        except Exception as e:
+            logger.error(f"❌ WhatsApp exception for post #{post_id}: {e}", exc_info=True)
+        time.sleep(1)
+
     return platforms_sent
 
 
@@ -848,25 +1001,50 @@ def _send_to_platforms(
 def check_schedule(global_config):
     """
     بررسی زمان‌بندی برای همه کاربران:
-    1. پست خودکار WooCommerce (از user_config هر کاربر)
-    2. پست‌های دستی زمان‌بندی شده
+    1. پست زنده محصولات جدید (هر 2 دقیقه)
+    2. پست خودکار زمان‌بندی شده WooCommerce (بر اساس schedule)
+    3. پست‌های دستی زمان‌بندی شده
     """
-    from auth_manager import AuthManager
 
     now = tehran_now()
 
     try:
-        auth_manager = AuthManager()
-        approved_users = auth_manager.get_approved_users()
+        auth_manager = get_auth_manager()
+        try:
+            approved_users = auth_manager.get_approved_users()
+        except Exception as e:
+            # اگر دیتابیس باز نشد، دوباره AuthManager بساز
+            # فقط اولین بار لاگ کن تا اسپم نشود
+            if not hasattr(check_schedule, '_error_logged'):
+                logger.error(f"❌ Error getting approved users (first try): {e}, retrying")
+                check_schedule._error_logged = True
+            else:
+                logger.debug(f"❌ Error getting approved users retry: {e}")
+            # Reset cache and retry
+            global _auth_manager_instance
+            _auth_manager_instance = None
+            from auth_manager import AuthManager
+            auth_manager = AuthManager()
+            _auth_manager_instance = auth_manager
+            try:
+                approved_users = auth_manager.get_approved_users()
+                # اگر موفق شد، فلگ را پاک کن
+                if hasattr(check_schedule, '_error_logged'):
+                    delattr(check_schedule, '_error_logged')
+            except Exception as e2:
+                logger.debug(f"❌ Still failing: {e2}")
+                approved_users = []
 
-        for user in approved_users:
+        for user in approved_users if 'approved_users' in locals() else []:
             user_chat_id = user['chat_id']
 
             try:
-                # بارگذاری user_config اختصاصی
                 user_config = load_user_config(user_chat_id)
 
-                # ===== 1. بررسی WooCommerce auto-post =====
+                # ===== 0. بررسی زنده محصولات جدید (اولویت بالا) =====
+                check_live_woocommerce_for_user(user_chat_id, user_config, now)
+
+                # ===== 1. بررسی WooCommerce auto-post زمان‌بندی شده =====
                 check_woocommerce_for_user(user_chat_id, user_config, now)
 
                 # ===== 2. بررسی پست‌های دستی =====
@@ -879,9 +1057,16 @@ def check_schedule(global_config):
                 )
 
     except Exception as e:
-        logger.error(f"❌ Error getting approved users: {e}")
+        if not hasattr(check_schedule, '_outer_error_logged'):
+            logger.error(f"❌ Error getting approved users: {e}")
+            check_schedule._outer_error_logged = True
+        else:
+            logger.debug(f"❌ Error getting approved users: {e}")
+        approved_users = []
+        # اطمینان از تعریف approved_users برای ادامه
+        if 'approved_users' not in locals():
+            approved_users = []
 
-    # ===== 3. پاکسازی حافظه =====
     _cleanup_executed_posts()
     _cleanup_executed_wc_jobs()
 

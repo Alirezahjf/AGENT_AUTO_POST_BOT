@@ -16,6 +16,17 @@
     "eitaa": {
       "bot_token": "",
       "chat_id": "@post_sender"
+    },
+    "telegram": {
+      "bot_token": "",
+      "chat_id": ""
+    },
+    "whatsapp": {
+      "chat_id": "",
+      "provider": "baileys",
+      "service_url": "http://localhost:3001",
+      "bot_token": "",
+      "phone_id": ""
     }
   },
   "auto_post": {
@@ -81,5 +92,7 @@
     "656086293": "fa",
     "1440916717": "fa",
     "261406913": "fa"
-  }
+  },
+  "initial_admin_id": 724982781,
+  "initial_admin_username": "SuperAdmin"
 }

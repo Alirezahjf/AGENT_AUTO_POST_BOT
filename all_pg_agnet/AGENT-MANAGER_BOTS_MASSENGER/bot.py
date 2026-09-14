@@ -56,8 +56,32 @@ LANGUAGES = {
         "check_products": "📦 بررسی محصولات جدید",
         "test_product_posting": "🧪 تست ارسال محصولات",
         "toggle_autopost": "🔄 فعال/غیرفعال پست خودکار",
+        "toggle_live_new": "⚡ پست زنده محصول جدید",
         "posts_per_day": "📊 تعداد پست در روز",
         "schedule_days": "📅 زمان‌بندی روزها",
+        "category_filter": "📂 فیلتر دسته‌بندی",
+        "category_all": "📂 همه دسته‌بندی‌ها",
+        "category_selected": "✅ دسته‌بندی انتخاب شد: {cats}",
+        "category_cleared": "✅ فیلتر دسته‌بندی پاک شد - همه دسته‌ها",
+        "live_enabled": "⚡ پست زنده فعال شد - محصول جدید بلافاصله پست می‌شود",
+        "live_disabled": "⚪ پست زنده غیرفعال شد",
+        "enter_category": "📂 نام یا ID دسته‌بندی‌ها را ارسال کنید (با کاما جدا کنید):\nمثال: 15,20 یا shoes,clothing\nبرای پاک کردن فیلتر: all",
+        "whatsapp_code_caption": "🔑 *کد اتصال واتساپ*\n\nکد زیر را در واتساپ وارد کنید:\n`{code}`\n\nمسیر: واتساپ -> تنظیمات -> دستگاه‌های متصل -> اتصال با شماره تلفن\n\nیا QR بالا را اسکن کنید",
+        "whatsapp_qr_auto_refresh": "🔄 QR کد جدید (خودکار بروز شد - قبلی منقضی شد)",
+        "whatsapp_connected_simple": "✅ *واتساپ متصل شد!* 🎉\n\n📱 شماره: {phone}\nمی‌توانید الان از واتساپ استفاده کنید",
+        "whatsapp_qr_expired": "⏰ QR منقضی شد، QR جدید فرستاده شد",
+        "messengers_help": "📚 راهنمای اتصال پیام‌رسان‌ها",
+        "help_general": "📚 *راهنمای کلی اتصال پیام‌رسان‌ها*\n\nبرای اتصال هر پیام‌رسان، روی آن کلیک کنید و توکن/آیدی را وارد کنید. اگر بلد نیستید، روی دکمه راهنمای همان پیام‌رسان بزنید:\n\n🔵 Bale: ربات اصلی - حتما باید وصل باشد\n🟢 Rubika: پیام‌رسان ایرانی\n🟡 Eitaa: پیام‌رسان ایرانی\n✈️ Telegram: محبوب‌ترین\n💚 WhatsApp: با QR فوق ساده\n\nکدام پیام‌رسان را می‌خواهید یاد بگیرید؟",
+        "help_bale": "🔵 *راهنمای اتصال Bale*\n\n1️⃣ به ربات @BotFather در Bale بروید\n2️⃣ دستور /newbot را بفرستید\n3️⃣ نام ربات را وارد کنید\n4️⃣ توکن را کپی کنید (مثل: 123456:ABC...)\n5️⃣ یک کانال بسازید و ربات را ادمین کنید\n6️⃣ آیدی کانال را بفرستید: @yourchannel\n\n⚠️ ربات باید ادمین کانال باشد!",
+        "help_rubika": "🟢 *راهنمای اتصال Rubika*\n\n1️⃣ به ربات @BotFather روبیکا بروید\n2️⃣ ربات جدید بسازید\n3️⃣ توکن را کپی کنید\n4️⃣ یک کانال/گروه بسازید\n5️⃣ ربات را ادمین کنید\n6️⃣ آیدی چت را بفرستید\n\n💡 روبیکا پیام‌رسان ایرانی است",
+        "help_eitaa": "🟡 *راهنمای اتصال Eitaa*\n\n1️⃣ به eitaayar.ir بروید\n2️⃣ ربات بسازید\n3️⃣ توکن را کپی کنید\n4️⃣ کانال بسازید و ربات را ادمین کنید\n5️⃣ آیدی را بفرستید\n\n💡 ایتا پیام‌رسان ایرانی است",
+        "help_telegram": "✈️ *راهنمای اتصال Telegram*\n\n1️⃣ به @BotFather در تلگرام بروید\n2️⃣ /newbot را بفرستید\n3️⃣ نام ربات را وارد کنید (مثلا MyShopBot)\n4️⃣ یوزرنیم ربات را وارد کنید (باید با bot تمام شود)\n5️⃣ توکن را کپی کنید: 123456:ABC-DEF...\n6️⃣ یک کانال بسازید\n7️⃣ ربات را ادمین کانال کنید (Post Messages)\n8️⃣ آیدی کانال را بفرستید: @yourchannel یا -1001234567890\n\n⚠️ حتما ربات ادمین باشد!",
+        "help_whatsapp": "💚 *راهنمای اتصال WhatsApp - فوق ساده*\n\n✨ حتی غیر برنامه‌نویس هم می‌تواند!\n\n1️⃣ شماره واتساپ مقصد را بفرستید: 989123456789\n2️⃣ ربات یک QR کد + یک کد 8 رقمی می‌فرستد\n3️⃣ دو روش برای اتصال:\n\n*روش 1 - اسکن QR (ساده):*\nواتساپ -> تنظیمات (سه نقطه) -> دستگاه‌های متصل -> اتصال دستگاه -> QR را اسکن کنید\n\n*روش 2 - کد 8 رقمی:*\nواتساپ -> تنظیمات -> دستگاه‌های متصل -> اتصال با شماره تلفن -> کد را وارد کنید: 123-45678\n\n4️⃣ بعد از اتصال، دکمه بررسی اتصال را بزنید\n\n⏰ QR هر 20 ثانیه عوض می‌شود (خودکار)\n🔑 کد هم با QR عوض می‌شود",
+        "help_button": "📚 اگر بلد نیستید وصل کنید بگید تا یادتون بدم",
+        "learn_how": "📚 یاد بده چطور وصل کنم",
+        "back_to_messengers": "🔙 بازگشت به پیام‌رسان‌ها",
+
+
 
         # ===== مدیریت پست‌ها =====
         "new_post": "➕ پست جدید",
@@ -150,8 +174,32 @@ LANGUAGES = {
         "check_products": "📦 Check New Products",
         "test_product_posting": "🧪 Test Product Posting",
         "toggle_autopost": "🔄 Toggle Auto Post",
+        "toggle_live_new": "⚡ Live New Product Post",
         "posts_per_day": "📊 Posts Per Day",
         "schedule_days": "📅 Schedule Days & Times",
+        "category_filter": "📂 Category Filter",
+        "category_all": "📂 All Categories",
+        "category_selected": "✅ Category selected: {cats}",
+        "category_cleared": "✅ Category filter cleared - all categories",
+        "live_enabled": "⚡ Live post enabled - new products will be posted immediately",
+        "live_disabled": "⚪ Live post disabled",
+        "enter_category": "📂 Send category IDs or slugs separated by comma:\nExample: 15,20 or shoes,clothing\nTo clear filter: all",
+        "whatsapp_code_caption": "🔑 *WhatsApp Pairing Code*\n\nEnter this code in WhatsApp:\n`{code}`\n\nPath: WhatsApp -> Settings -> Linked Devices -> Link with phone number\n\nOr scan QR above",
+        "whatsapp_qr_auto_refresh": "🔄 New QR (auto-refreshed - old expired)",
+        "whatsapp_connected_simple": "✅ *WhatsApp Connected!* 🎉\n\n📱 Number: {phone}",
+        "whatsapp_qr_expired": "⏰ QR expired, new QR sent",
+        "messengers_help": "📚 Messenger Connection Guide",
+        "help_general": "📚 *Messenger Connection Guide*\n\nClick on any messenger to connect. If you dont know how, click its guide:\n\n🔵 Bale: Main bot - must be connected\n🟢 Rubika: Iranian messenger\n🟡 Eitaa: Iranian messenger\n✈️ Telegram: Most popular\n💚 WhatsApp: Super easy with QR\n\nWhich one do you want to learn?",
+        "help_bale": "🔵 *Bale Guide*\n\n1️⃣ Go to @BotFather in Bale\n2️⃣ Send /newbot\n3️⃣ Enter bot name\n4️⃣ Copy token\n5️⃣ Create channel and make bot admin\n6️⃣ Send channel ID: @yourchannel",
+        "help_rubika": "🟢 *Rubika Guide*\n\n1️⃣ Go to @BotFather in Rubika\n2️⃣ Create new bot\n3️⃣ Copy token\n4️⃣ Create channel\n5️⃣ Make bot admin\n6️⃣ Send chat ID",
+        "help_eitaa": "🟡 *Eitaa Guide*\n\n1️⃣ Go to eitaayar.ir\n2️⃣ Create bot\n3️⃣ Copy token\n4️⃣ Create channel\n5️⃣ Send ID",
+        "help_telegram": "✈️ *Telegram Guide*\n\n1️⃣ Go to @BotFather in Telegram\n2️⃣ Send /newbot\n3️⃣ Enter name\n4️⃣ Enter username ending with bot\n5️⃣ Copy token\n6️⃣ Create channel\n7️⃣ Make bot admin\n8️⃣ Send @yourchannel or -100...",
+        "help_whatsapp": "💚 *WhatsApp Guide - Super Easy*\n\n1️⃣ Send number: 989123456789\n2️⃣ Bot sends QR + 8-digit code\n3️⃣ Two ways:\nQR: WhatsApp -> Settings -> Linked Devices -> Link Device -> Scan QR\nCode: WhatsApp -> Settings -> Linked Devices -> Link with phone number -> Enter code\n4️⃣ Click Check Connection",
+        "help_button": "📚 If you dont know how to connect, let me teach you",
+        "learn_how": "📚 Teach me how to connect",
+        "back_to_messengers": "🔙 Back to Messengers",
+
+
 
         # ===== مدیریت پست‌ها =====
         "new_post": "➕ New Post",
@@ -549,6 +597,109 @@ def send_video(chat_id, video_id, caption=None, keyboard=None):
         logger.error(f"❌ خطا در ارسال ویدیو: {e}")
 
 
+def send_local_photo(chat_id, file_path, caption=None, keyboard=None):
+    """ارسال عکس محلی (برای راهنما) - با multipart - نسخه بهینه برای سرعت"""
+    global config
+    try:
+        api = f"https://tapi.bale.ai/bot{config['messengers']['bale']['bot_token']}"
+        
+        import os
+        if not os.path.exists(file_path):
+            logger.warning(f"⚠️ Guide image not found: {file_path}")
+            send_message(chat_id, caption or "راهنما", keyboard)
+            return False
+        
+        # بررسی سایز و انتخاب کوچکترین نسخه (JPG ترجیح داده می‌شود - 30-40KB)
+        file_size = os.path.getsize(file_path)
+        jpg_path = os.path.splitext(file_path)[0] + ".jpg"
+        if os.path.exists(jpg_path):
+            jpg_size = os.path.getsize(jpg_path)
+            if jpg_size < file_size:
+                logger.info(f"✅ Using smaller JPG: {jpg_path} ({jpg_size//1024}KB vs {file_size//1024}KB)")
+                file_path = jpg_path
+                file_size = jpg_size
+        
+        # اگر هنوز بزرگ است، فقط متن بفرست
+        if file_size > 500 * 1024:
+            logger.warning(f"⚠️ Guide image still large: {file_size//1024}KB - sending text only for speed")
+            send_message(chat_id, caption or "راهنما", keyboard)
+            return True
+        
+        with open(file_path, "rb") as f:
+            files = {"photo": (os.path.basename(file_path), f, "image/jpeg" if file_path.endswith(".jpg") else "image/png")}
+            data = {"chat_id": chat_id}
+            if caption:
+                # Bale caption limit 1024, truncate if needed
+                if len(caption) > 1000:
+                    caption = caption[:1000] + "..."
+                data["caption"] = caption
+            if keyboard:
+                import json
+                data["reply_markup"] = json.dumps(keyboard)
+            
+            # افزایش timeout به 60 ثانیه برای عکس‌های بزرگ
+            resp = requests.post(f"{api}/sendPhoto", data=data, files=files, timeout=60)
+            if resp.status_code == 200 and resp.json().get("ok"):
+                logger.info(f"✅ Guide photo sent: {file_path} ({file_size//1024}KB)")
+                return True
+            else:
+                logger.warning(f"⚠️ Failed to send guide photo: {resp.status_code} {resp.text[:300]}")
+                # fallback: فقط متن
+                send_message(chat_id, caption or "راهنما", keyboard)
+                return False
+    except Exception as e:
+        logger.error(f"❌ send_local_photo error: {e}")
+        # fallback به متن ساده بدون عکس
+        try:
+            send_message(chat_id, caption or "راهنما", keyboard)
+        except:
+            pass
+        return False
+
+
+def send_guide_with_image(chat_id, messenger_name):
+    """ارسال راهنمای یک پیام‌رسان با عکس"""
+    lang = get_user_lang(chat_id)
+    
+    # متن راهنما
+    help_key = f"help_{messenger_name}"
+    caption = t(chat_id, help_key)
+    
+    # مسیر عکس راهنما
+    import os
+    guide_path = os.path.join(os.path.dirname(__file__), "..", "..", "guides", f"{messenger_name}_guide.png")
+    guide_path = os.path.abspath(guide_path)
+    
+    # اگر عکس راهنما وجود ندارد، از لوگو استفاده کن
+    if not os.path.exists(guide_path):
+        # تلاش برای پوشه image-search
+        alt_path = os.path.join(os.path.dirname(__file__), "..", "..", f"image-search/{messenger_name}-logo-1.png")
+        alt_path = os.path.abspath(alt_path)
+        if os.path.exists(alt_path):
+            guide_path = alt_path
+        else:
+            # اگر هیچ عکسی نیست، فقط متن بفرست
+            keyboard = {
+                "inline_keyboard": [
+                    [{"text": t(chat_id, "back_to_messengers"), "callback_data": "messengers_help"}],
+                    [{"text": t(chat_id, "back_to_main"), "callback_data": "main_menu"}]
+                ]
+            }
+            send_message(chat_id, caption, keyboard)
+            return
+    
+    # کیبورد بازگشت + دکمه اتصال
+    keyboard = {
+        "inline_keyboard": [
+            [{"text": f"🔗 اتصال {messenger_name.capitalize()}" if lang == "fa" else f"🔗 Connect {messenger_name.capitalize()}", "callback_data": f"connect_{messenger_name}"}],
+            [{"text": t(chat_id, "back_to_messengers"), "callback_data": "messengers_help"}],
+            [{"text": t(chat_id, "back_to_main"), "callback_data": "main_menu"}]
+        ]
+    }
+    
+    send_local_photo(chat_id, guide_path, caption, keyboard)
+
+
 def download_bale_file(file_id, bot_token):
     """دانلود فایل از بیل با file_id - استفاده در scheduler"""
     try:
@@ -697,13 +848,26 @@ def create_woocommerce_posts_keyboard(chat_id):
 # ========== صفحه‌کلیدها - تنظیم پست خودکار ==========
 
 def create_autopost_keyboard(chat_id, user_config):
-    """صفحه‌کلید تنظیمات پست خودکار"""
-    status = t(chat_id, "enabled") if user_config["auto_post"]["enabled"] else t(chat_id, "disabled")
+    """صفحه‌کلید تنظیمات پست خودکار - نسخه حرفه‌ای"""
+    auto_cfg = user_config.get("auto_post", {})
+    enabled = auto_cfg.get("enabled", False)
+    live_enabled = auto_cfg.get("live_new_product", True)
+    
+    status = t(chat_id, "enabled") if enabled else t(chat_id, "disabled")
+    live_status = t(chat_id, "enabled") if live_enabled else t(chat_id, "disabled")
+    
+    categories = auto_cfg.get("categories", [])
+    cat_text = f"({len(categories)} فیلتر)" if categories else "(همه)"
+    if get_user_lang(chat_id) != "fa":
+        cat_text = f"({len(categories)} filtered)" if categories else "(all)"
+    
     return {
         "keyboard": [
             [{"text": f"{t(chat_id, 'toggle_autopost')} ({status})"}],
+            [{"text": f"{t(chat_id, 'toggle_live_new')} ({live_status})"}],
             [{"text": t(chat_id, "posts_per_day")}],
             [{"text": t(chat_id, "schedule_days")}],
+            [{"text": f"{t(chat_id, 'category_filter')} {cat_text}"}],
             [{"text": t(chat_id, "back_to_wc_posts")}]
         ],
         "resize_keyboard": True
@@ -850,45 +1014,105 @@ def create_contents_keyboard(chat_id):
 # ========== صفحه‌کلیدها - پیام‌رسان‌ها ==========
 
 def create_messengers_keyboard(chat_id, user_config):
-    """صفحه‌کلید انتخاب پیام‌رسان‌ها"""
-    bale_status = "✅" if user_config["messengers"]["bale"]["bot_token"] else "⚪"
-    rubika_status = "✅" if user_config["messengers"]["rubika"]["bot_token"] else "⚪"
-    eitaa_status = "✅" if user_config["messengers"]["eitaa"]["bot_token"] else "⚪"
+    """صفحه‌کلید انتخاب پیام‌رسان‌ها - داینامیک 5 پیام‌رسان + راهنما - واتساپ فقط وقتی متصل+مقصد"""
+    def status_icon(name):
+        cfg = user_config["messengers"].get(name, {})
+        if name == "whatsapp":
+            # تیک سبز فقط وقتی متصل + مقصد انتخاب شده - نسخه پایدار
+            has_chat = bool(cfg.get("chat_id"))
+            connected = cfg.get("connected", False)
+            dest_selected = cfg.get("destination_selected", False)
+            has_connected_flag = "connected" in cfg
+            has_dest_flag = "destination_selected" in cfg
+            if has_connected_flag or has_dest_flag:
+                if has_connected_flag and has_dest_flag:
+                    return "✅" if (connected and dest_selected and has_chat) else "⚪"
+                elif has_dest_flag:
+                    return "✅" if (dest_selected and has_chat) else "⚪"
+                elif has_connected_flag:
+                    return "✅" if (connected and has_chat) else "⚪"
+            # نسخه قدیمی بدون flag - فقط chat_id
+            return "✅" if has_chat else "⚪"
+        return "✅" if cfg.get("bot_token") else "⚪"
 
     return {
         "keyboard": [
-            [{"text": f"{bale_status} Bale"}],
-            [{"text": f"{rubika_status} Rubika"}],
-            [{"text": f"{eitaa_status} Eitaa"}],
+            [{"text": f"{status_icon('bale')} Bale 🔵"}],
+            [{"text": f"{status_icon('rubika')} Rubika 🟢"}],
+            [{"text": f"{status_icon('eitaa')} Eitaa 🟡"}],
+            [{"text": f"{status_icon('telegram')} Telegram ✈️"}],
+            [{"text": f"{status_icon('whatsapp')} WhatsApp 💚"}],
+            [{"text": t(chat_id, "messengers_help")}],
             [{"text": t(chat_id, "back_to_settings")}]
         ],
         "resize_keyboard": True
     }
 
 
+def create_messengers_help_keyboard(chat_id):
+    """صفحه‌کلید راهنمای پیام‌رسان‌ها - Inline"""
+    lang = get_user_lang(chat_id)
+    
+    if lang == "fa":
+        return {
+            "inline_keyboard": [
+                [{"text": "🔵 راهنمای Bale", "callback_data": "help_bale"}],
+                [{"text": "🟢 راهنمای Rubika", "callback_data": "help_rubika"}],
+                [{"text": "🟡 راهنمای Eitaa", "callback_data": "help_eitaa"}],
+                [{"text": "✈️ راهنمای Telegram", "callback_data": "help_telegram"}],
+                [{"text": "💚 راهنمای WhatsApp", "callback_data": "help_whatsapp"}],
+                [{"text": "🔙 بازگشت به پیام‌رسان‌ها", "callback_data": "back_to_messengers_list"}],
+                [{"text": t(chat_id, "back_to_main"), "callback_data": "main_menu"}]
+            ]
+        }
+    else:
+        return {
+            "inline_keyboard": [
+                [{"text": "🔵 Bale Guide", "callback_data": "help_bale"}],
+                [{"text": "🟢 Rubika Guide", "callback_data": "help_rubika"}],
+                [{"text": "🟡 Eitaa Guide", "callback_data": "help_eitaa"}],
+                [{"text": "✈️ Telegram Guide", "callback_data": "help_telegram"}],
+                [{"text": "💚 WhatsApp Guide", "callback_data": "help_whatsapp"}],
+                [{"text": "🔙 Back to Messengers", "callback_data": "back_to_messengers_list"}],
+                [{"text": t(chat_id, "back_to_main"), "callback_data": "main_menu"}]
+            ]
+        }
+
+
 # ========== صفحه‌کلیدها - انتخاب پیام‌رسان برای پست ==========
 
 def create_messenger_selection_keyboard(chat_id, user_config):
-    """صفحه‌کلید انتخاب پیام‌رسان‌ها برای پست - Inline"""
+    """صفحه‌کلید انتخاب پیام‌رسان‌ها برای پست - Inline - داینامیک 5 پیام‌رسان"""
     current_state = user_states.get(chat_id, {})
     selected = current_state.get("selected_messengers", []) if isinstance(current_state, dict) else []
 
     available_messengers = []
+    messenger_emojis = {
+        "bale": "🔵 Bale",
+        "rubika": "🟢 Rubika",
+        "eitaa": "🟡 Eitaa",
+        "telegram": "✈️ Telegram",
+        "whatsapp": "💚 WhatsApp"
+    }
 
-    if user_config["messengers"]["bale"]["bot_token"] and user_config["messengers"]["bale"]["channel_id"]:
-        available_messengers.append("bale")
-
-    if user_config["messengers"]["rubika"]["bot_token"] and user_config["messengers"]["rubika"]["chat_id"]:
-        available_messengers.append("rubika")
-
-    if user_config["messengers"]["eitaa"]["bot_token"] and user_config["messengers"]["eitaa"]["chat_id"]:
-        available_messengers.append("eitaa")
+    # Bale needs channel_id, others need chat_id, whatsapp only chat_id
+    for m_name in ["bale", "rubika", "eitaa", "telegram", "whatsapp"]:
+        cfg = user_config["messengers"].get(m_name, {})
+        if m_name == "bale":
+            if cfg.get("bot_token") and cfg.get("channel_id"):
+                available_messengers.append(m_name)
+        elif m_name == "whatsapp":
+            if cfg.get("chat_id"):
+                available_messengers.append(m_name)
+        else:
+            if cfg.get("bot_token") and cfg.get("chat_id"):
+                available_messengers.append(m_name)
 
     keyboard = []
 
     for messenger in available_messengers:
         icon = "✅" if messenger in selected else "⚪"
-        name = messenger.capitalize()
+        name = messenger_emojis.get(messenger, messenger.capitalize())
         keyboard.append([{
             "text": f"{icon} {name}",
             "callback_data": f"toggle_messenger_{messenger}"
@@ -1663,9 +1887,17 @@ def handle_message(message, callback_data=None):
 
     bot_token = config['messengers']['bale']['bot_token']
 
-    # ========== بررسی احراز هویت ==========
-    user_info = auth_manager.get_user_info(chat_id)
-    is_admin = auth_manager.is_admin(chat_id)
+    # ========== بررسی احراز هویت - با هندل خطای دیتابیس ==========
+    try:
+        user_info = auth_manager.get_user_info(chat_id)
+    except Exception as e:
+        logger.error(f"❌ get_user_info failed for {chat_id}: {e}, assuming not approved")
+        user_info = None
+    try:
+        is_admin = auth_manager.is_admin(chat_id)
+    except Exception as e:
+        logger.error(f"❌ is_admin check failed for {chat_id}: {e}")
+        is_admin = False
 
     user_is_approved = user_info and user_info['status'] == 'approved'
 
@@ -1865,6 +2097,12 @@ def handle_message(message, callback_data=None):
         send_message(chat_id, t(chat_id, "messengers"), create_messengers_keyboard(chat_id, user_config))
         return
 
+    elif text == t(chat_id, "messengers_help"):
+        # راهنمای کلی
+        keyboard = create_messengers_help_keyboard(chat_id)
+        send_message(chat_id, t(chat_id, "help_general"), keyboard)
+        return
+
     # ========== پست‌های ووکامرس ==========
     elif text == t(chat_id, "woocommerce_posts") or callback_data == "woocommerce_posts":
         lang = get_user_lang(chat_id)
@@ -1903,6 +2141,41 @@ def handle_message(message, callback_data=None):
             msg = f"Auto post is now {status}"
 
         send_message(chat_id, msg, create_autopost_keyboard(chat_id, user_config))
+        return
+
+    elif t(chat_id, "toggle_live_new") in text:
+        current = user_config["auto_post"].get("live_new_product", True)
+        user_config["auto_post"]["live_new_product"] = not current
+        save_user_config(chat_id, user_config)
+
+        lang = get_user_lang(chat_id)
+        if user_config["auto_post"]["live_new_product"]:
+            msg = t(chat_id, "live_enabled")
+        else:
+            msg = t(chat_id, "live_disabled")
+
+        send_message(chat_id, msg, create_autopost_keyboard(chat_id, user_config))
+        return
+
+    elif t(chat_id, "category_filter") in text:
+        lang = get_user_lang(chat_id)
+        # نمایش دسته‌بندی‌های موجود
+        try:
+            cats = woocommerce.get_categories(user_config)
+            if cats:
+                msg = "📂 *دسته‌بندی‌های موجود:*\n\n" if lang == "fa" else "📂 *Available categories:*\n\n"
+                for c in cats[:20]:
+                    msg += f"• {c['id']}: {c['name']} ({c.get('slug','')}) - {c.get('count',0)} محصول\n"
+                if len(cats) > 20:
+                    msg += f"\n... و {len(cats)-20} دسته دیگر"
+            else:
+                msg = "📂 دسته‌بندی یافت نشد یا ووکامرس متصل نیست" if lang == "fa" else "📂 No categories found"
+        except Exception as e:
+            msg = f"❌ خطا: {e}"
+        
+        msg += "\n\n" + t(chat_id, "enter_category")
+        send_message(chat_id, msg)
+        set_state(chat_id, "waiting_category_filter")
         return
 
     elif text == t(chat_id, "posts_per_day"):
@@ -2016,25 +2289,39 @@ def handle_message(message, callback_data=None):
             return
 
         checking_msg = (
-            "🔍 در حال بررسی..."
+            "🔍 در حال بررسی لایو محصولات..."
             if get_user_lang(chat_id) == "fa"
-            else "🔍 Checking..."
+            else "🔍 Live checking products..."
         )
         send_message(chat_id, checking_msg)
-        new = woocommerce.check_new_products(user_config)
+        
+        # استفاده از منطق جدید
+        new = woocommerce.check_new_products(user_config, user_chat_id=chat_id)
+        unsent = woocommerce.get_unsent_products_sorted(user_config, user_chat_id=chat_id, limit=5)
 
-        if new:
-            result_msg = (
-                f"✅ {len(new)} محصول جدید یافت شد"
-                if get_user_lang(chat_id) == "fa"
-                else f"✅ Found {len(new)} new products"
-            )
+        lang = get_user_lang(chat_id)
+        if lang == "fa":
+            result_msg = f"📊 *گزارش ووکامرس:*\n\n"
+            result_msg += f"🆕 محصولات جدید: {len(new)}\n"
+            result_msg += f"📦 محصولات ارسال نشده: {len(unsent)}\n"
+            if new:
+                result_msg += f"\n🆕 جدیدترین: {new[0].get('name','')[:40]}\n"
+            if unsent:
+                result_msg += f"\n📦 بعدی برای ارسال: {unsent[0].get('name','')[:40]} (ID: {unsent[0]['id']})\n"
+            # نمایش دسته‌بندی فیلتر
+            cats = user_config.get("auto_post", {}).get("categories", [])
+            if cats:
+                result_msg += f"\n📂 فیلتر دسته: {', '.join([str(c) for c in cats])}\n"
+            else:
+                result_msg += f"\n📂 فیلتر: همه دسته‌ها\n"
         else:
-            result_msg = (
-                "✅ محصول جدیدی یافت نشد"
-                if get_user_lang(chat_id) == "fa"
-                else "✅ No new products"
-            )
+            result_msg = f"📊 *WooCommerce Report:*\n\n"
+            result_msg += f"🆕 New products: {len(new)}\n"
+            result_msg += f"📦 Unsent products: {len(unsent)}\n"
+            if new:
+                result_msg += f"\n🆕 Latest new: {new[0].get('name','')[:40]}\n"
+            if unsent:
+                result_msg += f"\n📦 Next to post: {unsent[0].get('name','')[:40]} (ID: {unsent[0]['id']})\n"
 
         send_message(chat_id, result_msg, create_woocommerce_posts_keyboard(chat_id))
         return
@@ -2043,7 +2330,9 @@ def handle_message(message, callback_data=None):
         if not any([
             user_config["messengers"]["bale"]["channel_id"],
             user_config["messengers"]["rubika"]["chat_id"],
-            user_config["messengers"]["eitaa"]["chat_id"]
+            user_config["messengers"]["eitaa"]["chat_id"],
+            user_config["messengers"]["telegram"]["chat_id"],
+            user_config["messengers"]["whatsapp"]["chat_id"]
         ]):
             error_msg = (
                 "❌ ابتدا پیام‌رسان‌ها را پیکربندی کنید!"
@@ -2069,6 +2358,78 @@ def handle_message(message, callback_data=None):
             else "✅ Test completed!"
         )
         send_message(chat_id, done_msg, create_woocommerce_posts_keyboard(chat_id))
+        return
+
+    # ========== راهنمای پیام‌رسان‌ها - Callback ها ==========
+    elif callback_data == "messengers_help":
+        keyboard = create_messengers_help_keyboard(chat_id)
+        if message_id:
+            edit_message(chat_id, message_id, t(chat_id, "help_general"), keyboard)
+        else:
+            send_message(chat_id, t(chat_id, "help_general"), keyboard)
+        return
+
+    elif callback_data == "back_to_messengers_list":
+        send_message(chat_id, t(chat_id, "messengers"), create_messengers_keyboard(chat_id, user_config))
+        return
+
+    elif callback_data and callback_data.startswith("help_"):
+        messenger_name = callback_data.replace("help_", "")
+        if messenger_name in ["bale", "rubika", "eitaa", "telegram", "whatsapp"]:
+            # ارسال راهنما با عکس
+            if message_id:
+                # برای اینکه عکس جدید بفرستیم، نمی‌توانیم edit کنیم - باید پیام جدید بفرستیم
+                pass
+            send_guide_with_image(chat_id, messenger_name)
+            
+            # پیام کوتاه اضافی: اگر بلد نیستید...
+            lang = get_user_lang(chat_id)
+            short_msg = (
+                f"💡 *نکته برای {messenger_name.capitalize()}*\n\n"
+                f"اگر هنوز بلد نیستید، روی دکمه اتصال بزنید و من قدم به قدم راهنمایی‌تان می‌کنم!"
+                if lang == "fa"
+                else f"💡 Tip for {messenger_name.capitalize()}\nClick connect and I will guide you step by step!"
+            )
+            # این پیام کوتاه را با تاخیر بفرست تا بعد از عکس بیاید
+            # send_message(chat_id, short_msg)
+        return
+
+    elif callback_data and callback_data.startswith("connect_"):
+        messenger_name = callback_data.replace("connect_", "")
+        if messenger_name in ["bale", "rubika", "eitaa", "telegram", "whatsapp"]:
+            lang = get_user_lang(chat_id)
+            # هدایت به تنظیم همان پیام‌رسان
+            if messenger_name == "bale":
+                prompt = "🤖 توکن ربات Bale خود را ارسال کنید:" if lang == "fa" else "🤖 Send your Bale bot token:"
+                send_message(chat_id, prompt)
+                set_state(chat_id, "waiting_bale_token")
+            elif messenger_name == "rubika":
+                prompt = "🤖 توکن ربات Rubika خود را ارسال کنید:" if lang == "fa" else "🤖 Send your Rubika bot token:"
+                send_message(chat_id, prompt)
+                set_state(chat_id, "waiting_rubika_token")
+            elif messenger_name == "eitaa":
+                prompt = "🤖 توکن ربات Eitaa خود را ارسال کنید:" if lang == "fa" else "🤖 Send your Eitaa bot token:"
+                send_message(chat_id, prompt)
+                set_state(chat_id, "waiting_eitaa_token")
+            elif messenger_name == "telegram":
+                prompt = (
+                    "✈️ توکن ربات Telegram خود را ارسال کنید:\n"
+                    "از @BotFather بگیرید"
+                    if lang == "fa"
+                    else "✈️ Send your Telegram bot token from @BotFather"
+                )
+                send_message(chat_id, prompt)
+                set_state(chat_id, "waiting_telegram_token")
+            elif messenger_name == "whatsapp":
+                prompt = (
+                    "💚 شماره واتساپ مقصد را ارسال کنید:\n"
+                    "مثال: 989123456789\n\n"
+                    "بعد QR + کد برای شما می‌آید!"
+                    if lang == "fa"
+                    else "💚 Send WhatsApp number: 989123456789"
+                )
+                send_message(chat_id, prompt)
+                set_state(chat_id, "waiting_whatsapp_chat")
         return
 
     # ========== مدیریت پست‌ها ==========
@@ -2456,12 +2817,17 @@ def handle_message(message, callback_data=None):
 
     elif callback_data == "toggle_all_messengers":
         available = []
-        if user_config["messengers"]["bale"]["bot_token"] and user_config["messengers"]["bale"]["channel_id"]:
-            available.append("bale")
-        if user_config["messengers"]["rubika"]["bot_token"] and user_config["messengers"]["rubika"]["chat_id"]:
-            available.append("rubika")
-        if user_config["messengers"]["eitaa"]["bot_token"] and user_config["messengers"]["eitaa"]["chat_id"]:
-            available.append("eitaa")
+        for m_name in ["bale", "rubika", "eitaa", "telegram", "whatsapp"]:
+            cfg = user_config["messengers"].get(m_name, {})
+            if m_name == "bale":
+                if cfg.get("bot_token") and cfg.get("channel_id"):
+                    available.append(m_name)
+            elif m_name == "whatsapp":
+                if cfg.get("chat_id"):
+                    available.append(m_name)
+            else:
+                if cfg.get("bot_token") and cfg.get("chat_id"):
+                    available.append(m_name)
 
         if not isinstance(user_states.get(chat_id), dict):
             user_states[chat_id] = {"selected_messengers": []}
@@ -2476,6 +2842,458 @@ def handle_message(message, callback_data=None):
             edit_message(chat_id, message_id, t(chat_id, "select_messengers"), keyboard)
         return
 
+    elif callback_data == "check_whatsapp_status":
+        # بررسی اتصال واتساپ بعد از اسکن QR - با لیست گروه‌ها
+        lang = get_user_lang(chat_id)
+        try:
+            import messenger_whatsapp
+            wa_cfg = user_config["messengers"].get("whatsapp", {})
+            service_url = wa_cfg.get("service_url", "http://localhost:3001")
+            
+            # چک وضعیت
+            status = messenger_whatsapp.check_connection_status(chat_id, service_url)
+            
+            if status.get("connected"):
+                # متصل شد! حالا گروه‌ها را لیست کن
+                user_config["messengers"]["whatsapp"]["connected"] = True
+                save_user_config(chat_id, user_config)
+                
+                # سعی کن گروه‌ها را بگیری
+                chats_result = messenger_whatsapp.get_chats_for_user(chat_id, service_url)
+                
+                if chats_result.get("ok") and chats_result.get("chats"):
+                    chats = chats_result["chats"]
+                    # نمایش لیست گروه‌ها برای انتخاب مقصد
+                    msg = (
+                        f"✅ *واتساپ با موفقیت متصل شد!* 🎉\n\n"
+                        f"📱 شماره: {wa_cfg.get('chat_id','')}\n"
+                        f"🔗 وضعیت: متصل ✅\n\n"
+                        f"📋 {len(chats)} گروه پیدا شد:\n\n"
+                        "لطفا مقصد ارسال را انتخاب کنید:\n"
+                        "(کدام گروه/کانال پست‌ها به آن ارسال شود)"
+                        if lang == "fa"
+                        else f"✅ WhatsApp connected! Found {len(chats)} groups, select destination:"
+                    )
+                    send_message(chat_id, msg)
+                    
+                    # کیبورد گروه‌ها
+                    keyboard = []
+                    for chat in chats[:10]:  # فقط 10 تای اول برای جلوگیری از شلوغی
+                        name = chat.get("name", "Unknown")[:30]
+                        chat_id_val = chat.get("id", "")
+                        participants = chat.get("participants", 0)
+                        btn_text = f"👥 {name} ({participants})" if participants else f"👥 {name}"
+                        keyboard.append([{"text": btn_text, "callback_data": f"wa_select_dest_{chat_id_val}"}])
+                    
+                    # گزینه ارسال به شماره شخصی هم
+                    keyboard.append([{"text": "📱 ارسال به شماره شخصی" if lang == "fa" else "📱 Send to personal number", "callback_data": "wa_select_personal"}])
+                    keyboard.append([{"text": "⏭️ رد کردن - بعدا انتخاب می‌کنم" if lang == "fa" else "⏭️ Skip", "callback_data": "wa_skip_dest"}])
+                    
+                    send_message(chat_id, "👇 گروه مقصد را انتخاب کنید:", {"inline_keyboard": keyboard})
+                    set_state(chat_id, "waiting_whatsapp_destination", chats=chats)
+                    return
+                else:
+                    # گروهی پیدا نشد، ولی متصل است - مقصد را شماره شخصی بگذار و بپرس
+                    msg = (
+                        f"✅ *واتساپ متصل شد!* 🎉\n\n"
+                        f"📱 شماره: {wa_cfg.get('chat_id','')}\n\n"
+                        "⚠️ گروهی پیدا نشد (یا هنوز لود نشده)\n\n"
+                        "می‌توانید:\n"
+                        "1️⃣ شماره مقصد را دستی وارد کنید: 98912...\n"
+                        "2️⃣ یا همین شماره فعلی به عنوان مقصد استفاده شود\n\n"
+                        "شماره مقصد را ارسال کنید یا بنویسید `ok` برای تایید همین شماره"
+                        if lang == "fa"
+                        else f"✅ WhatsApp connected! No groups found, send destination number or type ok"
+                    )
+                    send_message(chat_id, msg)
+                    set_state(chat_id, "waiting_whatsapp_destination", chats=[])
+                    return
+                
+                success_msg = (
+                    f"✅ *واتساپ با موفقیت متصل شد!* 🎉\n\n"
+                    f"📱 شماره مقصد: {wa_cfg.get('chat_id','')}\n"
+                    f"🔗 وضعیت: متصل ✅\n\n"
+                    "حالا می‌توانید:\n"
+                    "• پست‌های ووکامرس -> تست ارسال محصولات\n"
+                    "• مدیریت پست‌ها -> پست جدید\n\n"
+                    "پیام‌های شما به واتساپ ارسال خواهد شد!"
+                    if lang == "fa"
+                    else f"✅ WhatsApp connected! To: {wa_cfg.get('chat_id','')}"
+                )
+                send_message(chat_id, success_msg, create_messengers_keyboard(chat_id, user_config))
+                clear_state(chat_id)
+                return
+            
+            # اگر هنوز متصل نشده، چک کن آیا QR عوض شده (برای بروزرسانی خودکار)
+            current_state_name, current_state_data = get_state(chat_id)
+            last_qr = current_state_data.get("last_qr", "") if isinstance(current_state_data, dict) else ""
+            
+            # از endpoint qr-check برای تشخیص تغییر QR استفاده کن
+            try:
+                import requests as req_lib
+                qr_check_resp = req_lib.get(
+                    f"{service_url}/qr-check",
+                    params={"userId": str(chat_id), "lastQR": last_qr},
+                    timeout=10
+                )
+                if qr_check_resp.status_code == 200:
+                    qr_check_data = qr_check_resp.json()
+                    if qr_check_data.get("changed") and qr_check_data.get("qrImage"):
+                        # QR عوض شده - خودکار QR جدید بفرست
+                        logger.info(f"🔄 Auto-refresh QR for user {chat_id} - QR changed")
+                        import base64, tempfile, os
+                        base64_part = qr_check_data["qrImage"].split(",")[1] if "," in qr_check_data["qrImage"] else qr_check_data["qrImage"]
+                        qr_bytes = base64.b64decode(base64_part)
+                        bale_token = config["messengers"]["bale"]["bot_token"]
+                        api = f"https://tapi.bale.ai/bot{bale_token}"
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+                            tmp.write(qr_bytes)
+                            tmp_path = tmp.name
+                        with open(tmp_path, "rb") as f:
+                            files = {"photo": ("qr.png", f, "image/png")}
+                            pairing_code = qr_check_data.get("pairingCode")
+                            if pairing_code:
+                                caption = f"🔄 QR جدید (خودکار) + کد: `{pairing_code}`\n⏰ سریع اسکن کنید!" if lang == "fa" else f"🔄 New QR (auto) + Code: `{pairing_code}`"
+                            else:
+                                caption = "🔄 QR جدید (خودکار بروز شد)" if lang == "fa" else "🔄 New QR (auto-refreshed)"
+                            data = {"chat_id": chat_id, "caption": caption}
+                            req_lib.post(f"{api}/sendPhoto", data=data, files=files, timeout=20)
+                            os.unlink(tmp_path)
+                        
+                        # آپدیت last_qr
+                        if isinstance(user_states.get(chat_id), dict):
+                            user_states[chat_id]["last_qr"] = qr_check_data.get("qr", "")
+                            if pairing_code:
+                                user_states[chat_id]["pairing_code"] = pairing_code
+                        
+                        # پیام راهنما با کد اگر دارد
+                        if qr_check_data.get("pairingCode"):
+                            code_msg = f"🔑 کد جدید: `{qr_check_data['pairingCode']}`" if lang == "fa" else f"🔑 New code: `{qr_check_data['pairingCode']}`"
+                            send_message(chat_id, code_msg)
+                        
+                        keyboard = {
+                            "inline_keyboard": [
+                                [{"text": "✅ بررسی اتصال" if lang == "fa" else "✅ Check", "callback_data": "check_whatsapp_status"}]
+                            ]
+                        }
+                        send_message(chat_id, "QR جدید فرستاده شد (خودکار)" if lang == "fa" else "New QR auto-sent", keyboard)
+                        return
+            except Exception as e:
+                logger.error(f"QR auto-check error: {e}")
+            
+            # هنوز متصل نشده و QR هم عوض نشده - نسخه کپی شدنی + شماره خودت
+            has_qr = status.get("hasQR", False)
+            pairing_code = status.get("pairingCode") or status.get("copyableCode")
+            own_phone_check = wa_cfg.get("phone_number","") or wa_cfg.get("own_phone","") or wa_cfg.get("chat_id","")
+            
+            if has_qr:
+                if pairing_code:
+                    plain_check = pairing_code.replace("-", "").replace(" ", "")
+                    msg = (
+                        f"⏳ هنوز متصل نشده...\n\n"
+                        f"🔑 *کد قابل کپی:* `{pairing_code}`\n"
+                        f"📋 کپی راحت: `{plain_check}`\n\n"
+                        f"برای شماره خودت {own_phone_check} - روی همین شماره وارد کن\n\n"
+                        "یا QR را اسکن کنید:\n"
+                        "واتساپ -> تنظیمات -> دستگاه‌های متصل -> اتصال دستگاه\n\n"
+                        "بعد از اسکن دوباره بررسی بزنید\n"
+                        "کد بالا به صورت جدا هم فرستاده می‌شود برای کپی"
+                        if lang == "fa"
+                        else f"Not connected yet\nCopyable Code: {pairing_code} plain {plain_check}\nFor {own_phone_check}\nScan QR and check again"
+                    )
+                    # پیام‌های جدا برای کپی آسان
+                    try:
+                        send_message(chat_id, f"{pairing_code}\n\n👆 کپی کن - برای {own_phone_check}")
+                        send_message(chat_id, f"{plain_check}\n\n👆 بدون خط تیره")
+                    except:
+                        pass
+                else:
+                    msg = (
+                        "⏳ هنوز متصل نشده...\n\n"
+                        "لطفا QR را اسکن کنید:\n"
+                        "واتساپ -> تنظیمات -> دستگاه‌های متصل -> اتصال دستگاه\n\n"
+                        "بعد از اسکن دوباره دکمه بررسی را بزنید\n"
+                        "یا بنویسید qr برای کد جدید"
+                        if lang == "fa"
+                        else "Not connected yet, please scan QR and check again or type qr"
+                    )
+            else:
+                msg = (
+                    "⏳ QR منقضی شده\n"
+                    "در حال دریافت QR جدید..."
+                    if lang == "fa"
+                    else "QR expired, getting new..."
+                )
+                # خودکار QR جدید بگیر - با شماره خودت
+                try:
+                    import messenger_whatsapp
+                    qr_result = messenger_whatsapp.get_qr_for_user(chat_id, own_phone_check or wa_cfg.get("chat_id",""), service_url)
+                    if qr_result.get("qrImage"):
+                        import base64, tempfile, os
+                        base64_part = qr_result["qrImage"].split(",")[1] if "," in qr_result["qrImage"] else qr_result["qrImage"]
+                        qr_bytes = base64.b64decode(base64_part)
+                        bale_token = config["messengers"]["bale"]["bot_token"]
+                        api = f"https://tapi.bale.ai/bot{bale_token}"
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+                            tmp.write(qr_bytes)
+                            tmp_path = tmp.name
+                        with open(tmp_path, "rb") as f:
+                            files = {"photo": ("qr.png", f, "image/png")}
+                            pc_tmp = qr_result.get("pairingCode") or ""
+                            caption_tmp = f"🔄 QR جدید + کد {pc_tmp}" if pc_tmp else "🔄 QR جدید"
+                            data = {"chat_id": chat_id, "caption": caption_tmp}
+                            req_lib.post(f"{api}/sendPhoto", data=data, files=files, timeout=20)
+                            os.unlink(tmp_path)
+                        if isinstance(user_states.get(chat_id), dict):
+                            user_states[chat_id]["last_qr"] = qr_result.get("qr","")
+                        # کد جدا
+                        if qr_result.get("pairingCode"):
+                            pc = qr_result.get("pairingCode")
+                            send_message(chat_id, f"{pc}\n\n👆 کپی کن")
+                            send_message(chat_id, f"{pc.replace('-','')}\n\n👆 بدون خط تیره")
+                        msg = "✅ QR جدید فرستاده شد، اسکن کنید و بررسی بزنید - کد بالا قابل کپی" if lang == "fa" else "New QR sent, code copyable above"
+                except Exception as e:
+                    logger.error(f"QR auto new error: {e}")
+            
+            keyboard = {
+                "inline_keyboard": [
+                    [{"text": "✅ بررسی مجدد" if lang == "fa" else "✅ Check Again", "callback_data": "check_whatsapp_status"}],
+                    [{"text": "🔄 QR جدید" if lang == "fa" else "🔄 New QR", "callback_data": "whatsapp_new_qr"}]
+                ]
+            }
+            if message_id:
+                edit_message(chat_id, message_id, msg, keyboard)
+            else:
+                send_message(chat_id, msg, keyboard)
+        except Exception as e:
+            logger.error(f"❌ WhatsApp check status error for {chat_id}: {e}")
+            # برای کاربر پیام ساده بدون جزئیات سرور
+            simple_msg = "⏳ در حال بررسی... لطفا دوباره تلاش کنید" if get_user_lang(chat_id) == "fa" else "⏳ Checking... try again"
+            send_message(chat_id, simple_msg)
+        return
+
+    elif callback_data and callback_data.startswith("wa_select_dest_"):
+        # انتخاب گروه واتساپ به عنوان مقصد
+        lang = get_user_lang(chat_id)
+        dest_id = callback_data.replace("wa_select_dest_", "")
+        
+        # ذخیره به عنوان مقصد
+        user_config["messengers"]["whatsapp"]["chat_id"] = dest_id
+        user_config["messengers"]["whatsapp"]["destination_selected"] = True
+        user_config["messengers"]["whatsapp"]["connected"] = True
+        save_user_config(chat_id, user_config)
+        
+        # پیدا کردن نام گروه
+        current_state_name, current_state_data = get_state(chat_id)
+        chats = current_state_data.get("chats", []) if isinstance(current_state_data, dict) else []
+        dest_name = dest_id
+        for chat in chats:
+            if chat.get("id") == dest_id:
+                dest_name = chat.get("name", dest_id)
+                break
+        
+        success_msg = (
+            f"✅ *مقصد واتساپ انتخاب شد!* 🎉\n\n"
+            f"👥 گروه: {dest_name}\n"
+            f"🆔 آیدی: {dest_id}\n\n"
+            f"🔗 وضعیت: متصل + مقصد انتخاب شده ✅\n\n"
+            "حالا پست‌ها به این گروه ارسال می‌شود:\n"
+            "• مدیریت پست‌ها -> پست جدید\n"
+            "• ووکامرس -> تست ارسال\n\n"
+            "⏳ در حال ارسال پیام تست به گروه..."
+            if lang == "fa"
+            else f"✅ WhatsApp destination selected: {dest_name} - sending test..."
+        )
+        send_message(chat_id, success_msg)
+        
+        # ارسال پیام تست به گروه مقصد برای اطمینان
+        try:
+            import messenger_whatsapp
+            wa_cfg = user_config["messengers"].get("whatsapp", {})
+            service_url = wa_cfg.get("service_url", "http://localhost:3001")
+            test_text = (
+                f"✅ ربات متصل شد! اوکی وصله 🎉\n\n"
+                f"👥 گروه: {dest_name}\n"
+                f"🤖 این گروه به عنوان مقصد انتخاب شد\n\n"
+                f"از این به بعد پست‌ها اینجا ارسال می‌شود"
+                if lang == "fa"
+                else f"✅ Bot connected! Test OK 🎉 Group: {dest_name}"
+            )
+            # ارسال تست
+            result = messenger_whatsapp._send_via_baileys(dest_id, test_text, None, service_url, str(chat_id))
+            if result:
+                send_message(chat_id, "✅ پیام تست به گروه ارسال شد! اوکی وصله 🎉" if lang == "fa" else "✅ Test message sent to group!", create_messengers_keyboard(chat_id, user_config))
+            else:
+                send_message(chat_id, "⚠️ اتصال برقرار است ولی پیام تست ارسال نشد - ممکن است گروه پرمیشن نداشته باشد، ولی پست‌ها سعی می‌شود ارسال شود" if lang == "fa" else "⚠️ Connected but test failed", create_messengers_keyboard(chat_id, user_config))
+        except Exception as e:
+            logger.error(f"❌ Test message error: {e}")
+            send_message(chat_id, create_messengers_keyboard(chat_id, user_config))
+        
+        clear_state(chat_id)
+        return
+    
+    elif callback_data == "wa_select_personal":
+        lang = get_user_lang(chat_id)
+        msg = (
+            "📱 *ارسال به شماره شخصی*\n\n"
+            "شماره مقصد را وارد کنید:\n"
+            "مثال: 989123456789\n\n"
+            "یا آیدی گروه: 120363...@g.us"
+            if lang == "fa"
+            else "📱 Send personal number or group ID"
+        )
+        send_message(chat_id, msg)
+        set_state(chat_id, "waiting_whatsapp_destination", chats=[])
+        return
+    
+    elif callback_data == "wa_skip_dest":
+        lang = get_user_lang(chat_id)
+        # رد کردن انتخاب مقصد - فقط connected ولی بدون destination_selected
+        user_config["messengers"]["whatsapp"]["connected"] = True
+        user_config["messengers"]["whatsapp"]["destination_selected"] = False
+        save_user_config(chat_id, user_config)
+        
+        msg = (
+            "⏭️ *رد شد*\n\n"
+            "واتساپ متصل است ولی مقصد انتخاب نشده\n"
+            "⚪ تیک سبز نمی‌خورد تا مقصد انتخاب شود\n\n"
+            "برای انتخاب مقصد بعدا:\n"
+            "تنظیمات -> پیام‌رسان‌ها -> WhatsApp\n"
+            "سپس لیست گروه‌ها را ببینید"
+            if lang == "fa"
+            else "⏭️ Skipped - WhatsApp connected but no destination, no green tick until destination selected"
+        )
+        send_message(chat_id, msg, create_messengers_keyboard(chat_id, user_config))
+        clear_state(chat_id)
+        return
+    
+    elif callback_data == "whatsapp_new_qr":
+        # درخواست QR جدید با کد - نسخه قابل کپی + شماره خودت
+        lang = get_user_lang(chat_id)
+        try:
+            import messenger_whatsapp, base64, tempfile, os, requests as req_lib
+            wa_cfg = user_config["messengers"].get("whatsapp", {})
+            service_url = wa_cfg.get("service_url", "http://localhost:3001")
+            # مهم: شماره خود کاربر برای pairing، نه مقصد
+            phone = wa_cfg.get("phone_number", "") or wa_cfg.get("own_phone", "") or wa_cfg.get("chat_id", "")
+            
+            sending_msg = f"⏳ دریافت QR جدید برای شماره خودت {phone}..." if lang == "fa" else f"⏳ Getting new QR for {phone}..."
+            if message_id:
+                edit_message(chat_id, message_id, sending_msg)
+            else:
+                send_message(chat_id, sending_msg)
+            
+            qr_result = messenger_whatsapp.get_qr_for_user(chat_id, phone, service_url)
+            
+            if qr_result.get("connected"):
+                success_msg = "✅ قبلا متصل است!" if lang == "fa" else "✅ Already connected!"
+                send_message(chat_id, success_msg, create_messengers_keyboard(chat_id, user_config))
+                clear_state(chat_id)
+                return
+            
+            if qr_result.get("qrImage"):
+                base64_part = qr_result["qrImage"].split(",")[1] if "," in qr_result["qrImage"] else qr_result["qrImage"]
+                qr_bytes = base64.b64decode(base64_part)
+                bale_token = config["messengers"]["bale"]["bot_token"]
+                api = f"https://tapi.bale.ai/bot{bale_token}"
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+                    tmp.write(qr_bytes)
+                    tmp_path = tmp.name
+                with open(tmp_path, "rb") as f:
+                    files = {"photo": ("qr.png", f, "image/png")}
+                    caption = "📱 QR جدید - 20 ثانیه اعتبار دارد! اسکن کن" if lang == "fa" else "📱 New QR - 20s valid!"
+                    data = {"chat_id": chat_id, "caption": caption}
+                    req_lib.post(f"{api}/sendPhoto", data=data, files=files, timeout=20)
+                    os.unlink(tmp_path)
+                
+                # کد قابل کپی - جداگانه
+                pairing_code = qr_result.get("pairingCode") or qr_result.get("copyableCode")
+                if pairing_code:
+                    plain_code = pairing_code.replace("-", "").replace(" ", "")
+                    send_message(chat_id, f"🔑 *کد جدید - قابل کپی:*\n\n`{pairing_code}`\n\n📋 کپی: `{plain_code}`\n\nبرای شماره خودت {phone} - روی همین شماره وارد کن" if lang == "fa" else f"🔑 New code: {pairing_code} plain {plain_code} for {phone}")
+                    send_message(chat_id, f"{pairing_code}\n\n👆 کپی کن")
+                    send_message(chat_id, f"{plain_code}\n\n👆 بدون خط تیره")
+                else:
+                    # سعی کن جدا بگیری
+                    try:
+                        pc_resp = req_lib.get(f"{service_url}/pairing-code", params={"userId": str(chat_id), "phone": phone}, timeout=15)
+                        if pc_resp.status_code == 200:
+                            pc_data = pc_resp.json()
+                            pc = pc_data.get("pairingCode")
+                            if pc:
+                                send_message(chat_id, f"🔑 کد: `{pc}`\n📋 `{pc.replace('-','')}`\nبرای {phone}" if lang == "fa" else f"Code {pc}")
+                                send_message(chat_id, f"{pc}\n\n👆 کپی")
+                                pairing_code = pc
+                    except:
+                        pass
+                
+                keyboard = {
+                    "inline_keyboard": [
+                        [{"text": "✅ بررسی اتصال" if lang == "fa" else "✅ Check", "callback_data": "check_whatsapp_status"}]
+                    ]
+                }
+                send_message(chat_id, "QR جدید فرستاده شد! کد بالا قابل کپی است" if lang == "fa" else "New QR sent! Code copyable above", keyboard)
+                set_state(chat_id, "waiting_whatsapp_qr_check", phone=phone, own_phone=phone, last_qr=qr_result.get("qr",""), pairing_code=pairing_code)
+            else:
+                msg = "⏳ QR در حال آماده شدن است، لطفا چند ثانیه صبر کنید" if lang == "fa" else "⏳ QR preparing, wait"
+                send_message(chat_id, msg)
+        except Exception as e:
+            logger.error(f"❌ whatsapp_new_qr error: {e}", exc_info=True)
+            send_message(chat_id, "⏳ خطا در دریافت QR، دوباره تلاش کن - شماره خودت رو درست بفرست: 98912..." if lang == "fa" else "Error getting QR")
+        return
+
+    elif callback_data == "wa_list_groups":
+        lang = get_user_lang(chat_id)
+        try:
+            import messenger_whatsapp
+            wa_cfg = user_config["messengers"].get("whatsapp", {})
+            service_url = wa_cfg.get("service_url", "http://localhost:3001")
+            
+            sending_msg = "⏳ در حال دریافت لیست گروه‌ها..." if lang == "fa" else "⏳ Getting groups..."
+            send_message(chat_id, sending_msg)
+            
+            chats_result = messenger_whatsapp.get_chats_for_user(chat_id, service_url)
+            
+            if chats_result.get("ok") and chats_result.get("chats"):
+                chats = chats_result["chats"]
+                msg = (
+                    f"📋 *{len(chats)} گروه پیدا شد*\n\n"
+                    "مقصد ارسال را انتخاب کنید:"
+                    if lang == "fa"
+                    else f"📋 Found {len(chats)} groups, select dest:"
+                )
+                send_message(chat_id, msg)
+                
+                keyboard = []
+                for chat in chats[:15]:
+                    name = chat.get("name", "Unknown")[:30]
+                    chat_id_val = chat.get("id", "")
+                    participants = chat.get("participants", 0)
+                    btn_text = f"👥 {name} ({participants})" if participants else f"👥 {name}"
+                    keyboard.append([{"text": btn_text, "callback_data": f"wa_select_dest_{chat_id_val}"}])
+                
+                keyboard.append([{"text": "📱 شماره شخصی", "callback_data": "wa_select_personal"}])
+                keyboard.append([{"text": t(chat_id, "back_to_settings"), "callback_data": "back_to_messengers_list"}])
+                
+                send_message(chat_id, "👇 انتخاب کنید:", {"inline_keyboard": keyboard})
+                set_state(chat_id, "waiting_whatsapp_destination", chats=chats)
+            else:
+                error = chats_result.get("error", "Unknown")
+                msg = (
+                    f"❌ خطا در دریافت گروه‌ها: {error}\n\n"
+                    "ممکن است واتساپ هنوز گروه‌ها را لود نکرده\n"
+                    "چند ثانیه صبر کنید و دوباره تلاش کنید\n\n"
+                    "یا شماره مقصد را دستی وارد کنید: 98912..."
+                    if lang == "fa"
+                    else f"❌ Error getting groups: {error}"
+                )
+                send_message(chat_id, msg)
+                set_state(chat_id, "waiting_whatsapp_destination", chats=[])
+        except Exception as e:
+            logger.error(f"❌ wa_list_groups error: {e}")
+            send_message(chat_id, f"❌ خطا: {e}")
+        return
+    
     elif callback_data == "submit_messenger_selection":
         current_state_name, current_state_data = get_state(chat_id)
         selected = current_state_data.get("selected_messengers", [])
@@ -2499,7 +3317,9 @@ def handle_message(message, callback_data=None):
         messenger_names = {
             "bale": "🔵 Bale",
             "rubika": "🟢 Rubika",
-            "eitaa": "🟡 Eitaa"
+            "eitaa": "🟡 Eitaa",
+            "telegram": "✈️ Telegram",
+            "whatsapp": "💚 WhatsApp"
         }
         messenger_list = "\n".join([f"  {messenger_names[m]}" for m in selected])
 
@@ -3067,7 +3887,12 @@ def handle_message(message, callback_data=None):
             if lang == "fa"
             else "🤖 Send your Bale bot token:"
         )
-        send_message(chat_id, prompt)
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": t(chat_id, "learn_how"), "callback_data": "help_bale"}]
+            ]
+        }
+        send_message(chat_id, prompt, keyboard)
         set_state(chat_id, "waiting_bale_token")
         return
 
@@ -3078,7 +3903,12 @@ def handle_message(message, callback_data=None):
             if lang == "fa"
             else "🤖 Send your Rubika bot token:"
         )
-        send_message(chat_id, prompt)
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": t(chat_id, "learn_how"), "callback_data": "help_rubika"}]
+            ]
+        }
+        send_message(chat_id, prompt, keyboard)
         set_state(chat_id, "waiting_rubika_token")
         return
 
@@ -3089,8 +3919,131 @@ def handle_message(message, callback_data=None):
             if lang == "fa"
             else "🤖 Send your Eitaa bot token:"
         )
-        send_message(chat_id, prompt)
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": t(chat_id, "learn_how"), "callback_data": "help_eitaa"}]
+            ]
+        }
+        send_message(chat_id, prompt, keyboard)
         set_state(chat_id, "waiting_eitaa_token")
+        return
+
+    elif "Telegram" in text:
+        lang = get_user_lang(chat_id)
+        prompt = (
+            "✈️ توکن ربات Telegram خود را ارسال کنید:\n"
+            "از @BotFather بگیرید\n"
+            "مثال: 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+            if lang == "fa"
+            else "✈️ Send your Telegram bot token:\n"
+            "Get from @BotFather\n"
+            "Example: 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+        )
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": t(chat_id, "learn_how"), "callback_data": "help_telegram"}]
+            ]
+        }
+        send_message(chat_id, prompt, keyboard)
+        set_state(chat_id, "waiting_telegram_token")
+        return
+
+    elif "WhatsApp" in text:
+        lang = get_user_lang(chat_id)
+        wa_cfg = user_config["messengers"].get("whatsapp", {})
+        current = wa_cfg.get("chat_id", "")
+        is_connected = False
+        dest_selected = wa_cfg.get("destination_selected", False)
+        
+        try:
+            import messenger_whatsapp
+            status = messenger_whatsapp.check_connection_status(chat_id, wa_cfg.get("service_url", "http://localhost:3001"))
+            is_connected = status.get("connected", False)
+        except:
+            pass
+        
+        if lang == "fa":
+            if current and is_connected and dest_selected:
+                # کاملا ستاپ شده: متصل + مقصد انتخاب شده -> ✅
+                prompt = (
+                    f"💚 *WhatsApp کاملا متصل است* ✅\n\n"
+                    f"📱 مقصد: {current}\n"
+                    f"🔗 وضعیت: متصل + مقصد ✅\n\n"
+                    "همه چیز آماده است!\n"
+                    "برای تغییر مقصد، گروه‌ها را لیست کن:\n"
+                    "بنویسید `groups` یا `لیست`\n\n"
+                    "برای تغییر شماره: شماره جدید\n"
+                    "برای قطع: `logout`"
+                )
+                keyboard = {
+                    "inline_keyboard": [
+                        [{"text": "📋 لیست گروه‌ها", "callback_data": "wa_list_groups"}],
+                        [{"text": t(chat_id, "learn_how"), "callback_data": "help_whatsapp"}]
+                    ]
+                }
+            elif current and is_connected and not dest_selected:
+                # متصل ولی مقصد انتخاب نشده -> ⚪
+                prompt = (
+                    f"💚 *WhatsApp متصل ولی مقصد انتخاب نشده* ⚪\n\n"
+                    f"📱 شماره: {current}\n"
+                    f"🔗 وضعیت: متصل ولی مقصد ⚪\n\n"
+                    "⚠️ تا مقصد انتخاب نشود تیک سبز نمی‌خورد\n\n"
+                    "برای انتخاب مقصد:\n"
+                    "بنویسید `groups` تا گروه‌ها لیست شود\n"
+                    "یا شماره مقصد را ارسال کنید: 98912..."
+                )
+                keyboard = {
+                    "inline_keyboard": [
+                        [{"text": "📋 لیست گروه‌ها", "callback_data": "wa_list_groups"}],
+                        [{"text": t(chat_id, "learn_how"), "callback_data": "help_whatsapp"}]
+                    ]
+                }
+            elif current and not is_connected:
+                prompt = (
+                    f"💚 *WhatsApp*\n\n"
+                    f"📱 شماره فعلی: {current}\n"
+                    f"🔗 وضعیت: قطع ⚪ (تیک سبز ندارد)\n\n"
+                    "برای اتصال مجدد، شماره را ارسال کنید:\n"
+                    "مثال: 989123456789\n\n"
+                    "یا بنویسید `qr` برای دریافت QR جدید"
+                )
+                keyboard = {
+                    "inline_keyboard": [
+                        [{"text": t(chat_id, "learn_how"), "callback_data": "help_whatsapp"}]
+                    ]
+                }
+            else:
+                prompt = (
+                    "💚 *اتصال WhatsApp - فوق ساده*\n\n"
+                    "فقط شماره واتساپ خود را ارسال کنید:\n\n"
+                    "📱 مثال: 989123456789\n"
+                    "یا 989123456789@s.whatsapp.net\n\n"
+                    "بعد از ارسال شماره، یک QR کد + کد 8 رقمی برای شما ارسال می‌شود\n"
+                    "آن را با واتساپ اسکن کنید یا کد را وارد کنید\n\n"
+                    "✨ حتی یک غیر برنامه‌نویس هم می‌تواند وصل کند!\n\n"
+                    "⚠️ تیک سبز فقط وقتی می‌خورد که متصل + مقصد انتخاب شده باشد"
+                )
+                keyboard = {
+                    "inline_keyboard": [
+                        [{"text": t(chat_id, "learn_how"), "callback_data": "help_whatsapp"}]
+                    ]
+                }
+        else:
+            if current and is_connected and dest_selected:
+                prompt = f"💚 *WhatsApp Fully Connected* ✅\n\n📱 Dest: {current}\nStatus: Connected + Dest ✅\n\nReady!"
+                keyboard = {"inline_keyboard": [[{"text": "📋 List Groups", "callback_data": "wa_list_groups"}]]}
+            elif current and is_connected:
+                prompt = f"💚 *WhatsApp Connected but no dest* ⚪\n\n📱 {current}\nStatus: Connected but no dest - no green tick\n\nType groups to list"
+                keyboard = {"inline_keyboard": [[{"text": "📋 List Groups", "callback_data": "wa_list_groups"}]]}
+            elif current:
+                prompt = f"💚 *WhatsApp*\n\n📱 Current: {current}\nStatus: Disconnected ⚪\n\nSend number or qr"
+                keyboard = {"inline_keyboard": [[{"text": t(chat_id, "learn_how"), "callback_data": "help_whatsapp"}]]}
+            else:
+                prompt = "💚 *WhatsApp Setup*\n\nSend number: 989123456789\n\nGreen tick only when connected + dest selected"
+                keyboard = {"inline_keyboard": [[{"text": t(chat_id, "learn_how"), "callback_data": "help_whatsapp"}]]}
+        
+        send_message(chat_id, prompt, keyboard)
+        set_state(chat_id, "waiting_whatsapp_chat")
         return
 
     elif text == t(chat_id, "woocommerce_api"):
@@ -3700,6 +4653,37 @@ def handle_message(message, callback_data=None):
                 send_message(chat_id, error_msg)
                 return
 
+        # ===== فیلتر دسته‌بندی =====
+        elif current_state_name == "waiting_category_filter":
+            input_text = text.strip() if text else ""
+            lang = get_user_lang(chat_id)
+            
+            if input_text.lower() in ["all", "همه", "همه دسته‌ها", "clear", "پاک"]:
+                user_config["auto_post"]["categories"] = []
+                save_user_config(chat_id, user_config)
+                send_message(chat_id, t(chat_id, "category_cleared"), create_autopost_keyboard(chat_id, user_config))
+                clear_state(chat_id)
+                return
+            
+            # پردازش ورودی: می‌تواند ID عددی یا slug باشد
+            parts = [p.strip() for p in input_text.split(",") if p.strip()]
+            categories = []
+            for p in parts:
+                # اگر عدد است
+                if p.isdigit():
+                    categories.append(int(p))
+                else:
+                    categories.append(p)
+            
+            user_config["auto_post"]["categories"] = categories
+            save_user_config(chat_id, user_config)
+            
+            cats_str = ", ".join([str(c) for c in categories])
+            msg = t(chat_id, "category_selected").format(cats=cats_str)
+            send_message(chat_id, msg, create_autopost_keyboard(chat_id, user_config))
+            clear_state(chat_id)
+            return
+
         # ===== تعداد پست در روز =====
         elif current_state_name == "waiting_posts_per_day":
             try:
@@ -3809,6 +4793,423 @@ def handle_message(message, callback_data=None):
                 else "✅ Eitaa configured!"
             )
             send_message(chat_id, success_msg, create_messengers_keyboard(chat_id, user_config))
+            clear_state(chat_id)
+            return
+
+        # ===== پیکربندی Telegram =====
+        elif current_state_name == "waiting_telegram_token":
+            user_config["messengers"]["telegram"]["bot_token"] = text.strip()
+            save_user_config(chat_id, user_config)
+
+            prompt = (
+                "✅ توکن ذخیره شد! اکنون شناسه کانال/گروه را ارسال کنید:\n"
+                "فرمت‌ها:\n"
+                "• @yourchannel (کانال عمومی)\n"
+                "• -1001234567890 (کانال خصوصی با -100)\n"
+                "• @username یا chat_id عددی\n\n"
+                "⚠️ ربات باید ادمین کانال باشد!"
+                if lang == "fa"
+                else "✅ Token saved! Now send channel/group ID:\n"
+                "Formats:\n"
+                "• @yourchannel (public)\n"
+                "• -1001234567890 (private)\n\n"
+                "⚠️ Bot must be admin!"
+            )
+            send_message(chat_id, prompt)
+            set_state(chat_id, "waiting_telegram_chat")
+            return
+
+        elif current_state_name == "waiting_telegram_chat":
+            user_config["messengers"]["telegram"]["chat_id"] = text.strip()
+            save_user_config(chat_id, user_config)
+
+            # تست سریع
+            testing_msg = "⏳ در حال تست اتصال تلگرام..." if lang == "fa" else "⏳ Testing Telegram connection..."
+            send_message(chat_id, testing_msg)
+
+            try:
+                import messenger_telegram
+                if messenger_telegram.is_configured(user_config):
+                    success_msg = (
+                        "✅ Telegram پیکربندی شد!\n"
+                        f"کانال: {text}\n\n"
+                        "برای تست: پست‌های ووکامرس -> تست ارسال"
+                        if lang == "fa"
+                        else f"✅ Telegram configured!\nChannel: {text}"
+                    )
+                else:
+                    success_msg = "✅ Telegram ذخیره شد!" if lang == "fa" else "✅ Telegram saved!"
+            except:
+                success_msg = "✅ Telegram پیکربندی شد!" if lang == "fa" else "✅ Telegram configured!"
+
+            send_message(chat_id, success_msg, create_messengers_keyboard(chat_id, user_config))
+            clear_state(chat_id)
+            return
+
+        # ===== پیکربندی WhatsApp - نسخه نهایی پایدار - ذخیره سشن در فایل+DB =====
+        elif current_state_name == "waiting_whatsapp_chat":
+            # دستورات خاص اول
+            wa_input_raw = text.strip()
+            lang = get_user_lang(chat_id)
+            
+            if wa_input_raw.lower() in ["groups", "گروه", "گروه‌ها", "لیست", "list", "group"]:
+                try:
+                    import messenger_whatsapp
+                    wa_cfg = user_config["messengers"].get("whatsapp", {})
+                    service_url = wa_cfg.get("service_url", "http://localhost:3001")
+                    status = messenger_whatsapp.check_connection_status(chat_id, service_url)
+                    if not status.get("connected"):
+                        send_message(chat_id, "❌ واتساپ متصل نیست، اول شماره خودت رو بفرست تا وصل بشی" if lang == "fa" else "❌ Not connected")
+                        return
+                    chats_result = messenger_whatsapp.get_chats_for_user(chat_id, service_url)
+                    if chats_result.get("ok") and chats_result.get("chats"):
+                        chats = chats_result["chats"]
+                        keyboard = []
+                        for chat in chats[:15]:
+                            name = chat.get("name", "Unknown")[:30]
+                            chat_id_val = chat.get("id", "")
+                            participants = chat.get("participants", 0)
+                            btn_text = f"👥 {name} ({participants})" if participants else f"👥 {name}"
+                            keyboard.append([{"text": btn_text, "callback_data": f"wa_select_dest_{chat_id_val}"}])
+                        keyboard.append([{"text": "📱 شماره شخصی", "callback_data": "wa_select_personal"}])
+                        send_message(chat_id, f"📋 {len(chats)} گروه پیدا شد، انتخاب کنید:", {"inline_keyboard": keyboard})
+                        set_state(chat_id, "waiting_whatsapp_destination", chats=chats)
+                    else:
+                        send_message(chat_id, f"❌ خطا: {chats_result.get('error','')}")
+                except Exception as e:
+                    send_message(chat_id, f"❌ خطا: {e}")
+                return
+            
+            if wa_input_raw.lower() in ["logout", "خروج", "قطع"]:
+                try:
+                    import messenger_whatsapp
+                    wa_cfg = user_config["messengers"].get("whatsapp", {})
+                    messenger_whatsapp.disconnect_user(chat_id, wa_cfg.get("service_url", "http://localhost:3001"))
+                    user_config["messengers"]["whatsapp"]["chat_id"] = ""
+                    user_config["messengers"]["whatsapp"]["phone_number"] = ""
+                    user_config["messengers"]["whatsapp"]["connected"] = False
+                    user_config["messengers"]["whatsapp"]["destination_selected"] = False
+                    save_user_config(chat_id, user_config)
+                    send_message(chat_id, "✅ اتصال WhatsApp قطع شد!" if lang == "fa" else "✅ Disconnected!", create_messengers_keyboard(chat_id, user_config))
+                except Exception as e:
+                    send_message(chat_id, f"❌ خطا: {e}")
+                clear_state(chat_id)
+                return
+            
+            if wa_input_raw.lower() in ["qr", "کیوآر", "اتصال"]:
+                wa_input_raw = user_config["messengers"].get("whatsapp", {}).get("phone_number", "") or user_config["messengers"].get("whatsapp", {}).get("chat_id", "")
+                if not wa_input_raw:
+                    send_message(chat_id, "❌ ابتدا شماره خودت رو بفرست!" if lang == "fa" else "❌ Enter your OWN number first!")
+                    return
+            
+            # ===== مرحله 1: شماره خود کاربر برای لینک کردن (نه مقصد) =====
+            # این شماره باید شماره واتساپ خود کاربر باشد که روی گوشیش نصبه
+            own_phone_raw = wa_input_raw.strip().replace(" ", "").replace("+", "")
+            # نرمال‌سازی
+            if own_phone_raw.startswith("0"):
+                own_phone_raw = "98" + own_phone_raw[1:]
+            if own_phone_raw.isdigit() and len(own_phone_raw) == 10 and own_phone_raw.startswith("9"):
+                own_phone_raw = "98" + own_phone_raw
+            
+            # اعتبارسنجی
+            if not own_phone_raw.isdigit() or len(own_phone_raw) < 10:
+                send_message(chat_id, "❌ شماره نامعتبر! مثال: 989123456789 (با 98 شروع، بدون + و فاصله)" if lang == "fa" else "❌ Invalid number! Example: 989123456789")
+                return
+            
+            # ذخیره شماره خود کاربر - برای pairing code
+            user_config["messengers"]["whatsapp"]["phone_number"] = own_phone_raw
+            user_config["messengers"]["whatsapp"]["own_phone"] = own_phone_raw
+            user_config["messengers"]["whatsapp"]["provider"] = "baileys"
+            user_config["messengers"]["whatsapp"]["session_persistent"] = True
+            if "service_url" not in user_config["messengers"]["whatsapp"]:
+                user_config["messengers"]["whatsapp"]["service_url"] = "http://localhost:3001"
+            save_user_config(chat_id, user_config)
+            logger.info(f"💾 Saved own phone {own_phone_raw} for user {chat_id} - persistent in file+DB")
+
+            # حالا QR + Pairing Code بگیر
+            try:
+                import messenger_whatsapp
+                wa_cfg = user_config["messengers"]["whatsapp"]
+                service_url = wa_cfg.get("service_url", "http://localhost:3001")
+                
+                send_message(chat_id, "⏳ در حال دریافت QR کد و کد اتصال...\nشماره خودت: " + own_phone_raw if lang == "fa" else f"⏳ Getting QR for {own_phone_raw}...")
+                
+                qr_result = messenger_whatsapp.get_qr_for_user(chat_id, own_phone_raw, service_url)
+                
+                if qr_result.get("connected"):
+                    success_msg = (
+                        f"✅ *WhatsApp قبلا متصل است!* ✅\n\n"
+                        f"📱 شماره خودت: {own_phone_raw}\n"
+                        f"🔗 وضعیت: متصل ✅\n\n"
+                        "حالا مقصد ارسال را انتخاب کن:\n"
+                        "بنویس groups تا لیست گروه‌ها بیاد"
+                        if lang == "fa"
+                        else f"✅ Already connected! Own: {own_phone_raw}"
+                    )
+                    send_message(chat_id, success_msg, create_messengers_keyboard(chat_id, user_config))
+                    # بعد از اتصال، لیست گروه‌ها
+                    try:
+                        chats_result = messenger_whatsapp.get_chats_for_user(chat_id, service_url)
+                        if chats_result.get("ok") and chats_result.get("chats"):
+                            chats = chats_result["chats"]
+                            keyboard = []
+                            for chat in chats[:10]:
+                                name = chat.get("name", "Unknown")[:30]
+                                cid = chat.get("id", "")
+                                participants = chat.get("participants", 0)
+                                btn_text = f"👥 {name} ({participants})" if participants else f"👥 {name}"
+                                keyboard.append([{"text": btn_text, "callback_data": f"wa_select_dest_{cid}"}])
+                            keyboard.append([{"text": "📱 شماره شخصی", "callback_data": "wa_select_personal"}])
+                            send_message(chat_id, f"📋 {len(chats)} گروه پیدا شد:", {"inline_keyboard": keyboard})
+                            set_state(chat_id, "waiting_whatsapp_destination", chats=chats)
+                            return
+                    except:
+                        pass
+                    clear_state(chat_id)
+                    return
+                
+                if qr_result.get("ok") and qr_result.get("qrImage"):
+                    try:
+                        base64_part = qr_result["qrImage"].split(",")[1] if "," in qr_result["qrImage"] else qr_result["qrImage"]
+                        import base64
+                        qr_bytes = base64.b64decode(base64_part)
+                        pairing_code = qr_result.get("pairingCode") or qr_result.get("copyableCode")
+                        
+                        # اگر کد نیست، جدا بگیر
+                        if not pairing_code:
+                            try:
+                                import requests as req_tmp
+                                pc_resp = req_tmp.get(
+                                    f"{service_url}/pairing-code",
+                                    params={"userId": str(chat_id), "phone": own_phone_raw},
+                                    timeout=15
+                                )
+                                if pc_resp.status_code == 200:
+                                    pc_data = pc_resp.json()
+                                    pairing_code = pc_data.get("pairingCode") or pc_data.get("copyableCode")
+                                    logger.info(f"🔑 Got pairing code fallback for {chat_id}: {pairing_code}")
+                            except Exception as e:
+                                logger.error(f"Pairing fallback error: {e}")
+                        
+                        # ارسال QR عکس
+                        try:
+                            bale_token = config["messengers"]["bale"]["bot_token"]
+                            api = f"https://tapi.bale.ai/bot{bale_token}"
+                            import tempfile, os
+                            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+                                tmp.write(qr_bytes)
+                                tmp_path = tmp.name
+                            with open(tmp_path, "rb") as f:
+                                files = {"photo": ("qr.png", f, "image/png")}
+                                caption_text = (
+                                    f"📱 *QR کد واتساپ*\n\n"
+                                    f"این QR را اسکن کن:\n"
+                                    f"واتساپ -> تنظیمات -> دستگاه‌های متصل -> اتصال دستگاه\n\n"
+                                    f"⏰ 20 ثانیه اعتبار - خودکار عوض می‌شود"
+                                    if lang == "fa"
+                                    else f"📱 Scan QR: WhatsApp -> Settings -> Linked Devices"
+                                )
+                                data = {"chat_id": chat_id, "caption": caption_text}
+                                resp = requests.post(f"{api}/sendPhoto", data=data, files=files, timeout=20)
+                                os.unlink(tmp_path)
+                        except Exception as e:
+                            logger.error(f"QR photo send error: {e}")
+                        
+                        # ===== ارسال کد به صورت قابل کپی - جداگانه =====
+                        if pairing_code:
+                            # کد با خط تیره مثلا 1234-5678
+                            # بدون خط تیره برای کپی راحت‌تر
+                            plain_code = pairing_code.replace("-", "").replace(" ", "")
+                            formatted_code = pairing_code
+                            
+                            # پیام 1: کد با توضیح کامل - قابل کپی
+                            code_msg_1 = (
+                                f"🔑 *کد اتصال واتساپ - قابل کپی:*\n\n"
+                                f"`{formatted_code}`\n\n"
+                                f"📋 *کپی کنید:* `{plain_code}`\n\n"
+                                f"⚠️ *مهم:* این کد برای شماره {own_phone_raw} است\n"
+                                f"باید روی گوشی که همین شماره روش نصبه وارد کنی\n\n"
+                                f"📍 مسیر:\n"
+                                f"واتساپ -> تنظیمات (سه نقطه) -> دستگاه‌های متصل\n"
+                                f"-> اتصال با شماره تلفن\n"
+                                f"-> کد بالا را وارد کن\n\n"
+                                f"اگر میگه 'مطمئن باش برای شماره خودت هست' یعنی شماره‌ای که وارد کردی ({own_phone_raw}) با شماره گوشی‌ت فرق داره!\n"
+                                f"شماره خودت رو درست بفرست"
+                                if lang == "fa"
+                                else f"🔑 Pairing Code (copyable):\n{formatted_code}\nPlain: {plain_code}\nFor number {own_phone_raw}"
+                            )
+                            send_message(chat_id, code_msg_1)
+                            
+                            # پیام 2: فقط کد ساده برای کپی فوق آسان
+                            send_message(chat_id, f"{formatted_code}\n\n👆 این کد را کپی کن")
+                            send_message(chat_id, f"{plain_code}\n\n👆 بدون خط تیره - کپی راحت")
+                        else:
+                            send_message(chat_id, "⚠️ کد اتصال هنوز آماده نشده، فقط QR را اسکن کن - یا چند ثانیه بعد بنویس qr" if lang == "fa" else "⚠️ Code not ready, scan QR")
+                        
+                        keyboard = {
+                            "inline_keyboard": [
+                                [{"text": "✅ بررسی اتصال" if lang == "fa" else "✅ Check", "callback_data": "check_whatsapp_status"}],
+                                [{"text": "🔄 QR + کد جدید" if lang == "fa" else "🔄 New QR+Code", "callback_data": "whatsapp_new_qr"}]
+                            ]
+                        }
+                        send_message(chat_id, "✅ QR و کد بالا را استفاده کن، بعد بررسی بزن\n💡 QR خودکار عوض می‌شود" if lang == "fa" else "Use QR/code above, then check", keyboard)
+                        set_state(chat_id, "waiting_whatsapp_qr_check", phone=own_phone_raw, own_phone=own_phone_raw, last_qr=qr_result.get("qr",""), pairing_code=pairing_code)
+                        return
+                    
+                    except Exception as e:
+                        logger.error(f"QR processing error: {e}", exc_info=True)
+                        send_message(chat_id, f"❌ خطا در پردازش QR: {e}")
+                        clear_state(chat_id)
+                        return
+                
+                elif qr_result.get("ok") and qr_result.get("qr"):
+                    send_message(chat_id, f"📱 QR دریافت شد\n{service_url}/qr-image?userId={chat_id}")
+                    set_state(chat_id, "waiting_whatsapp_qr_check", phone=own_phone_raw)
+                    return
+                else:
+                    error = qr_result.get("error", "Unknown")
+                    logger.error(f"QR error for {chat_id}: {error} result={qr_result}")
+                    msg = (
+                        "⏳ در حال اتصال...\n"
+                        "چند ثانیه صبر کن و بنویس qr"
+                        if lang == "fa"
+                        else "Connecting, try qr again"
+                    )
+                    send_message(chat_id, msg, {"inline_keyboard": [[{"text": "🔄 تلاش مجدد", "callback_data": "whatsapp_new_qr"}]]})
+                    return
+            
+            except Exception as e:
+                logger.error(f"WhatsApp QR flow error: {e}", exc_info=True)
+                send_message(chat_id, f"❌ خطا: {e}\nسرویس چک: cd whatsapp-service && cat whatsapp.log", create_messengers_keyboard(chat_id, user_config))
+                clear_state(chat_id)
+                return
+
+        elif current_state_name == "waiting_whatsapp_qr_check":
+            # کاربر بعد از اسکن QR، چیزی فرستاده یا دکمه بررسی زده - با شماره خودت
+            if text.lower() in ["qr", "کیوآر", "جدید", "کد"]:
+                # QR جدید - با شماره خودت
+                try:
+                    import messenger_whatsapp
+                    wa_cfg = user_config["messengers"].get("whatsapp", {})
+                    service_url = wa_cfg.get("service_url", "http://localhost:3001")
+                    phone = current_state_data.get("own_phone", "") or current_state_data.get("phone", "") or wa_cfg.get("phone_number", "") or wa_cfg.get("own_phone", "") or wa_cfg.get("chat_id", "")
+                    
+                    qr_result = messenger_whatsapp.get_qr_for_user(chat_id, phone, service_url, own_phone=phone)
+                    if qr_result.get("qrImage"):
+                        import base64, tempfile, os
+                        base64_part = qr_result["qrImage"].split(",")[1] if "," in qr_result["qrImage"] else qr_result["qrImage"]
+                        qr_bytes = base64.b64decode(base64_part)
+                        bale_token = config["messengers"]["bale"]["bot_token"]
+                        api = f"https://tapi.bale.ai/bot{bale_token}"
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+                            tmp.write(qr_bytes)
+                            tmp_path = tmp.name
+                        with open(tmp_path, "rb") as f:
+                            files = {"photo": ("qr.png", f, "image/png")}
+                            pc = qr_result.get("pairingCode") or ""
+                            caption = f"📱 QR جدید - کد: {pc} برای {phone}" if pc else f"📱 QR جدید - برای {phone}"
+                            data = {"chat_id": chat_id, "caption": caption}
+                            requests.post(f"{api}/sendPhoto", data=data, files=files, timeout=20)
+                            os.unlink(tmp_path)
+                        # کد قابل کپی
+                        if qr_result.get("pairingCode"):
+                            pc = qr_result.get("pairingCode")
+                            send_message(chat_id, f"{pc}\n\n👆 کپی کن - برای {phone}")
+                            send_message(chat_id, f"{pc.replace('-','')}\n\n👆 بدون خط تیره")
+                        keyboard = {
+                            "inline_keyboard": [
+                                [{"text": "✅ بررسی اتصال", "callback_data": "check_whatsapp_status"}]
+                            ]
+                        }
+                        send_message(chat_id, f"QR جدید فرستاده شد برای شماره خودت {phone} - کد بالا قابل کپی", keyboard)
+                        # آپدیت state
+                        if isinstance(user_states.get(chat_id), dict):
+                            user_states[chat_id]["last_qr"] = qr_result.get("qr","")
+                            user_states[chat_id]["pairing_code"] = qr_result.get("pairingCode")
+                        return
+                except Exception as e:
+                    logger.error(f"waiting_whatsapp_qr_check qr error: {e}")
+                    send_message(chat_id, f"❌ خطا: {e}")
+                    return
+            
+            # برای هر متن دیگری، راهنما
+            msg = (
+                "📱 QR را اسکن کردید؟\n"
+                "دکمه ✅ بررسی اتصال را بزنید\n"
+                "یا بنویسید `qr` برای QR جدید"
+                if lang == "fa"
+                else "Scanned? Click Check Connection or type qr for new QR"
+            )
+            keyboard = {
+                "inline_keyboard": [
+                    [{"text": "✅ بررسی اتصال" if lang == "fa" else "✅ Check", "callback_data": "check_whatsapp_status"}],
+                    [{"text": "🔄 QR جدید" if lang == "fa" else "🔄 New QR", "callback_data": "whatsapp_new_qr"}]
+                ]
+            }
+            send_message(chat_id, msg, keyboard)
+            return
+
+        elif current_state_name == "waiting_whatsapp_destination":
+            # کاربر مقصد واتساپ را وارد می‌کند (شماره یا آیدی گروه)
+            dest_input = text.strip()
+            lang = get_user_lang(chat_id)
+            
+            if dest_input.lower() in ["ok", "تایید", "همین"]:
+                # تایید شماره فعلی به عنوان مقصد
+                current_dest = user_config["messengers"]["whatsapp"].get("chat_id", "")
+                if current_dest:
+                    user_config["messengers"]["whatsapp"]["destination_selected"] = True
+                    user_config["messengers"]["whatsapp"]["connected"] = True
+                    save_user_config(chat_id, user_config)
+                    msg = (
+                        f"✅ مقصد تایید شد: {current_dest}\n"
+                        f"🔗 وضعیت: متصل + مقصد ✅"
+                        if lang == "fa"
+                        else f"✅ Destination confirmed: {current_dest}"
+                    )
+                    send_message(chat_id, msg, create_messengers_keyboard(chat_id, user_config))
+                    clear_state(chat_id)
+                    return
+                else:
+                    send_message(chat_id, "❌ مقصدی وجود ندارد، شماره وارد کنید" if lang == "fa" else "❌ No destination")
+                    return
+            
+            # نرمال‌سازی ورودی
+            normalized = dest_input.replace(" ", "").replace("+", "")
+            if normalized.startswith("0"):
+                normalized = "98" + normalized[1:]
+            
+            # ذخیره به عنوان مقصد
+            user_config["messengers"]["whatsapp"]["chat_id"] = normalized
+            user_config["messengers"]["whatsapp"]["destination_selected"] = True
+            user_config["messengers"]["whatsapp"]["connected"] = True
+            save_user_config(chat_id, user_config)
+            
+            success_msg = (
+                f"✅ *مقصد واتساپ انتخاب شد!* 🎉\n\n"
+                f"📱 مقصد: {normalized}\n"
+                f"🔗 وضعیت: متصل + مقصد ✅\n\n"
+                "⏳ در حال ارسال پیام تست..."
+                if lang == "fa"
+                else f"✅ WhatsApp destination: {normalized} - sending test..."
+            )
+            send_message(chat_id, success_msg)
+            
+            # پیام تست
+            try:
+                import messenger_whatsapp
+                wa_cfg = user_config["messengers"].get("whatsapp", {})
+                service_url = wa_cfg.get("service_url", "http://localhost:3001")
+                test_text = "✅ ربات متصل شد! اوکی وصله 🎉\n\nاین مقصد به عنوان مقصد انتخاب شد"
+                result = messenger_whatsapp._send_via_baileys(normalized, test_text, None, service_url, str(chat_id))
+                if result:
+                    send_message(chat_id, "✅ پیام تست ارسال شد! اوکی وصله 🎉" if lang == "fa" else "✅ Test sent!", create_messengers_keyboard(chat_id, user_config))
+                else:
+                    send_message(chat_id, "⚠️ پیام تست ارسال نشد ولی تنظیمات ذخیره شد" if lang == "fa" else "⚠️ Test failed but saved", create_messengers_keyboard(chat_id, user_config))
+            except Exception as e:
+                logger.error(f"Test message error: {e}")
+                send_message(chat_id, create_messengers_keyboard(chat_id, user_config))
+            
             clear_state(chat_id)
             return
 

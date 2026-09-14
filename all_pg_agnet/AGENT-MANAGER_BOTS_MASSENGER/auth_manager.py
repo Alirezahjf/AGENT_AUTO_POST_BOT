@@ -13,15 +13,22 @@ class AuthManager:
     """مدیریت احراز هویت و دسترسی کاربران با پشتیبانی ادمین‌های متعدد و سیستم خرید"""
 
     def __init__(self, auth_db_path='auth.db'):
-        self.auth_db_path = auth_db_path
-        self.users_dir = Path('users')
+        # Use absolute path based on file location to avoid cwd issues
+        base_dir = Path(__file__).parent
+        if Path(auth_db_path).is_absolute():
+            self.auth_db_path = auth_db_path
+        else:
+            self.auth_db_path = str(base_dir / auth_db_path)
+        self.users_dir = base_dir / 'users'
         self.users_dir.mkdir(exist_ok=True)
         self.init_auth_database()
-        logger.info("✅ AuthManager مقداردهی شد")
+        logger.debug("✅ AuthManager مقداردهی شد")
 
     def init_auth_database(self):
         """ایجاد جداول پایگاه داده احراز هویت"""
-        conn = sqlite3.connect(self.auth_db_path)
+        # اطمینان از وجود پوشه
+        Path(self.auth_db_path).parent.mkdir(parents=True, exist_ok=True)
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
@@ -138,7 +145,7 @@ class AuthManager:
                     pass
 
             conn.commit()
-            logger.info("✅ جداول پایگاه داده ایجاد شدند")
+            logger.debug("✅ جداول پایگاه داده ایجاد شدند")
 
         except Exception as e:
             logger.error(f"❌ خطا در ایجاد جداول: {e}")
@@ -165,7 +172,7 @@ class AuthManager:
         token = self.generate_token()
         hashed = self.hash_token(token)
 
-        conn = sqlite3.connect(self.auth_db_path)
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
@@ -194,7 +201,7 @@ class AuthManager:
         expires_at = (datetime.now() + timedelta(hours=1)).strftime('%Y-%m-%d %H:%M:%S')
         created_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-        conn = sqlite3.connect(self.auth_db_path)
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
@@ -244,7 +251,7 @@ class AuthManager:
         token_hash = self.hash_token(token)
         created_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-        conn = sqlite3.connect(self.auth_db_path)
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
@@ -277,7 +284,7 @@ class AuthManager:
         """
         token_hash = self.hash_token(token)
 
-        conn = sqlite3.connect(self.auth_db_path)
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
@@ -336,7 +343,7 @@ class AuthManager:
 
     def get_purchase_token_by_chat_id(self, chat_id: int) -> Optional[Dict]:
         """دریافت توکن خرید فعال کاربر"""
-        conn = sqlite3.connect(self.auth_db_path)
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
@@ -371,7 +378,7 @@ class AuthManager:
         """غیرفعال کردن توکن خرید (توسط ادمین)"""
         token_hash = self.hash_token(token)
 
-        conn = sqlite3.connect(self.auth_db_path)
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
@@ -414,7 +421,7 @@ class AuthManager:
         Returns:
             int: شناسه پرداخت
         """
-        conn = sqlite3.connect(self.auth_db_path)
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
@@ -452,7 +459,7 @@ class AuthManager:
         Returns:
             bool: موفقیت
         """
-        conn = sqlite3.connect(self.auth_db_path)
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
@@ -496,7 +503,7 @@ class AuthManager:
 
     def get_user_payments(self, chat_id: int) -> List[Dict]:
         """دریافت تاریخچه پرداخت‌های کاربر"""
-        conn = sqlite3.connect(self.auth_db_path)
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
@@ -530,7 +537,7 @@ class AuthManager:
         """تحقق توکن دائمی کاربر (تایید توسط ادمین)"""
         hashed = self.hash_token(token)
 
-        conn = sqlite3.connect(self.auth_db_path)
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
@@ -555,7 +562,7 @@ class AuthManager:
         """تحقق توکن موقت"""
         hashed = self.hash_token(token)
 
-        conn = sqlite3.connect(self.auth_db_path)
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
@@ -595,7 +602,7 @@ class AuthManager:
 
     def register_user(self, chat_id: int, username: str) -> Dict:
         """ثبت کاربر جدید"""
-        conn = sqlite3.connect(self.auth_db_path)
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
@@ -643,7 +650,7 @@ class AuthManager:
         کاربر را در جدول users با وضعیت approved ثبت/به‌روز می‌کند
         تا به بخش‌های اصلی ربات دسترسی داشته باشد
         """
-        conn = sqlite3.connect(self.auth_db_path)
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
@@ -689,22 +696,19 @@ class AuthManager:
             conn.close()
 
     def get_user_info(self, chat_id: int) -> Optional[Dict]:
-        """دریافت اطلاعات کاربر"""
-        conn = sqlite3.connect(self.auth_db_path)
-        cursor = conn.cursor()
-
+        """دریافت اطلاعات کاربر - با هندل کردن خطای باز نشدن دیتابیس"""
         try:
+            conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+            cursor = conn.cursor()
             cursor.execute('''
                 SELECT chat_id, username, status, created_at, approved_at, is_admin
                 FROM users
                 WHERE chat_id = ?
             ''', (chat_id,))
-
             result = cursor.fetchone()
-
+            conn.close()
             if not result:
                 return None
-
             return {
                 'chat_id': result[0],
                 'username': result[1],
@@ -713,13 +717,51 @@ class AuthManager:
                 'approved_at': result[4],
                 'is_admin': bool(result[5])
             }
-
-        finally:
-            conn.close()
+        except sqlite3.OperationalError as e:
+            if "unable to open database file" in str(e):
+                logger.error(f"❌ DB open failed: {self.auth_db_path} - {e}, trying to recreate")
+                # سعی کن دوباره دیتابیس را بسازی
+                try:
+                    # اطمینان از وجود پوشه
+                    Path(self.auth_db_path).parent.mkdir(parents=True, exist_ok=True)
+                    # اگر فایل وجود دارد ولی خراب است، حذف کن و دوباره بساز
+                    # اما اول لاگ کن
+                    import os
+                    if os.path.exists(self.auth_db_path):
+                        logger.warning(f"⚠️ DB file exists but can't open: {self.auth_db_path}, size={os.path.getsize(self.auth_db_path)}")
+                    self.init_auth_database()
+                    # دوباره تلاش کن
+                    conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+                    cursor = conn.cursor()
+                    cursor.execute('''
+                        SELECT chat_id, username, status, created_at, approved_at, is_admin
+                        FROM users
+                        WHERE chat_id = ?
+                    ''', (chat_id,))
+                    result = cursor.fetchone()
+                    conn.close()
+                    if not result:
+                        return None
+                    return {
+                        'chat_id': result[0],
+                        'username': result[1],
+                        'status': result[2],
+                        'created_at': result[3],
+                        'approved_at': result[4],
+                        'is_admin': bool(result[5])
+                    }
+                except Exception as e2:
+                    logger.error(f"❌ Failed to recreate DB: {e2}")
+                    return None
+            logger.error(f"❌ get_user_info error: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"❌ get_user_info unexpected error: {e}")
+            return None
 
     def get_all_users(self, status: Optional[str] = None) -> List[Dict]:
         """دریافت لیست کاربران"""
-        conn = sqlite3.connect(self.auth_db_path)
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
@@ -745,24 +787,22 @@ class AuthManager:
                     'is_admin': bool(row[5])
                 })
 
-            logger.info(f"✅ {len(users)} کاربر دریافت شد")
+            logger.debug(f"✅ {len(users)} کاربر دریافت شد")
             return users
 
         finally:
             conn.close()
 
     def get_approved_users(self) -> List[Dict]:
-        """دریافت لیست کاربران تایید شده"""
-        conn = sqlite3.connect(self.auth_db_path)
-        cursor = conn.cursor()
-
+        """دریافت لیست کاربران تایید شده - robust"""
         try:
+            conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+            cursor = conn.cursor()
             cursor.execute('''
                 SELECT chat_id, username, status, created_at, approved_at, is_admin
                 FROM users WHERE status = 'approved'
                 ORDER BY created_at ASC
             ''')
-
             users = []
             for row in cursor.fetchall():
                 users.append({
@@ -773,22 +813,48 @@ class AuthManager:
                     'approved_at': row[4],
                     'is_admin': bool(row[5])
                 })
-
-            logger.info(f"✅ {len(users)} کاربر تایید شده دریافت شد")
+            conn.close()
+            logger.debug(f"✅ {len(users)} کاربر تایید شده")
             return users
-
+        except sqlite3.OperationalError as e:
+            if "unable to open database file" in str(e):
+                logger.error(f"❌ get_approved_users DB open failed: {self.auth_db_path} - {e}")
+                try:
+                    Path(self.auth_db_path).parent.mkdir(parents=True, exist_ok=True)
+                    self.init_auth_database()
+                    conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+                    cursor = conn.cursor()
+                    cursor.execute('''
+                        SELECT chat_id, username, status, created_at, approved_at, is_admin
+                        FROM users WHERE status = 'approved'
+                        ORDER BY created_at ASC
+                    ''')
+                    users = []
+                    for row in cursor.fetchall():
+                        users.append({
+                            'chat_id': row[0],
+                            'username': row[1],
+                            'status': row[2],
+                            'created_at': row[3],
+                            'approved_at': row[4],
+                            'is_admin': bool(row[5])
+                        })
+                    conn.close()
+                    return users
+                except Exception as e2:
+                    logger.error(f"❌ Failed to recreate DB in get_approved_users: {e2}")
+                    return []
+            logger.error(f"❌ خطا در دریافت کاربران تایید شده: {e}")
+            return []
         except Exception as e:
             logger.error(f"❌ خطا در دریافت کاربران تایید شده: {e}")
             return []
-
-        finally:
-            conn.close()
 
     # ========== مدیریت ادمین‌ها ==========
 
     def setup_initial_admin(self, chat_id: int, username: str) -> Dict:
         """تنظیم ادمین اولیه"""
-        conn = sqlite3.connect(self.auth_db_path)
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
@@ -837,7 +903,7 @@ class AuthManager:
     def add_admin(self, chat_id: int, username: str,
                   created_by: int, is_super_admin: bool = False) -> Dict:
         """اضافه کردن ادمین جدید"""
-        conn = sqlite3.connect(self.auth_db_path)
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
@@ -881,7 +947,7 @@ class AuthManager:
 
     def remove_admin(self, chat_id: int, removed_by: int) -> Dict:
         """حذف ادمین"""
-        conn = sqlite3.connect(self.auth_db_path)
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
@@ -905,7 +971,7 @@ class AuthManager:
 
     def get_admin_info(self, chat_id: int) -> Optional[Dict]:
         """دریافت اطلاعات ادمین"""
-        conn = sqlite3.connect(self.auth_db_path)
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
@@ -931,7 +997,7 @@ class AuthManager:
 
     def get_all_admins(self) -> List[Dict]:
         """دریافت لیست تمام ادمین‌ها"""
-        conn = sqlite3.connect(self.auth_db_path)
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
@@ -969,7 +1035,7 @@ class AuthManager:
     def submit_access_request(self, chat_id: int, username: str,
                                reason: str = "") -> Dict:
         """ارسال درخواست دسترسی"""
-        conn = sqlite3.connect(self.auth_db_path)
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
@@ -998,7 +1064,7 @@ class AuthManager:
 
     def get_pending_requests(self) -> List[Dict]:
         """دریافت درخواست‌های معلق"""
-        conn = sqlite3.connect(self.auth_db_path)
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
@@ -1026,7 +1092,7 @@ class AuthManager:
 
     def approve_request(self, request_id: int, admin_chat_id: int) -> Dict:
         """تایید درخواست دسترسی"""
-        conn = sqlite3.connect(self.auth_db_path)
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
@@ -1075,7 +1141,7 @@ class AuthManager:
     def reject_request(self, request_id: int, admin_chat_id: int,
                        reason: str = "") -> Dict:
         """رد درخواست دسترسی"""
-        conn = sqlite3.connect(self.auth_db_path)
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
@@ -1148,7 +1214,7 @@ class AuthManager:
 
     def log_activity(self, chat_id: int, action: str, details: str = ""):
         """ثبت فعالیت کاربر"""
-        conn = sqlite3.connect(self.auth_db_path)
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
@@ -1168,7 +1234,7 @@ class AuthManager:
     def get_activity_log(self, chat_id: Optional[int] = None,
                          limit: int = 50) -> List[Dict]:
         """دریافت گزارش فعالیت"""
-        conn = sqlite3.connect(self.auth_db_path)
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
