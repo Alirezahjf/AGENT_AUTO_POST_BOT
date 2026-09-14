@@ -48,10 +48,17 @@ if [ -d "all_pg_agnet/AGENT-MANAGER_BOTS_MASSENGER/users" ]; then
     done
 fi
 
-echo -e "${BLUE}📥 دریافت کد جدید از برنچ...${NC}"
+echo -e "${BLUE}📥 دریافت کد جدید از برنچ Neonize...${NC}"
 cd ~
 rm -rf AGENT_AUTO_POST_BOT_NEW
-git clone --branch arena/01a086a1-agent-auto-post-bot https://github.com/Alirezahjf/AGENT_AUTO_POST_BOT.git AGENT_AUTO_POST_BOT_NEW
+# تلاش برای برنچ جدید neonize، اگر نبود fallback به main
+if git ls-remote --heads https://github.com/Alirezahjf/AGENT_AUTO_POST_BOT.git arena/01a0a09e-agent-auto-post-bot | grep -q arena; then
+    echo -e "${GREEN}✅ برنچ neonize یافت شد: arena/01a0a09e-agent-auto-post-bot${NC}"
+    git clone --branch arena/01a0a09e-agent-auto-post-bot https://github.com/Alirezahjf/AGENT_AUTO_POST_BOT.git AGENT_AUTO_POST_BOT_NEW
+else
+    echo -e "${YELLOW}⚠️ برنچ neonize یافت نشد، main کلون می‌شود${NC}"
+    git clone --branch main https://github.com/Alirezahjf/AGENT_AUTO_POST_BOT.git AGENT_AUTO_POST_BOT_NEW
+fi
 
 echo -e "${BLUE}♻️ بازگردانی یوزرها و سشن‌ها...${NC}"
 # بازگردانی users
