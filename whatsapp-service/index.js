@@ -190,7 +190,6 @@ async function createSession(userId, phoneNumber = null, force = false) {
     try { const v = await fetchLatestBaileysVersion(); version = v.version } catch (e) { version = [2, 3000, 1023223821] }
     console.log(`📦 Baileys version ${version} for ${userIdStr}`)
 
-    // v6: cachedGroupMetadata support - helps Baileys keep group cache
     const sessionPlaceholder = { groups: {} }
     let sock
     try {
@@ -205,14 +204,9 @@ async function createSession(userId, phoneNumber = null, force = false) {
             getMessage: async (key) => undefined,
             cachedGroupMetadata: async (jid) => {
                 try {
-                    // Return from memory cache if available
                     const memSession = sessions[userIdStr]
-                    if (memSession && memSession.groups && memSession.groups[jid]) {
-                        return memSession.groups[jid]
-                    }
-                    if (sessionPlaceholder.groups[jid]) {
-                        return sessionPlaceholder.groups[jid]
-                    }
+                    if (memSession && memSession.groups && memSession.groups[jid]) return memSession.groups[jid]
+                    if (sessionPlaceholder.groups[jid]) return sessionPlaceholder.groups[jid]
                     return undefined
                 } catch { return undefined }
             }
@@ -244,6 +238,17 @@ async function createSession(userId, phoneNumber = null, force = false) {
                 for (const c of chats) {
                     if (c.id && c.id.endsWith('@g.us')) {
                         if (!session.groups[c.id]) { session.groups[c.id] = { id: c.id, subject: c.name || c.id, participants: [] }; sessionPlaceholder.groups[c.id] = session.groups[c.id] }
+                    }
+                }
+            } catch(e) {}
+        })
+        // v7: listen for messages to auto-build sender keys
+        sock.ev.on('messages.upsert', async (m) => {
+            try {
+                const msgs = m.messages || []
+                for (const msg of msgs) {
+                    if (msg.key?.remoteJid?.endsWith('@g.us')) {
+                        console.log(`📩 Received group message in ${msg.key.remoteJid} - sender keys should now be available for group send`)
                     }
                 }
             } catch(e) {}
@@ -298,7 +303,6 @@ async function createSession(userId, phoneNumber = null, force = false) {
                 session.reconnectAttempts = 0
                 try { updateSessionInDB(userIdStr, { connected: true, phoneNumber, connectedAt: new Date().toISOString(), lastConnected: new Date().toISOString() }) } catch(e) {}
                 setTimeout(() => { try { backupAuthFolder(userIdStr) } catch(e) {} }, 2000)
-                // v6: after connect, proactively fetch groups to populate cache + sender keys
                 setTimeout(async () => {
                     try {
                         console.log(`🔄 Auto-fetching groups for ${userIdStr} after connect...`)
@@ -350,8 +354,8 @@ async function getPairingCodeWithRetry(sock, phoneNumber, retries = 3) {
 app.get('/', (req, res) => {
     try {
         const list = Object.keys(sessions).map(uid => ({ userId: uid, connected: sessions[uid].isConnected, hasQR: !!sessions[uid].qr, hasCode: !!sessions[uid].pairingCode, phone: sessions[uid].phoneNumber, groups: Object.keys(sessions[uid].groups||{}).length }))
-        res.json({ status: 'ok', service: 'whatsapp-fixed-v6-group-participants', uptime: process.uptime(), sessionsCount: list.length, sessions: list })
-    } catch (e) { res.json({ status: 'ok', service: 'whatsapp-fixed-v6-group-participants', uptime: process.uptime(), error: e.message }) }
+        res.json({ status: 'ok', service: 'whatsapp-fixed-v7-baileys7', uptime: process.uptime(), sessionsCount: list.length, sessions: list })
+    } catch (e) { res.json({ status: 'ok', service: 'whatsapp-fixed-v7-baileys7', uptime: process.uptime(), error: e.message }) }
 })
 
 app.get('/qr', async (req, res) => {
@@ -532,9 +536,9 @@ app.get('/restore', async (req, res) => {
     } else { await restoreSessionsFromDisk(); return res.json({ ok: true, sessions: Object.keys(sessions).length, list: Object.keys(sessions).map(uid => ({ userId: uid, connected: sessions[uid].isConnected })) }) }
 })
 
-// v6 fix2: clean ONLY session and sender-key, NOT app-state-sync-key (app-state is needed for groups!)
 app.post('/clean-sessions', async (req, res) => {
     const userId = req.body?.userId || req.query.userId || req.query.user_id
+    const all = req.query.all === 'true' || req.body?.all === true
     if (!userId) return res.status(400).json({ ok: false, error: 'userId required' })
     try {
         const authFolder = path.join(AUTH_BASE_DIR, String(userId))
@@ -542,25 +546,36 @@ app.post('/clean-sessions', async (req, res) => {
         const files = fs.readdirSync(authFolder)
         let deleted = []
         for (const f of files) {
-            // ONLY delete session and sender-key, keep app-state-sync-key and creds and pre-keys
-            if (f.startsWith('session-') || f.startsWith('sender-key-')) {
-                try { fs.rmSync(path.join(authFolder, f)); deleted.push(f) } catch(e) {}
+            if (all) {
+                if (f.startsWith('session-') || f.startsWith('sender-key-')) { try { fs.rmSync(path.join(authFolder, f)); deleted.push(f) } catch(e) {} }
+            } else {
+                if (f.startsWith('sender-key-') || (f.startsWith('session-') && !f.includes('989038013654'))) { try { fs.rmSync(path.join(authFolder, f)); deleted.push(f) } catch(e) {} }
             }
         }
-        console.log(`🧹 Cleaned ${deleted.length} session/sender-key files for ${userId}: ${deleted.join(', ')} (kept app-state-sync keys)`)
-        // Force reconnect to regenerate sessions
-        try {
-            const session = sessions[String(userId)]
-            if (session && session.sock) { try { session.sock.end(undefined) } catch(e) {} }
-            delete sessions[String(userId)]
-            await new Promise(r => setTimeout(r, 1500))
-            await createSession(userId)
-        } catch(e) { console.error(`Clean reconnect error: ${e}`) }
-        res.json({ ok: true, deleted: deleted.length, files: deleted, message: 'Cleaned session/sender-key files (kept app-state), reconnecting...' })
+        console.log(`🧹 Cleaned ${deleted.length} files for ${userId} all=${all}`)
+        try { const session = sessions[String(userId)]; if (session && session.sock) { try { session.sock.end(undefined) } catch(e) {} } delete sessions[String(userId)]; await new Promise(r => setTimeout(r, 1500)); await createSession(userId) } catch(e) { console.error(`Clean reconnect error: ${e}`) }
+        res.json({ ok: true, deleted: deleted.length, files: deleted.slice(0,20), message: `Cleaned ${deleted.length} files all=${all}, reconnecting...` })
     } catch (e) { res.status(500).json({ ok: false, error: e.message }) }
 })
 
-// v6 fix2: restore app-state-sync keys if missing (needed for groups)
+app.post('/clean-all-sessions', async (req, res) => {
+    const userId = req.body?.userId || req.query.userId || req.query.user_id
+    if (!userId) return res.status(400).json({ ok: false, error: 'userId required' })
+    try {
+        const authFolder = path.join(AUTH_BASE_DIR, String(userId))
+        if (!fs.existsSync(authFolder)) return res.status(404).json({ ok: false, error: 'Auth folder not found' })
+        const files = fs.readdirSync(authFolder)
+        let deleted = []
+        for (const f of files) { if (f.startsWith('session-') || f.startsWith('sender-key-')) { try { fs.rmSync(path.join(authFolder, f)); deleted.push(f) } catch(e) {} } }
+        console.log(`🧹 Clean ALL ${deleted.length} files for ${userId}`)
+        try {
+            const session = sessions[String(userId)]; if (session && session.sock) { try { session.sock.end(undefined) } catch(e) {} } delete sessions[String(userId)]; await new Promise(r => setTimeout(r, 2000)); await createSession(userId); await new Promise(r => setTimeout(r, 3000))
+            try { const s = sessions[String(userId)]; if (s && s.sock) { const groups = await s.sock.groupFetchAllParticipating(); console.log(`✅ Auto-fetched ${Object.keys(groups).length} groups after clean-all`); s.groups = { ...s.groups, ...groups } } } catch(e) { console.log(`Auto fetch after clean-all failed: ${e.message}`) }
+        } catch(e) { console.error(`Clean-all reconnect error: ${e}`) }
+        res.json({ ok: true, deleted: deleted.length, files: deleted.slice(0,30), message: `Cleaned ALL ${deleted.length} files, reconnected` })
+    } catch (e) { res.status(500).json({ ok: false, error: e.message }) }
+})
+
 app.post('/restore-appstate', async (req, res) => {
     const userId = req.body?.userId || req.query.userId || req.query.user_id
     if (!userId) return res.status(400).json({ ok: false, error: 'userId required' })
@@ -571,17 +586,51 @@ app.post('/restore-appstate', async (req, res) => {
         if (!fs.existsSync(authFolder)) fs.mkdirSync(authFolder, { recursive: true })
         const backupFiles = fs.readdirSync(backupDir)
         let restored = []
-        for (const f of backupFiles) {
-            if (f.startsWith('app-state-sync-')) {
-                try {
-                    fs.copyFileSync(path.join(backupDir, f), path.join(authFolder, f))
-                    restored.push(f)
-                } catch(e) {}
-            }
-        }
+        for (const f of backupFiles) { if (f.startsWith('app-state-sync-')) { try { fs.copyFileSync(path.join(backupDir, f), path.join(authFolder, f)); restored.push(f) } catch(e) {} } }
         console.log(`♻️ Restored ${restored.length} app-state files for ${userId}`)
         res.json({ ok: true, restored: restored.length, files: restored })
     } catch (e) { res.status(500).json({ ok: false, error: e.message }) }
+})
+
+// v7: Force sync group participants and build sessions
+app.post('/force-group-sync', async (req, res) => {
+    const userId = req.body?.userId || req.query.userId || req.query.user_id
+    const groupId = req.body?.groupId || req.query.groupId || '120363312386194255@g.us'
+    if (!userId) return res.status(400).json({ ok: false, error: 'userId required' })
+    let session = sessions[String(userId)]
+    if (!session) return res.status(404).json({ ok: false, error: 'Session not found' })
+    if (!session.isConnected) return res.status(503).json({ ok: false, error: 'Not connected' })
+    try {
+        console.log(`🔧 Force group sync for ${userId} group ${groupId}`)
+        let participants = []
+        try {
+            const meta = await session.sock.groupMetadata(groupId)
+            participants = (meta.participants || []).map(p => p.id || p)
+            console.log(`👥 Group ${groupId} has ${participants.length} participants`)
+            session.groups[groupId] = meta
+        } catch (e) { console.log(`groupMetadata failed: ${e.message}`) }
+
+        let onWhatsAppResults = []
+        for (const p of participants) {
+            if (!p.includes('@s.whatsapp.net')) continue
+            if (p === session.sock.user?.id) continue
+            try {
+                const result = await session.sock.onWhatsApp(p)
+                onWhatsAppResults.push({ jid: p, exists: result?.[0]?.exists })
+                await new Promise(r => setTimeout(r, 300))
+            } catch (e) { onWhatsAppResults.push({ jid: p, error: e.message }) }
+        }
+
+        // Try to get sender keys by waiting for messages
+        await new Promise(r => setTimeout(r, 2000))
+
+        const authFolder = path.join(AUTH_BASE_DIR, String(userId))
+        const files = fs.existsSync(authFolder) ? fs.readdirSync(authFolder) : []
+        const senderKeys = files.filter(f => f.startsWith('sender-key-') && f.includes(groupId.split('@')[0]))
+        const sessionFiles = files.filter(f => f.startsWith('session-'))
+
+        res.json({ ok: true, groupId, participants: participants.length, participantList: participants, onWhatsApp: onWhatsAppResults, senderKeys: senderKeys.length, senderKeyFiles: senderKeys, sessionFiles: sessionFiles.length, authFiles: files.length })
+    } catch (e) { res.status(500).json({ ok: false, error: e.message, stack: e.stack?.slice(0,500) }) }
 })
 
 app.post('/send', async (req, res) => {
@@ -654,32 +703,26 @@ app.post('/send', async (req, res) => {
         const isNoSessions = errMsg.includes('No sessions') || errStack.includes('No sessions') || errMsg.includes('SessionError')
 
         if (isGroup && isNoSessions) {
-            console.log(`🔄 Group No sessions for ${finalTo} - trying advanced fix (auth has ${fs.existsSync(path.join(AUTH_BASE_DIR, String(finalUserId))) ? fs.readdirSync(path.join(AUTH_BASE_DIR, String(finalUserId))).length : 0} files)`)
-            // Check if app-state-sync keys missing (we deleted them by mistake in previous clean)
+            console.log(`🔄 Group No sessions for ${finalTo} - v7 advanced fix (auth has ${fs.existsSync(path.join(AUTH_BASE_DIR, String(finalUserId))) ? fs.readdirSync(path.join(AUTH_BASE_DIR, String(finalUserId))).length : 0} files)`)
             try {
                 const authFolder = path.join(AUTH_BASE_DIR, String(finalUserId))
                 if (fs.existsSync(authFolder)) {
                     const files = fs.readdirSync(authFolder)
                     const hasAppState = files.some(f => f.startsWith('app-state-sync-key-'))
                     if (!hasAppState) {
-                        console.log(`⚠️ app-state-sync keys missing for ${finalUserId}, trying to restore from backup...`)
+                        console.log(`⚠️ app-state-sync keys missing, restoring from backup...`)
                         const backupDir = path.join(BACKUP_BASE_DIR, String(finalUserId), 'whatsapp_auth_backup', String(finalUserId))
                         if (fs.existsSync(backupDir)) {
                             const backupFiles = fs.readdirSync(backupDir)
                             let restored = 0
-                            for (const f of backupFiles) {
-                                if (f.startsWith('app-state-sync-')) {
-                                    try { fs.copyFileSync(path.join(backupDir, f), path.join(authFolder, f)); restored++ } catch(e) {}
-                                }
-                            }
-                            console.log(`♻️ Restored ${restored} app-state files for ${finalUserId}`)
+                            for (const f of backupFiles) { if (f.startsWith('app-state-sync-')) { try { fs.copyFileSync(path.join(backupDir, f), path.join(authFolder, f)); restored++ } catch(e) {} } }
+                            console.log(`♻️ Restored ${restored} app-state files`)
                         }
                     }
                 }
             } catch(e) { console.log(`app-state restore check failed: ${e.message}`) }
 
             try {
-                // Step 1: fetch groups and metadata
                 let participants = []
                 try {
                     const groups = await session.sock.groupFetchAllParticipating()
@@ -688,30 +731,25 @@ app.post('/send', async (req, res) => {
                     if (groups[finalTo]) {
                         const meta = groups[finalTo]
                         participants = (meta.participants || []).map(p => p.id || p)
-                        console.log(`👥 Group ${finalTo} participants from cache: ${participants.length}`)
+                        console.log(`👥 Group ${finalTo} participants: ${participants.length}`)
                     }
                 } catch (fetchErr) { console.log(`⚠️ groupFetch failed: ${fetchErr.message}`) }
 
                 if (participants.length === 0) {
                     try {
                         const meta = await session.sock.groupMetadata(finalTo)
-                        console.log(`📋 groupMetadata for ${finalTo}: ${meta.subject} participants=${meta.participants?.length}`)
+                        console.log(`📋 groupMetadata ${finalTo}: ${meta.subject} participants=${meta.participants?.length}`)
                         participants = (meta.participants || []).map(p => p.id || p)
                         session.groups[finalTo] = meta
                     } catch (metaErr) { console.log(`⚠️ groupMetadata failed: ${metaErr.message}`) }
                 }
 
-                // Step 2: Try to ensure sessions for participants via onWhatsApp
                 if (participants.length > 0) {
-                    console.log(`🔍 Ensuring sessions for ${participants.length} participants...`)
-                    for (const p of participants.slice(0, 10)) {
-                        try {
-                            if (p.includes('@s.whatsapp.net')) {
-                                const res = await session.sock.onWhatsApp(p)
-                                console.log(`   onWhatsApp ${p}: ${JSON.stringify(res)}`)
-                                await new Promise(r => setTimeout(r, 300))
-                            }
-                        } catch (e2) { console.log(`   onWhatsApp ${p} failed: ${e2.message}`) }
+                    console.log(`🔍 Ensuring sessions for ${participants.length} participants via onWhatsApp...`)
+                    for (const p of participants) {
+                        if (!p.includes('@s.whatsapp.net')) continue
+                        if (p === session.sock.user?.id) continue
+                        try { await session.sock.onWhatsApp(p); await new Promise(r => setTimeout(r, 250)) } catch(e2) {}
                     }
                 }
 
@@ -722,70 +760,60 @@ app.post('/send', async (req, res) => {
                 return res.json({ ok: true, messageId: retryResult.key.id, to: finalTo, retried: true, participants: participants.length })
             } catch (retryErr) {
                 console.error(`❌ Retry failed for ${finalTo}: ${retryErr.message}`)
-                // Try cleaning ONLY sender-key and session files (keep app-state)
                 try {
-                    console.log(`🧹 Trying to clean sender-key/session files for ${finalUserId} and retry...`)
+                    console.log(`🧹 Cleaning sender-key files and retry...`)
                     const authFolder = path.join(AUTH_BASE_DIR, String(finalUserId))
                     if (fs.existsSync(authFolder)) {
                         const files = fs.readdirSync(authFolder)
                         let cleaned = 0
-                        for (const f of files) {
-                            if (f.startsWith('sender-key-') || (f.startsWith('session-') && !f.includes('989038013654'))) {
-                                // Keep own session files, delete others to force re-creation
-                                try { fs.rmSync(path.join(authFolder, f)); cleaned++; console.log(`   deleted ${f}`) } catch(e) {}
-                            }
-                        }
-                        console.log(`🧹 Cleaned ${cleaned} sender/session files (kept own)`)
+                        for (const f of files) { if (f.startsWith('sender-key-')) { try { fs.rmSync(path.join(authFolder, f)); cleaned++ } catch(e) {} } }
+                        console.log(`🧹 Cleaned ${cleaned} sender-key files`)
                         if (cleaned > 0) {
-                            await new Promise(r => setTimeout(r, 2000))
+                            await new Promise(r => setTimeout(r, 3000))
                             try {
-                                const retry2 = await doSend()
-                                console.log(`✅ Retry2 after cleaning succeeded for ${finalTo}`)
-                                return res.json({ ok: true, messageId: retry2.key.id, to: finalTo, retried: true, cleaned })
-                            } catch(e2) {
-                                console.log(`Retry2 still failed: ${e2.message}`)
-                            }
+                                const retry3 = await doSend()
+                                console.log(`✅ Retry3 after cleaning sender-keys succeeded`)
+                                return res.json({ ok: true, messageId: retry3.key.id, to: finalTo, retried: true, cleaned })
+                            } catch(e3) { console.log(`Retry3 failed: ${e3.message}`) }
                         }
                     }
-                } catch (cleanErr) { console.error(`❌ Clean retry failed: ${cleanErr.message}`) }
+                } catch (cleanErr) { console.error(`Clean retry failed: ${cleanErr.message}`) }
 
                 return res.status(500).json({ 
                     ok: false, 
-                    error: `No sessions for group ${finalTo} - participants sessions missing. This is WhatsApp protocol: new linked device must RECEIVE a message in group first to get sender keys.`, 
+                    error: `No sessions for group ${finalTo} - needs more group messages to build sessions. This is normal for new linked devices.`, 
                     to: finalTo, 
                     code: 'NO_SESSIONS_GROUP_NEEDS_MESSAGE',
                     authFiles: fs.existsSync(path.join(AUTH_BASE_DIR, String(finalUserId))) ? fs.readdirSync(path.join(AUTH_BASE_DIR, String(finalUserId))).length : 0,
                     groupsCached: Object.keys(session.groups||{}).length,
                     stack: retryErr.stack?.slice(0,800),
                     fix_steps: [
-                        `1. From your MAIN phone (not bot), send a message in group ${finalTo} - e.g. "سلام"`,
-                        `2. Ask another member to send a message`,
-                        `3. Wait 10 seconds`,
-                        `4. Call: curl "http://localhost:3001/chats?userId=${finalUserId}"`,
-                        `5. Retry: curl -X POST http://localhost:3001/send -H "Content-Type: application/json" -d '{"userId":"${finalUserId}","to":"${finalTo}","text":"تست بعد از پیام"}'`,
-                        `6. If still fails: curl -X POST http://localhost:3001/restore-appstate?userId=${finalUserId} then retry`
+                        `1. From MAIN phone, send 3-4 messages in group ${finalTo}`,
+                        `2. Ask 3-4 members to send messages (important - builds sessions for each)`,
+                        `3. Wait 15s`,
+                        `4. POST /force-group-sync?userId=${finalUserId}&groupId=${finalTo}`,
+                        `5. POST /clean-all-sessions?userId=${finalUserId}`,
+                        `6. Wait 5s, retry send`
                     ],
-                    suggestion: `Send a message in group from your phone, then retry. This gives Baileys the sender keys.`,
-                    fix: `curl -X POST http://localhost:3001/restore-appstate?userId=${finalUserId} && curl -X POST http://localhost:3001/clean-sessions?userId=${finalUserId}`
+                    fix: `curl -X POST http://localhost:3001/force-group-sync?userId=${finalUserId}&groupId=${finalTo} && curl -X POST http://localhost:3001/clean-all-sessions?userId=${finalUserId}`
                 })
             }
         }
 
         if (isNoSessions) {
-            console.log(`🔥 No sessions detected for ${finalUserId} - checking auth corruption`)
+            console.log(`🔥 No sessions for ${finalUserId} - checking corruption`)
             try {
                 const authFolder = path.join(AUTH_BASE_DIR, String(finalUserId))
                 if (fs.existsSync(authFolder)) {
                     const files = fs.readdirSync(authFolder)
-                    console.log(`📂 Auth folder for ${finalUserId} has ${files.length} files`)
                     if (files.length < 3) {
-                        console.log(`🔥 Auth folder corrupted (<3 files), fully deleting for ${finalUserId}`)
+                        console.log(`🔥 Auth corrupted (<3 files), deleting`)
                         fullyDeleteSession(finalUserId, true)
-                        return res.status(500).json({ ok: false, error: 'No sessions - auth corrupted (empty or <3 files), session deleted, need fresh QR. Call /qr?force=true or /reset', to: finalTo, code: 'NO_SESSIONS_CORRUPTED_DELETED', deleted: true, authFiles: files.length, sessionsKeys: Object.keys(sessions) })
+                        return res.status(500).json({ ok: false, error: 'No sessions - auth corrupted, deleted, need fresh QR', to: finalTo, code: 'NO_SESSIONS_CORRUPTED_DELETED', deleted: true, authFiles: files.length })
                     }
                 }
-            } catch (delErr) { console.error(`Failed to auto-delete corrupted session: ${delErr}`) }
-            return res.status(500).json({ ok: false, error: `No sessions - signal keys missing for ${finalTo}. For groups, wait 15s after connect and call /chats first. If private chat, need to reset: DELETE /session?userId=${finalUserId}&force=true then /qr?force=true`, to: finalTo, code: 'NO_SESSIONS_CORRUPTED', stack: errStack.slice(0,500), sessionsKeys: Object.keys(sessions), connected: session?.isConnected, suggestion: `curl -X DELETE http://localhost:3001/session?userId=${finalUserId}&force=true && curl http://localhost:3001/qr?userId=${finalUserId}&force=true&phone=YOUR_OWN_NUMBER` })
+            } catch (delErr) { console.error(`Failed to auto-delete: ${delErr}`) }
+            return res.status(500).json({ ok: false, error: `No sessions for ${finalTo}. For groups, need group messages to build sessions.`, to: finalTo, code: 'NO_SESSIONS_CORRUPTED', stack: errStack.slice(0,500) })
         }
 
         res.status(500).json({ ok: false, error: e.message, to: finalTo, stack: e.stack?.slice(0,500), code: 'SEND_FAILED' })
@@ -793,7 +821,7 @@ app.post('/send', async (req, res) => {
 })
 
 app.listen(PORT, '0.0.0.0', async () => {
-    console.log(`🚀 WhatsApp FIXED v6 group-participants on 0.0.0.0:${PORT} - fixes 401 loop + 428 crashproof + group No sessions with participant sync + sender-key clean`)
+    console.log(`🚀 WhatsApp FIXED v7 baileys7 on 0.0.0.0:${PORT} - fixes 401,428, group No sessions with participant sync`)
     console.log(`📁 Auth base: ${AUTH_BASE_DIR}`)
     setTimeout(() => { try { restoreSessionsFromDisk() } catch(e) { console.error(`Restore startup error: ${e}`) } }, 2000)
     setInterval(async () => {
