@@ -242,9 +242,48 @@ async function createSession(userId, phoneNumber = null) {
     const { version } = await fetchLatestBaileysVersion()
     console.log(`📦 Baileys version ${version} for ${userIdStr}`)
     const sock = makeWASocket({ version, auth: state, logger, printQRInTerminal: false, browser: ['AGENT_AUTO_POST_BOT', 'Chrome', '1.0.0'] })
-    const session = { sock, isConnected: false, qr: null, qrImage: null, pairingCode: null, phoneNumber, lastUpdate: new Date(), userId: userIdStr, lastQR: null }
+    const session = { sock, isConnected: false, qr: null, qrImage: null, pairingCode: null, phoneNumber, lastUpdate: new Date(), userId: userIdStr, lastQR: null, groups: {}, groupsCacheTime: null, lastGroupsFetch: null }
     sessions[userIdStr] = session
     sock.ev.on('creds.update', saveCreds)
+    // ===== کش گروه‌ها - برای حل مشکل لیست خالی =====
+    try {
+        sock.ev.on('groups.upsert', (groups) => {
+            try {
+                console.log(`📋 groups.upsert for ${userIdStr}: ${groups.length} groups`)
+                for (const g of groups) {
+                    if (g.id) {
+                        session.groups[g.id] = g
+                    }
+                }
+                session.groupsCacheTime = new Date()
+                console.log(`📋 groups cache now ${Object.keys(session.groups).length} for ${userIdStr}`)
+            } catch(e) { console.log(`groups.upsert error ${e.message}`) }
+        })
+        sock.ev.on('groups.update', (updates) => {
+            try {
+                console.log(`📋 groups.update for ${userIdStr}: ${updates.length} updates`)
+                for (const u of updates) {
+                    if (u.id && session.groups[u.id]) {
+                        session.groups[u.id] = { ...session.groups[u.id], ...u }
+                    }
+                }
+            } catch(e) {}
+        })
+        sock.ev.on('chats.upsert', (chats) => {
+            try {
+                // چت‌ها هم می‌توانند گروه باشند
+                for (const c of chats) {
+                    if (c.id && c.id.endsWith('@g.us')) {
+                        if (!session.groups[c.id]) {
+                            session.groups[c.id] = { id: c.id, subject: c.name || c.id, participants: [] }
+                        }
+                    }
+                }
+            } catch(e) {}
+        })
+    } catch(e) {
+        console.log(`⚠️ Failed to setup groups listeners for ${userIdStr}: ${e.message}`)
+    }
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update
         session.lastUpdate = new Date()
@@ -524,32 +563,53 @@ app.get('/chats', async (req, res) => {
         // Try to get groups with retry - WhatsApp needs time to sync after connect
         let groups = {}
         let lastError = null
-        for (let attempt = 1; attempt <= 4; attempt++) {
+        let fetchedVia = 'fetch'
+        // تلاش 10 باره با 3 ثانیه فاصله = 30 ثانیه
+        for (let attempt = 1; attempt <= 10; attempt++) {
             try {
-                console.log(`📋 Fetching groups for ${userId} attempt ${attempt}/4...`)
+                console.log(`📋 Fetching groups for ${userId} attempt ${attempt}/10... sockConnected=${session.isConnected} hasCache=${Object.keys(session.groups||{}).length}`)
                 groups = await sock.groupFetchAllParticipating()
                 const count = Object.keys(groups).length
                 console.log(`📋 Groups fetch attempt ${attempt} for ${userId}: found ${count} groups`)
-                if (count > 0) break
+                // ذخیره در کش هم
+                if (count > 0) {
+                    session.groups = { ...session.groups, ...groups }
+                    session.lastGroupsFetch = new Date()
+                    break
+                }
+                // اگر خالی بود ولی کش داریم، از کش استفاده کن
+                if (Object.keys(session.groups||{}).length > 0) {
+                    console.log(`📋 Using cached groups for ${userId}: ${Object.keys(session.groups).length}`)
+                    groups = session.groups
+                    fetchedVia = 'cache_during_fetch'
+                    break
+                }
                 // If empty, wait and retry - groups may not be synced yet
-                if (attempt < 4) {
+                if (attempt < 10) {
                     console.log(`⏳ No groups yet for ${userId}, waiting 3s before retry...`)
                     await new Promise(r => setTimeout(r, 3000))
                 }
             } catch (e) {
                 lastError = e
-                console.log(`⚠️ Group fetch attempt ${attempt} error for ${userId}: ${e.message}`)
-                if (attempt < 4) await new Promise(r => setTimeout(r, 2000))
+                console.log(`⚠️ Group fetch attempt ${attempt} error for ${userId}: ${e.message} stack=${e.stack?.slice(0,300)}`)
+                if (attempt < 10) await new Promise(r => setTimeout(r, 2000))
             }
+        }
+        
+        // اگر fetch خالی بود، از کش استفاده کن
+        if (Object.keys(groups).length === 0 && session.groups && Object.keys(session.groups).length > 0) {
+            console.log(`📋 Fetch empty but cache has ${Object.keys(session.groups).length} for ${userId}, using cache`)
+            groups = session.groups
+            fetchedVia = 'cache_after_fetch'
         }
         
         try {
             for (const [id, group] of Object.entries(groups)) {
                 chats.push({
                     id: id,
-                    name: group.subject || id,
+                    name: group.subject || group.name || id,
                     type: 'group',
-                    participants: group.participants?.length || 0,
+                    participants: group.participants?.length || group.participantsCount || 0,
                     isGroup: true
                 })
             }
@@ -557,7 +617,7 @@ app.get('/chats', async (req, res) => {
             console.log(`Group parse error for ${userId}: ${e.message}`)
         }
         
-        console.log(`📋 Final chats for ${userId}: ${chats.length} groups, lastError=${lastError?.message || 'none'}`)
+        console.log(`📋 Final chats for ${userId}: ${chats.length} groups via ${fetchedVia}, lastError=${lastError?.message || 'none'}, cacheSize=${Object.keys(session.groups||{}).length}`)
         
         res.json({ 
             ok: true, 
@@ -565,11 +625,15 @@ app.get('/chats', async (req, res) => {
             chats: chats,
             count: chats.length,
             userId: String(userId),
-            message: chats.length > 0 ? `Found ${chats.length} groups` : 'No groups found - WhatsApp may still be syncing, wait 30s and try again with /chats or button',
+            message: chats.length > 0 ? `Found ${chats.length} groups` : 'No groups found - WhatsApp may still be syncing, wait 60s and try again. But you can manually send group ID: 120363312386194255@g.us',
             debug: {
-                attempts: 4,
+                attempts: 10,
                 lastError: lastError?.message || null,
-                sockConnected: session.isConnected
+                sockConnected: session.isConnected,
+                fetchedVia,
+                cacheSize: Object.keys(session.groups||{}).length,
+                groupsCacheTime: session.groupsCacheTime,
+                lastGroupsFetch: session.lastGroupsFetch
             }
         })
     } catch (e) {

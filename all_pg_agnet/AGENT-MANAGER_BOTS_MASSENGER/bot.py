@@ -4976,9 +4976,30 @@ def handle_message(message, callback_data=None):
                     if not status.get("connected"):
                         send_message(chat_id, "❌ واتساپ متصل نیست، اول شماره خودت رو بفرست تا وصل بشی" if lang == "fa" else "❌ Not connected")
                         return
+                    send_message(chat_id, "⏳ در حال دریافت لیست گروه‌ها... ممکن است 30 ثانیه طول بکشد (واتساپ در حال همگام‌سازی)")
                     chats_result = messenger_whatsapp.get_chats_for_user(chat_id, service_url)
-                    if chats_result.get("ok") and chats_result.get("chats"):
+                    if chats_result.get("ok") and chats_result.get("chats") is not None:
                         chats = chats_result["chats"]
+                        if len(chats) == 0:
+                            debug = chats_result.get("debug", {})
+                            msg = (
+                                f"⚠️ *هنوز گروهی پیدا نشد*\n"
+                                f"دیباگ: {debug}\n\n"
+                                "واتساپ بعد از اتصال 60 ثانیه طول می‌کشد تا گروه‌ها sync کند.\n"
+                                "🔄 30 ثانیه صبر کن و دوباره بنویس `groups`\n\n"
+                                "✅ یا دستی گروه هدف را انتخاب کن:\n"
+                                "`120363312386194255@g.us`"
+                            )
+                            keyboard = {
+                                "inline_keyboard": [
+                                    [{"text": "🔄 تلاش مجدد - لیست گروه‌ها", "callback_data": "wa_list_groups"}],
+                                    [{"text": "✅ انتخاب گروه 120363312386194255", "callback_data": "wa_select_dest_120363312386194255@g.us"}],
+                                    [{"text": "📋 لیست گروه‌ها", "callback_data": "wa_list_groups"}]
+                                ]
+                            }
+                            send_message(chat_id, msg, keyboard)
+                            set_state(chat_id, "waiting_whatsapp_destination", chats=[])
+                            return
                         keyboard = []
                         for chat in chats[:15]:
                             name = chat.get("name", "Unknown")[:30]
@@ -4986,13 +5007,24 @@ def handle_message(message, callback_data=None):
                             participants = chat.get("participants", 0)
                             btn_text = f"👥 {name} ({participants})" if participants else f"👥 {name}"
                             keyboard.append([{"text": btn_text, "callback_data": f"wa_select_dest_{chat_id_val}"}])
+                        # اگر گروه هدف نیست، اضافه کن
+                        target_group = "120363312386194255@g.us"
+                        if not any(c.get("id") == target_group for c in chats):
+                            keyboard.append([{"text": f"👥 گروه هدف 120363...", "callback_data": f"wa_select_dest_{target_group}"}])
                         keyboard.append([{"text": "📱 شماره شخصی", "callback_data": "wa_select_personal"}])
                         send_message(chat_id, f"📋 {len(chats)} گروه پیدا شد، انتخاب کنید:", {"inline_keyboard": keyboard})
                         set_state(chat_id, "waiting_whatsapp_destination", chats=chats)
                     else:
-                        send_message(chat_id, f"❌ خطا: {chats_result.get('error','')}")
+                        err = chats_result.get('error','')
+                        debug = chats_result.get('debug','')
+                        raw = chats_result.get('raw','')
+                        send_message(chat_id, f"❌ خطا: {err}\nدیباگ: {debug}\n{raw}\n\nدستی بفرست: 120363312386194255@g.us")
+                        set_state(chat_id, "waiting_whatsapp_destination", chats=[])
                 except Exception as e:
-                    send_message(chat_id, f"❌ خطا: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    send_message(chat_id, f"❌ خطا: {e}\nدستی بفرست: 120363312386194255@g.us")
+                    set_state(chat_id, "waiting_whatsapp_destination", chats=[])
                 return
             
             if wa_input_raw.lower() in ["logout", "خروج", "قطع"]:

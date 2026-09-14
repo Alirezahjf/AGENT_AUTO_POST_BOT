@@ -363,19 +363,26 @@ def get_chats_for_user(bale_chat_id, service_url=None):
         service_url = DEFAULT_SERVICE_URL
     
     try:
+        # تایم‌اوت 45 ثانیه چون سرویس 10 تلاش با 3 ثانیه انجام می‌دهد
         resp = requests.get(
             f"{service_url}/chats",
             params={"userId": str(bale_chat_id)},
-            timeout=15
+            timeout=45
         )
         if resp.status_code == 200:
             data = resp.json()
+            logger.info(f"📋 get_chats for {bale_chat_id}: ok={data.get('ok')} count={data.get('count')} debug={data.get('debug')}")
             if data.get("ok"):
                 return data
-        logger.warning(f"⚠️ get_chats failed: {resp.status_code} {resp.text[:200]}")
-        return {"ok": False, "chats": [], "error": f"HTTP {resp.status_code}"}
+        logger.warning(f"⚠️ get_chats failed: {resp.status_code} {resp.text[:500]}")
+        # اگر سرویس دیباگ داشت، نشان بده
+        try:
+            j = resp.json()
+            return {"ok": False, "chats": [], "error": f"HTTP {resp.status_code}", "debug": j.get("debug"), "raw": j}
+        except:
+            return {"ok": False, "chats": [], "error": f"HTTP {resp.status_code} {resp.text[:300]}"}
     except Exception as e:
-        logger.error(f"❌ get_chats exception: {e}")
+        logger.error(f"❌ get_chats exception: {e}", exc_info=True)
         return {"ok": False, "chats": [], "error": str(e)}
 
 
