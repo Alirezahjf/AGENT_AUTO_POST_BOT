@@ -1247,9 +1247,13 @@ class AuthManager:
     # ========== محیط کاربر ==========
 
     def _create_user_environment(self, chat_id: int):
-        """ایجاد فایل‌های config و database برای کاربر"""
-        user_dir = self.users_dir / str(chat_id)
-        user_dir.mkdir(exist_ok=True)
+        """ایجاد فایل‌های config و database برای کاربر - FIXED robust"""
+        try:
+            user_dir = self.users_dir / str(chat_id)
+            user_dir.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            logger.error(f"❌ Could not create user dir for {chat_id}: {e}")
+            return
 
         try:
             config_path = user_dir / 'config.json'
@@ -1260,20 +1264,58 @@ class AuthManager:
                 logger.info(f"✅ فایل کانفیگ برای {chat_id} ایجاد شد")
 
             db_path = user_dir / 'posts.db'
+            # ✅ حتی اگر فایل وجود دارد ولی خراب است، سعی کن دوباره بسازی
+            # اگر وجود ندارد، بساز
             if not db_path.exists():
                 from database import PostDatabase
                 PostDatabase(str(db_path))
                 logger.info(f"✅ دیتابیس برای {chat_id} ایجاد شد")
+            else:
+                # چک سالم بودن - اگر خراب است، دوباره بساز
+                try:
+                    import sqlite3
+                    conn = sqlite3.connect(str(db_path), timeout=5)
+                    conn.execute("SELECT name FROM sqlite_master LIMIT 1")
+                    conn.close()
+                except Exception as db_err:
+                    logger.warning(f"⚠️ DB for {chat_id} seems corrupted: {db_err}, recreating")
+                    try:
+                        db_path.unlink(missing_ok=True)
+                    except:
+                        pass
+                    from database import PostDatabase
+                    PostDatabase(str(db_path))
+                    logger.info(f"✅ دیتابیس برای {chat_id} بازسازی شد")
 
         except Exception as e:
-            logger.error(f"❌ خطا در ایجاد محیط کاربر: {e}")
+            logger.error(f"❌ خطا در ایجاد محیط کاربر {chat_id}: {e}", exc_info=True)
+
+    def ensure_user_environment(self, chat_id: int):
+        """اطمینان از وجود محیط کاربر - برای استفاده در scheduler"""
+        try:
+            user_dir = self.users_dir / str(chat_id)
+            user_dir.mkdir(parents=True, exist_ok=True)
+            self._create_user_environment(chat_id)
+            return True
+        except Exception as e:
+            logger.error(f"❌ ensure_user_environment failed for {chat_id}: {e}")
+            return False
 
     def get_user_config_path(self, chat_id: int) -> Path:
-        """مسیر فایل کانفیگ کاربر"""
+        """مسیر فایل کانفیگ کاربر - FIXED ensure dir"""
+        try:
+            (self.users_dir / str(chat_id)).mkdir(parents=True, exist_ok=True)
+        except:
+            pass
         return self.users_dir / str(chat_id) / 'config.json'
 
     def get_user_db_path(self, chat_id: int) -> Path:
-        """مسیر دیتابیس کاربر"""
+        """مسیر دیتابیس کاربر - FIXED ensure dir"""
+        try:
+            (self.users_dir / str(chat_id)).mkdir(parents=True, exist_ok=True)
+            self.users_dir.mkdir(parents=True, exist_ok=True)
+        except:
+            pass
         return self.users_dir / str(chat_id) / 'posts.db'
 
     # ========== ثبت فعالیت ==========

@@ -3316,6 +3316,38 @@ def handle_message(message, callback_data=None):
             send_message(chat_id, "⏳ خطا در دریافت QR، دوباره تلاش کن - شماره خودت رو درست بفرست: 98912..." if lang == "fa" else "Error getting QR")
         return
 
+    elif callback_data == "wa_force_reset":
+        lang = get_user_lang(chat_id)
+        try:
+            import messenger_whatsapp
+            wa_cfg = user_config["messengers"].get("whatsapp", {})
+            service_url = wa_cfg.get("service_url", "http://localhost:3001")
+            phone_for_reset = wa_cfg.get("phone_number") or wa_cfg.get("own_phone") or ""
+            send_message(chat_id, "🔥 در حال حذف کامل سشن خراب...")
+            result = messenger_whatsapp.force_reset_session(chat_id, phone_for_reset, service_url)
+            if result.get("qrImage"):
+                import base64, tempfile, os
+                b64 = result["qrImage"].split(",")[1] if "," in result["qrImage"] else result["qrImage"]
+                qr_bytes = base64.b64decode(b64)
+                bale_token = config["messengers"]["bale"]["bot_token"]
+                api = f"https://tapi.bale.ai/bot{bale_token}"
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+                    tmp.write(qr_bytes)
+                    tmp_path = tmp.name
+                with open(tmp_path, "rb") as f:
+                    files = {"photo": ("qr.png", f, "image/png")}
+                    data = {"chat_id": chat_id, "caption": "🔥 QR جدید بعد از force reset"}
+                    requests.post(f"{api}/sendPhoto", data=data, files=files, timeout=20)
+                    os.unlink(tmp_path)
+                if result.get("pairingCode"):
+                    send_message(chat_id, f"{result.get('pairingCode')}\n\n👆 کپی")
+            keyboard = {"inline_keyboard": [[{"text": "✅ بررسی اتصال", "callback_data": "check_whatsapp_status"}]]}
+            send_message(chat_id, "✅ سشن حذف شد، QR جدید را اسکن کن", keyboard)
+            set_state(chat_id, "waiting_whatsapp_qr_check", phone=phone_for_reset)
+        except Exception as e:
+            send_message(chat_id, f"❌ خطا: {e}")
+        return
+
     elif callback_data == "wa_list_groups":
         lang = get_user_lang(chat_id)
         try:
@@ -4961,11 +4993,72 @@ def handle_message(message, callback_data=None):
             clear_state(chat_id)
             return
 
-        # ===== پیکربندی WhatsApp - نسخه نهایی پایدار - ذخیره سشن در فایل+DB =====
+        # ===== پیکربندی WhatsApp - نسخه نهایی FIXED v2 - force reset + No sessions =====
         elif current_state_name == "waiting_whatsapp_chat":
             # دستورات خاص اول
             wa_input_raw = text.strip()
             lang = get_user_lang(chat_id)
+
+            # ✅ FIX: دستورات force reset برای حل "قبلا سشن هست" و "No sessions"
+            if wa_input_raw.lower() in ["reset", "force", "force reset", "newqr force", "ریست", "حذف سشن", "force qr", "new qr force", "پاک کردن سشن"]:
+                try:
+                    import messenger_whatsapp
+                    wa_cfg = user_config["messengers"].get("whatsapp", {})
+                    service_url = wa_cfg.get("service_url", "http://localhost:3001")
+                    phone_for_reset = wa_cfg.get("phone_number") or wa_cfg.get("own_phone") or wa_cfg.get("chat_id") or ""
+                    send_message(chat_id, f"🔥 در حال حذف کامل سشن خراب {chat_id} و ساخت QR جدید..." if lang == "fa" else f"🔥 Force deleting corrupted session {chat_id}...")
+                    # force reset
+                    result = messenger_whatsapp.force_reset_session(chat_id, phone_for_reset, service_url)
+                    if result.get("ok") or result.get("hasQR") or result.get("qrImage"):
+                        # QR جدید بفرست
+                        if result.get("qrImage"):
+                            import base64, tempfile, os
+                            b64 = result["qrImage"].split(",")[1] if "," in result["qrImage"] else result["qrImage"]
+                            qr_bytes = base64.b64decode(b64)
+                            bale_token = config["messengers"]["bale"]["bot_token"]
+                            api = f"https://tapi.bale.ai/bot{bale_token}"
+                            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+                                tmp.write(qr_bytes)
+                                tmp_path = tmp.name
+                            with open(tmp_path, "rb") as f:
+                                files = {"photo": ("qr.png", f, "image/png")}
+                                pc = result.get("pairingCode","")
+                                caption = f"🔥 QR جدید بعد از حذف سشن خراب - کد {pc}" if pc else "🔥 QR جدید بعد از حذف سشن خراب"
+                                data = {"chat_id": chat_id, "caption": caption}
+                                requests.post(f"{api}/sendPhoto", data=data, files=files, timeout=20)
+                                os.unlink(tmp_path)
+                            if result.get("pairingCode"):
+                                pc = result.get("pairingCode")
+                                send_message(chat_id, f"{pc}\n\n👆 کپی کن - QR جدید")
+                                send_message(chat_id, f"{pc.replace('-','')}\n\n👆 بدون خط تیره")
+                        else:
+                            # درخواست QR جدید با force
+                            qr2 = messenger_whatsapp.get_qr_for_user(chat_id, phone_for_reset, service_url, force=True)
+                            if qr2.get("qrImage"):
+                                import base64, tempfile, os
+                                b64 = qr2["qrImage"].split(",")[1] if "," in qr2["qrImage"] else qr2["qrImage"]
+                                qr_bytes = base64.b64decode(b64)
+                                bale_token = config["messengers"]["bale"]["bot_token"]
+                                api = f"https://tapi.bale.ai/bot{bale_token}"
+                                with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+                                    tmp.write(qr_bytes)
+                                    tmp_path = tmp.name
+                                with open(tmp_path, "rb") as f:
+                                    files = {"photo": ("qr.png", f, "image/png")}
+                                    data = {"chat_id": chat_id, "caption": "🔥 QR جدید (force) - اسکن کن"}
+                                    requests.post(f"{api}/sendPhoto", data=data, files=files, timeout=20)
+                                    os.unlink(tmp_path)
+                                if qr2.get("pairingCode"):
+                                    send_message(chat_id, f"{qr2.get('pairingCode')}\n\n👆 کپی")
+                        keyboard = {"inline_keyboard": [[{"text": "✅ بررسی اتصال", "callback_data": "check_whatsapp_status"}]]}
+                        send_message(chat_id, "✅ سشن خراب حذف شد! QR جدید بالا را اسکن کن و بعد بررسی بزن" if lang == "fa" else "Corrupted session deleted, new QR above", keyboard)
+                        set_state(chat_id, "waiting_whatsapp_qr_check", phone=phone_for_reset, own_phone=phone_for_reset, last_qr=result.get("qr",""))
+                    else:
+                        send_message(chat_id, f"❌ حذف سشن ناموفق: {result}\nسعی کن دوباره یا شماره خودت را بفرست: 989..." if lang == "fa" else f"Failed: {result}")
+                except Exception as e:
+                    logger.error(f"Force reset error: {e}", exc_info=True)
+                    send_message(chat_id, f"❌ خطا در force reset: {e}\nدستی: curl -X DELETE http://localhost:3001/session?userId={chat_id}&force=true")
+                return
             
             if wa_input_raw.lower() in ["groups", "گروه", "گروه‌ها", "لیست", "list", "group"]:
                 try:

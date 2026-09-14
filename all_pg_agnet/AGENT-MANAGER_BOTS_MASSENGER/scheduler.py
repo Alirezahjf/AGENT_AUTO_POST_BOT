@@ -571,13 +571,36 @@ def _sync_user_products(user_chat_id):
 
 def post_scheduled_posts_for_user(user_chat_id, global_config):
     """
-    بررسی و ارسال پست‌های دستی زمان‌بندی شده برای یک کاربر خاص
+    بررسی و ارسال پست‌های دستی زمان‌بندی شده برای یک کاربر خاص - FIXED robust
     """
     global _executed_posts
 
     try:
-        user_db = get_user_db(user_chat_id)
-        user_config = load_user_config(user_chat_id)
+        # ✅ FIX: تلاش برای دریافت DB با بازسازی خودکار اگر پوشه حذف شده
+        try:
+            user_db = get_user_db(user_chat_id)
+        except Exception as db_e:
+            logger.error(f"❌ get_user_db failed for user={user_chat_id}: {db_e}, trying to recreate env")
+            try:
+                auth_mgr = get_auth_manager()
+                auth_mgr.ensure_user_environment(user_chat_id)
+                user_db = get_user_db(user_chat_id)
+                logger.info(f"✅ Recreated DB env for user={user_chat_id} after failure")
+            except Exception as e2:
+                logger.error(f"❌ Still failing get_user_db for {user_chat_id} after recreate: {e2} - skipping user")
+                return
+
+        try:
+            user_config = load_user_config(user_chat_id)
+        except Exception as cfg_e:
+            logger.error(f"❌ load_user_config failed for {user_chat_id}: {cfg_e}, trying recreate")
+            try:
+                auth_mgr = get_auth_manager()
+                auth_mgr.ensure_user_environment(user_chat_id)
+                user_config = load_user_config(user_chat_id)
+            except Exception as e2:
+                logger.error(f"❌ Still failing load_user_config for {user_chat_id}: {e2}")
+                return
 
         now = tehran_now()
         current_date = tehran_today().strftime("%Y-%m-%d")
