@@ -5051,6 +5051,42 @@ def handle_message(message, callback_data=None):
             
             # ===== مرحله 1: شماره خود کاربر برای لینک کردن (نه مقصد) =====
             # این شماره باید شماره واتساپ خود کاربر باشد که روی گوشیش نصبه
+            # ===== اگر کاربر مستقیم آیدی گروه فرستاد، به عنوان مقصد ذخیره کن (حتی اگر در حالت شماره خودت باشد) =====
+            raw_for_group = wa_input_raw.strip()
+            if "@g.us" in raw_for_group or raw_for_group.startswith("120363") or (raw_for_group.replace("@g.us","").replace("@s.whatsapp.net","").isdigit() and len(raw_for_group.replace("@g.us","").replace("@s.whatsapp.net","")) > 15):
+                normalized_group = raw_for_group.replace(" ", "").replace("+", "").strip()
+                if "@g.us" not in normalized_group and "@s.whatsapp.net" not in normalized_group:
+                    if normalized_group.isdigit() and (normalized_group.startswith("120363") or len(normalized_group) > 15):
+                        normalized_group = f"{normalized_group}@g.us"
+                user_config["messengers"]["whatsapp"]["chat_id"] = normalized_group
+                user_config["messengers"]["whatsapp"]["destination_selected"] = True
+                if user_config["messengers"]["whatsapp"].get("phone_number"):
+                    user_config["messengers"]["whatsapp"]["connected"] = True
+                save_user_config(chat_id, user_config)
+                success_msg = (
+                    f"✅ *گروه به عنوان مقصد ذخیره شد!* 🎉\n\n"
+                    f"📱 مقصد: {normalized_group}\n"
+                    f"🔗 وضعیت: متصل + مقصد ✅\n\n"
+                    "⏳ در حال ارسال پیام تست..."
+                    if lang == "fa"
+                    else f"✅ Group saved as destination: {normalized_group}"
+                )
+                send_message(chat_id, success_msg)
+                try:
+                    import messenger_whatsapp
+                    wa_cfg = user_config["messengers"].get("whatsapp", {})
+                    service_url = wa_cfg.get("service_url", "http://localhost:3001")
+                    test_text = "✅ ربات متصل شد! اوکی وصله 🎉\n\nاین گروه به عنوان مقصد انتخاب شد"
+                    result = messenger_whatsapp._send_via_baileys(normalized_group, test_text, None, service_url, str(chat_id))
+                    if result:
+                        send_message(chat_id, "✅ پیام تست ارسال شد! اوکی وصله 🎉" if lang == "fa" else "✅ Test sent!", create_messengers_keyboard(chat_id, user_config))
+                    else:
+                        send_message(chat_id, "⚠️ تنظیمات ذخیره شد ولی پیام تست ارسال نشد - ممکن است واتساپ هنوز sync نشده یا گروه وجود ندارد" if lang == "fa" else "⚠️ Saved but test failed", create_messengers_keyboard(chat_id, user_config))
+                except Exception as e:
+                    send_message(chat_id, "⚠️ ذخیره شد" if lang == "fa" else "Saved", create_messengers_keyboard(chat_id, user_config))
+                clear_state(chat_id)
+                return
+
             own_phone_raw = wa_input_raw.strip().replace(" ", "").replace("+", "")
             # نرمال‌سازی
             if own_phone_raw.startswith("0"):
