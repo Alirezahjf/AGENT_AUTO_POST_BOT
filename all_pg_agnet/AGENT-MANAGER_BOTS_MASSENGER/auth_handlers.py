@@ -10,8 +10,10 @@ auth_manager = AuthManager()
 
 # ========== تنظیمات پرداخت ==========
 # توکن کیف‌پول بیل - از config.json خوانده می‌شود
-PAYMENT_AMOUNT = 20000000  # مبلغ به ریال
+# 200,000,000 ریال = 20,000,000 تومان = 20 میلیون
+PAYMENT_AMOUNT = 200000000  # مبلغ به ریال - 20 میلیون تومان
 PAYMENT_CURRENCY = "IRR"
+TRIAL_DAYS = 1  # مهلت تست 1 روزه رایگان
 
 
 def get_wallet_token():
@@ -109,16 +111,18 @@ def send_invoice_to_user(chat_id, bot_token):
 
     data = {
         "chat_id": chat_id,
-        "title": "خرید دسترسی به ربات",
+        "title": "خرید دسترسی دائمی - 20 میلیون تومان",
         "description": (
-            "با خرید این اشتراک، به تمام امکانات ربات دسترسی خواهید داشت.\n"
-            "پس از پرداخت، یک توکن اختصاصی برای شما صادر می‌شود."
+            "🎁 1 روز تست رایگان دارید!\n"
+            "با خرید این اشتراک، به تمام امکانات ربات دسترسی دائمی خواهید داشت.\n"
+            "پس از پرداخت، یک توکن اختصاصی دائمی برای شما صادر می‌شود.\n"
+            "قیمت: 20,000,000 تومان"
         ),
         "payload": payload,
         "provider_token": wallet_token,
         "prices": [
             {
-                "label": "دسترسی به ربات",
+                "label": "دسترسی دائمی - 20 میلیون تومان",
                 "amount": PAYMENT_AMOUNT
             }
         ]
@@ -179,8 +183,7 @@ def answer_pre_checkout_query(pre_checkout_query_id, bot_token,
 
 def handle_unauthenticated_user(message, bot_token):
     """
-    رسیدگی به کاربر غیرمجاز
-
+    رسیدگی به کاربر غیرمجاز - با تست 1 روزه رایگان برای کاربران جدید
     Returns:
         bool: True اگر مجاز باشد
     """
@@ -197,6 +200,27 @@ def handle_unauthenticated_user(message, bot_token):
 
     if user_info:
         if user_info['status'] == 'approved':
+            # چک تست منقضی
+            if user_info.get('is_trial') and user_info.get('trial_expired'):
+                amount_toman = PAYMENT_AMOUNT // 10
+                msg = (
+                    f"⏰ *مهلت تست 1 روزه شما تمام شد!*\n\n"
+                    f"👋 {username} عزیز، تست رایگان 1 روزه شما به پایان رسید.\n\n"
+                    f"💳 برای ادامه استفاده، لطفاً اشتراک تهیه کنید:\n"
+                    f"💰 مبلغ: {amount_toman:,} تومان (20 میلیون)\n\n"
+                    f"✅ پس از پرداخت دسترسی دائمی خواهید داشت"
+                )
+                keyboard = {
+                    "inline_keyboard": [
+                        [{"text": "💳 خرید دسترسی - 20 میلیون", "callback_data": "auth_buy_access"}]
+                    ]
+                }
+                send_message(chat_id, msg, keyboard, bot_token=bot_token)
+                return False
+            # اگر تست فعال است، باقی مانده را نمایش بده در لاگ
+            if user_info.get('is_trial'):
+                remaining = user_info.get('trial_remaining_hours', 0)
+                logger.info(f"⏳ کاربر تستی {chat_id} - {remaining:.1f} ساعت باقی مانده")
             return True
 
         elif user_info['status'] == 'pending':
@@ -215,21 +239,46 @@ def handle_unauthenticated_user(message, bot_token):
             )
             keyboard = {
                 "inline_keyboard": [
-                    [{"text": "💳 خرید دسترسی", "callback_data": "auth_buy_access"}]
+                    [{"text": "💳 خرید دسترسی - 20 میلیون", "callback_data": "auth_buy_access"}]
                 ]
             }
             send_message(chat_id, msg, keyboard, bot_token=bot_token)
             return False
 
-    # کاربر جدید
-    msg = (
-        f"👋 خوش‌آمدید {username}!\n\n"
-        f"🔐 برای استفاده از ربات، لطفاً یکی از روش‌های زیر را انتخاب کنید:"
-    )
-
-    keyboard = create_auth_keyboard_fa()
-    send_message(chat_id, msg, keyboard, bot_token=bot_token)
-    return False
+    # کاربر جدید - خودکار تست 1 روزه رایگان بده
+    logger.info(f"🆕 کاربر جدید {chat_id} - ثبت با تست 1 روزه رایگان")
+    result = auth_manager.register_user(chat_id, username)
+    if result.get('success') and result.get('is_trial'):
+        trial_end = result.get('trial_end', '')
+        msg = (
+            f"🎉 *خوش‌آمدید {username}!* \n\n"
+            f"🎁 *هدیه ویژه: 1 روز تست رایگان!* 🎁\n\n"
+            f"✅ دسترسی شما به مدت 1 روز فعال شد\n"
+            f"⏰ تا: {trial_end}\n\n"
+            f"🚀 می‌توانید همین الان از ربات استفاده کنید:\n"
+            f"• اتصال پیام‌رسان‌ها\n"
+            f"• تنظیم ووکامرس\n"
+            f"• ارسال پست خودکار\n\n"
+            f"💡 پس از پایان تست، برای ادامه فقط 20 میلیون تومان پرداخت کنید و دسترسی دائمی بگیرید!\n\n"
+            f"برای شروع /start را بزنید"
+        )
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "🚀 شروع استفاده", "callback_data": "main_menu"}],
+                [{"text": "💳 خرید دسترسی دائمی - 20 میلیون", "callback_data": "auth_buy_access"}]
+            ]
+        }
+        send_message(chat_id, msg, keyboard, bot_token=bot_token)
+        return True
+    else:
+        # fallback قدیمی
+        msg = (
+            f"👋 خوش‌آمدید {username}!\n\n"
+            f"🔐 برای استفاده از ربات، لطفاً یکی از روش‌های زیر را انتخاب کنید:"
+        )
+        keyboard = create_auth_keyboard_fa()
+        send_message(chat_id, msg, keyboard, bot_token=bot_token)
+        return False
 
 
 # ========== مدیریت Callback های احراز هویت ==========
@@ -324,15 +373,18 @@ def _handle_buy_access(chat_id, username, bot_token, user_states):
         send_message(chat_id, msg, keyboard, bot_token=bot_token)
         return
 
-    # توضیح محصول
+    # توضیح محصول - 20 میلیون
     amount_toman = PAYMENT_AMOUNT // 10
     msg = (
-        f"💳 *خرید دسترسی به ربات*\n\n"
-        f"💰 مبلغ: {amount_toman:,} تومان\n\n"
+        f"💳 *خرید دسترسی به ربات - 20 میلیون تومان*\n\n"
+        f"💰 مبلغ: {amount_toman:,} تومان\n"
+        f"💵 معادل 20 میلیون تومان\n\n"
+        f"🎁 در حال حاضر 1 روز تست رایگان دارید!\n"
         f"✅ پس از پرداخت:\n"
         f"  • یک توکن اختصاصی برای شما صادر می‌شود\n"
         f"  • توکن دائمی است و بدون انقضا\n"
-        f"  • هر زمان می‌توانید با این توکن وارد شوید\n\n"
+        f"  • دسترسی نامحدود به تمام امکانات\n"
+        f"  • پشتیبانی کامل\n\n"
         f"🔒 پرداخت از طریق کیف‌پول بیل انجام می‌شود."
     )
 

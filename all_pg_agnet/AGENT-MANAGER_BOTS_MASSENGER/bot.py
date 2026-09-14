@@ -1900,6 +1900,10 @@ def handle_message(message, callback_data=None):
         is_admin = False
 
     user_is_approved = user_info and user_info['status'] == 'approved'
+    # چک تست منقضی - اگر تست تمام شده، approved محسوب نمی‌شود
+    if user_info and user_info.get('is_trial') and user_info.get('trial_expired'):
+        user_is_approved = False
+        logger.info(f"⏰ تست کاربر {chat_id} منقضی شده - نیاز به پرداخت")
 
     if not user_is_approved and not is_admin:
         if text == "/start":
@@ -1968,7 +1972,16 @@ def handle_message(message, callback_data=None):
             keyboard = create_language_keyboard()
             send_message(chat_id, LANGUAGES["en"]["welcome"], keyboard)
         else:
-            send_message(chat_id, t(chat_id, "main_menu"), create_main_keyboard(chat_id))
+            # اگر کاربر تستی است، باقی مانده تست را نمایش بده
+            trial_msg = ""
+            if user_info and user_info.get('is_trial') and not user_info.get('trial_expired'):
+                remaining_h = user_info.get('trial_remaining_hours', 24)
+                trial_end = user_info.get('trial_end', '')
+                if get_user_lang(chat_id) == "fa":
+                    trial_msg = f"\n\n🎁 *تست رایگان فعال:* {remaining_h:.1f} ساعت باقی مانده\n⏰ تا: {trial_end}\n💡 پس از اتمام، خرید 20 میلیون برای دائمی"
+                else:
+                    trial_msg = f"\n\n🎁 Trial: {remaining_h:.1f}h left until {trial_end}"
+            send_message(chat_id, t(chat_id, "main_menu") + trial_msg, create_main_keyboard(chat_id))
         return
 
     elif callback_data and callback_data.startswith("lang_"):

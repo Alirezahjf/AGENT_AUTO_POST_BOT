@@ -43,7 +43,10 @@ class AuthManager:
                     created_at TEXT NOT NULL,
                     approved_at TEXT,
                     approved_by INTEGER,
-                    is_admin INTEGER DEFAULT 0
+                    is_admin INTEGER DEFAULT 0,
+                    is_trial INTEGER DEFAULT 0,
+                    trial_start TEXT,
+                    trial_end TEXT
                 )
             ''')
 
@@ -137,6 +140,9 @@ class AuthManager:
             migrations = [
                 'ALTER TABLE purchase_tokens ADD COLUMN username TEXT',
                 'ALTER TABLE payments ADD COLUMN username TEXT',
+                'ALTER TABLE users ADD COLUMN is_trial INTEGER DEFAULT 0',
+                'ALTER TABLE users ADD COLUMN trial_start TEXT',
+                'ALTER TABLE users ADD COLUMN trial_end TEXT',
             ]
             for migration in migrations:
                 try:
@@ -601,7 +607,7 @@ class AuthManager:
     # ========== مدیریت کاربران ==========
 
     def register_user(self, chat_id: int, username: str) -> Dict:
-        """ثبت کاربر جدید"""
+        """ثبت کاربر جدید - با تست 1 روزه رایگان"""
         conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
@@ -616,15 +622,26 @@ class AuthManager:
             created_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
             is_admin = self.is_admin(chat_id)
-            status = 'approved' if is_admin else 'pending'
-            approved_at = created_at if is_admin else None
+            if is_admin:
+                status = 'approved'
+                approved_at = created_at
+                is_trial = 0
+                trial_start = None
+                trial_end = None
+            else:
+                # کاربر جدید - 1 روز تست رایگان
+                status = 'approved'
+                approved_at = created_at
+                is_trial = 1
+                trial_start = created_at
+                trial_end = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S')
 
             cursor.execute('''
                 INSERT INTO users
-                (chat_id, username, token, status, created_at, approved_at, is_admin)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                (chat_id, username, token, status, created_at, approved_at, is_admin, is_trial, trial_start, trial_end)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (chat_id, username, hashed, status, created_at,
-                  approved_at, 1 if is_admin else 0))
+                  approved_at, 1 if is_admin else 0, is_trial, trial_start, trial_end))
 
             conn.commit()
 
@@ -632,9 +649,12 @@ class AuthManager:
             user_dir.mkdir(exist_ok=True)
             self._create_user_environment(chat_id)
 
-            logger.info(f"✅ کاربر {chat_id} ثبت‌نام شد - وضعیت: {status}")
+            if is_trial:
+                logger.info(f"✅ کاربر {chat_id} با تست 1 روزه ثبت شد تا {trial_end}")
+            else:
+                logger.info(f"✅ کاربر {chat_id} ثبت‌نام شد - وضعیت: {status}")
 
-            return {'success': True, 'chat_id': chat_id, 'status': status}
+            return {'success': True, 'chat_id': chat_id, 'status': status, 'is_trial': bool(is_trial), 'trial_end': trial_end}
 
         except Exception as e:
             logger.error(f"❌ خطا در ثبت‌نام کاربر: {e}")
@@ -661,22 +681,22 @@ class AuthManager:
             existing = cursor.fetchone()
 
             if existing:
-                # به‌روزرسانی وضعیت
+                # به‌روزرسانی وضعیت + حذف تست
                 cursor.execute('''
                     UPDATE users
-                    SET status = 'approved', approved_at = ?
+                    SET status = 'approved', approved_at = ?, is_trial = 0, trial_start = NULL, trial_end = NULL
                     WHERE chat_id = ?
                 ''', (approved_at, chat_id))
-                logger.info(f"✅ وضعیت کاربر {chat_id} به approved تغییر کرد")
+                logger.info(f"✅ وضعیت کاربر {chat_id} به approved تغییر کرد و از تست به پولی تبدیل شد")
             else:
-                # ثبت‌نام جدید با وضعیت approved
+                # ثبت‌نام جدید با وضعیت approved - پولی
                 token = self.generate_token()
                 hashed = self.hash_token(token)
 
                 cursor.execute('''
                     INSERT INTO users
-                    (chat_id, username, token, status, created_at, approved_at, is_admin)
-                    VALUES (?, ?, ?, 'approved', ?, ?, 0)
+                    (chat_id, username, token, status, created_at, approved_at, is_admin, is_trial)
+                    VALUES (?, ?, ?, 'approved', ?, ?, 0, 0)
                 ''', (chat_id, username, hashed, approved_at, approved_at))
 
                 logger.info(f"✅ کاربر {chat_id} با پرداخت ثبت و approved شد")
@@ -696,12 +716,12 @@ class AuthManager:
             conn.close()
 
     def get_user_info(self, chat_id: int) -> Optional[Dict]:
-        """دریافت اطلاعات کاربر - با هندل کردن خطای باز نشدن دیتابیس"""
+        """دریافت اطلاعات کاربر - با هندل کردن خطای باز نشدن دیتابیس + تست 1 روزه"""
         try:
             conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
             cursor = conn.cursor()
             cursor.execute('''
-                SELECT chat_id, username, status, created_at, approved_at, is_admin
+                SELECT chat_id, username, status, created_at, approved_at, is_admin, is_trial, trial_start, trial_end
                 FROM users
                 WHERE chat_id = ?
             ''', (chat_id,))
@@ -709,32 +729,47 @@ class AuthManager:
             conn.close()
             if not result:
                 return None
-            return {
+            info = {
                 'chat_id': result[0],
                 'username': result[1],
                 'status': result[2],
                 'created_at': result[3],
                 'approved_at': result[4],
-                'is_admin': bool(result[5])
+                'is_admin': bool(result[5]),
+                'is_trial': bool(result[6]) if len(result) > 6 and result[6] is not None else False,
+                'trial_start': result[7] if len(result) > 7 else None,
+                'trial_end': result[8] if len(result) > 8 else None,
             }
+            # چک انقضای تست
+            if info.get('is_trial') and info.get('trial_end'):
+                try:
+                    trial_end_dt = datetime.strptime(info['trial_end'], '%Y-%m-%d %H:%M:%S')
+                    if datetime.now() > trial_end_dt:
+                        # تست تمام شده - وضعیت را به expired تغییر بده (اما هنوز approved نگه دار برای پیام)
+                        info['trial_expired'] = True
+                    else:
+                        info['trial_expired'] = False
+                        # محاسبه باقی مانده
+                        remaining = trial_end_dt - datetime.now()
+                        info['trial_remaining_hours'] = remaining.total_seconds() / 3600
+                except:
+                    info['trial_expired'] = False
+            else:
+                info['trial_expired'] = False
+            return info
         except sqlite3.OperationalError as e:
             if "unable to open database file" in str(e):
                 logger.error(f"❌ DB open failed: {self.auth_db_path} - {e}, trying to recreate")
-                # سعی کن دوباره دیتابیس را بسازی
                 try:
-                    # اطمینان از وجود پوشه
                     Path(self.auth_db_path).parent.mkdir(parents=True, exist_ok=True)
-                    # اگر فایل وجود دارد ولی خراب است، حذف کن و دوباره بساز
-                    # اما اول لاگ کن
                     import os
                     if os.path.exists(self.auth_db_path):
                         logger.warning(f"⚠️ DB file exists but can't open: {self.auth_db_path}, size={os.path.getsize(self.auth_db_path)}")
                     self.init_auth_database()
-                    # دوباره تلاش کن
                     conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
                     cursor = conn.cursor()
                     cursor.execute('''
-                        SELECT chat_id, username, status, created_at, approved_at, is_admin
+                        SELECT chat_id, username, status, created_at, approved_at, is_admin, is_trial, trial_start, trial_end
                         FROM users
                         WHERE chat_id = ?
                     ''', (chat_id,))
@@ -748,7 +783,11 @@ class AuthManager:
                         'status': result[2],
                         'created_at': result[3],
                         'approved_at': result[4],
-                        'is_admin': bool(result[5])
+                        'is_admin': bool(result[5]),
+                        'is_trial': bool(result[6]) if len(result) > 6 and result[6] is not None else False,
+                        'trial_start': result[7] if len(result) > 7 else None,
+                        'trial_end': result[8] if len(result) > 8 else None,
+                        'trial_expired': False
                     }
                 except Exception as e2:
                     logger.error(f"❌ Failed to recreate DB: {e2}")
@@ -758,6 +797,33 @@ class AuthManager:
         except Exception as e:
             logger.error(f"❌ get_user_info unexpected error: {e}")
             return None
+
+    def is_trial_expired(self, chat_id: int) -> bool:
+        """چک آیا تست 1 روزه تمام شده"""
+        info = self.get_user_info(chat_id)
+        if not info:
+            return False
+        if not info.get('is_trial'):
+            return False
+        return info.get('trial_expired', False)
+
+    def convert_trial_to_paid(self, chat_id: int) -> bool:
+        """تبدیل کاربر تستی به پولی بعد از پرداخت"""
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                UPDATE users SET is_trial = 0, trial_start = NULL, trial_end = NULL
+                WHERE chat_id = ?
+            ''', (chat_id,))
+            conn.commit()
+            logger.info(f"✅ کاربر {chat_id} از تست به پولی تبدیل شد")
+            return True
+        except Exception as e:
+            logger.error(f"❌ خطا در تبدیل تست به پولی: {e}")
+            return False
+        finally:
+            conn.close()
 
     def get_all_users(self, status: Optional[str] = None) -> List[Dict]:
         """دریافت لیست کاربران"""
