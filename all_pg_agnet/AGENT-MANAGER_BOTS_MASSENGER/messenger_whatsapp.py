@@ -1,8 +1,10 @@
-# messenger_whatsapp.py - FIXED v2: handles No sessions + force reset + group ID
+# messenger_whatsapp_neonize.py - Professional Neonize implementation
 """
-پیام‌رسان واتساپ - نسخه حرفه‌ای چندکاربره FIXED
-- هر کاربر Bale یک سشن جدا در whatsapp-service دارد: auth/{bale_chat_id}
-- FIX: حل ارور No sessions و "قبلا سشن هست"
+WhatsApp via Neonize (whatsmeow) - Professional multi-user
+- Per-user SQLite: whatsapp-service/auth/<bale_chat_id>/neonize.sqlite3
+- LID groups handled natively (no No sessions error)
+- QR + Pairing code via PairPhone
+- Compatible with existing bot.py flow
 """
 
 import requests
@@ -12,9 +14,8 @@ import time
 from urllib.parse import unquote
 from logger import logger
 
-MAX_RETRY = 3
-RETRY_DELAY = 2
 DEFAULT_SERVICE_URL = "http://localhost:3001"
+MAX_RETRY = 2
 
 def _clean_html(text):
     return re.sub(r'<[^>]+>', '', text).strip() if text else ""
@@ -62,19 +63,30 @@ def _get_user_id_from_config(config):
         return str(config.get("_bale_user_id"))
     return None
 
-def _send_via_baileys(to, text, image_bytes=None, service_url=None, user_id=None, media_type=None):
-    """ارسال از طریق سرویس Baileys - FIXED v2 for No sessions"""
+def _normalize_dest(to: str) -> str:
+    """Normalize destination to JID format"""
+    if not to:
+        return ""
+    to = to.strip()
+    if "@g.us" in to or "@s.whatsapp.net" in to or "@lid" in to:
+        return to
+    # Remove spaces, plus
+    cleaned = re.sub(r'[^0-9]', '', to)
+    if not cleaned:
+        # maybe already like 120363...
+        cleaned = to.replace("@g.us", "").strip()
+    if cleaned.startswith("120363") or len(cleaned) > 15:
+        return f"{cleaned}@g.us"
+    else:
+        return f"{cleaned}@s.whatsapp.net"
+
+def _send_via_neonize(to, text, image_bytes=None, service_url=None, user_id=None, media_type=None):
+    """Send via Neonize service - LID supported, no No sessions error"""
     if not service_url:
         service_url = DEFAULT_SERVICE_URL
 
-    final_to = to
-    if to and "@" not in to:
-        if to.isdigit() or (to.startswith("98") and to[5:].isdigit() if len(to) > 5 else False):
-            if to.startswith("120363") or len(to) > 15:
-                final_to = f"{to}@g.us" if "@g.us" not in to else to
-            else:
-                final_to = f"{to}@s.whatsapp.net" if "@s.whatsapp.net" not in to else to
-    elif not to:
+    final_to = _normalize_dest(to)
+    if not final_to:
         logger.error("❌ No destination for WhatsApp")
         return False
 
@@ -87,88 +99,42 @@ def _send_via_baileys(to, text, image_bytes=None, service_url=None, user_id=None
             payload["mediaType"] = media_type
 
     try:
+        # Quick status check
         try:
             if user_id:
                 st = requests.get(f"{service_url}/status", params={"userId": str(user_id)}, timeout=5)
                 if st.status_code == 200:
                     js = st.json()
-                    if js.get("empty"):
-                        logger.error(f"❌ Auth empty for {user_id} - need fresh QR")
+                    if not js.get("connected") and js.get("exists") is False:
+                        logger.error(f"❌ No session for {user_id} - need QR")
                         return False
-                time.sleep(0.5)
-        except:
+        except Exception:
             pass
 
         resp = requests.post(f"{service_url}/send", json=payload, timeout=60)
         if resp.status_code == 200:
             data = resp.json()
             if data.get("ok"):
-                logger.info(f"✅ WhatsApp sent to {final_to} via {user_id}")
+                logger.info(f"✅ WhatsApp (neonize) sent to {final_to} via {user_id} - LID handled natively")
                 return True
             else:
-                err_str = str(data) + str(data.get("error",""))
-                logger.warning(f"⚠️ WhatsApp send failed to {final_to}: {data}")
-                if "No sessions" in err_str or "SessionError" in err_str:
-                    logger.error(f"❌ WhatsApp No sessions for {user_id} - corrupted, needs force reset")
+                logger.warning(f"⚠️ WhatsApp neonize send failed to {final_to}: {data}")
                 return False
         else:
-            full_text = resp.text[:3000]
-            logger.warning(f"⚠️ Baileys {resp.status_code}: {full_text} for to={final_to} user={user_id}")
+            logger.warning(f"⚠️ Neonize {resp.status_code}: {resp.text[:500]} for to={final_to} user={user_id}")
             try:
                 j = resp.json()
-                code = j.get("code","")
-                err_text = j.get("error","")
-                # v5: group No sessions is recoverable - don't delete, just sync groups and retry
-                if code == "NO_SESSIONS_GROUP_RETRY_FAILED":
-                    logger.info(f"🔄 Group No sessions for {final_to} - syncing groups then retrying...")
-                    try:
-                        # Force group sync
-                        chats_resp = requests.get(f"{service_url}/chats", params={"userId": str(user_id)}, timeout=45)
-                        logger.info(f"📋 Group sync for {user_id}: {chats_resp.status_code} {chats_resp.text[:500]}")
-                        time.sleep(3)
-                        # Retry send
-                        resp2 = requests.post(f"{service_url}/send", json=payload, timeout=60)
-                        if resp2.status_code == 200 and resp2.json().get("ok"):
-                            logger.info(f"✅ WhatsApp retry after group sync succeeded to {final_to}")
-                            return True
-                        else:
-                            logger.warning(f"⚠️ Retry after sync failed: {resp2.status_code} {resp2.text[:500]}")
-                    except Exception as sync_e:
-                        logger.error(f"❌ Group sync retry error: {sync_e}")
-                    return False
-
-                if code in ["NO_SESSIONS_CORRUPTED", "NO_SESSIONS_CORRUPTED_DELETED", "EMPTY_AUTH_CORRUPTED", "SESSION_NOT_FOUND", "EMPTY_AUTH"]:
-                    logger.error(f"❌ WhatsApp corrupted code={code} for {user_id} - needs fresh QR")
-                    return False
-                if resp.status_code in [404, 500, 503] and ("Session" in resp.text or "No sessions" in resp.text or "Not connected" in resp.text or "not found" in resp.text.lower()):
-                    # For group No sessions, try group sync instead of restore
-                    if "@g.us" in final_to and "NO_SESSIONS" in resp.text:
-                        logger.info(f"♻️ Group No sessions - trying group sync for {user_id}...")
-                        try:
-                            requests.get(f"{service_url}/chats", params={"userId": str(user_id)}, timeout=30)
-                            time.sleep(3)
-                            resp2 = requests.post(f"{service_url}/send", json=payload, timeout=60)
-                            if resp2.status_code == 200 and resp2.json().get("ok"):
-                                logger.info(f"✅ WhatsApp group retry succeeded to {final_to}")
-                                return True
-                        except Exception as e2:
-                            logger.debug(f"Group sync retry error: {e2}")
-                    else:
-                        logger.info(f"♻️ Trying restore for {user_id}...")
-                        restore_resp = requests.get(f"{service_url}/restore", params={"userId": str(user_id)}, timeout=15)
-                        time.sleep(2)
-                        status_resp = requests.get(f"{service_url}/status", params={"userId": str(user_id)}, timeout=10)
-                        time.sleep(1)
-                        resp2 = requests.post(f"{service_url}/send", json=payload, timeout=60)
-                        if resp2.status_code == 200 and resp2.json().get("ok"):
-                            logger.info(f"✅ WhatsApp retry succeeded to {final_to}")
-                            return True
-            except Exception as e:
-                logger.debug(f"Restore parse error: {e}")
+                if j.get("code") in ["SESSION_NOT_FOUND", "NOT_CONNECTED"]:
+                    logger.error(f"❌ WhatsApp session issue for {user_id}: {j.get('code')} - needs QR")
+            except:
+                pass
             return False
     except Exception as e:
-        logger.error(f"❌ Baileys send error to {final_to} via {user_id}: {e}", exc_info=True)
+        logger.error(f"❌ Neonize send error to {final_to} via {user_id}: {e}", exc_info=True)
         return False
+
+# Alias for compatibility with old code
+_send_via_baileys = _send_via_neonize
 
 def send_test_message(bale_chat_id, service_url=None):
     if not service_url:
@@ -178,14 +144,14 @@ def send_test_message(bale_chat_id, service_url=None):
         if not status.get("connected"):
             logger.warning(f"⚠️ Cannot send test, WhatsApp not connected for {bale_chat_id}")
             return False
-        test_text = "✅ واتساپ متصل شد! اوکی وصله 🎉\n\nربات آماده ارسال پست است\n\nبرای تست: یک پست جدید بسازید"
+        test_text = "✅ واتساپ متصل شد! اوکی وصله 🎉\n\nربات آماده ارسال پست است (Neonize - LID ساپورت)\n\nبرای تست: یک پست جدید بسازید"
         from config import load_user_config
         try:
             user_config = load_user_config(bale_chat_id)
             wa_cfg = user_config.get("messengers", {}).get("whatsapp", {})
             dest = wa_cfg.get("chat_id", "")
             if dest:
-                result = _send_via_baileys(dest, test_text, None, service_url, str(bale_chat_id))
+                result = _send_via_neonize(dest, test_text, None, service_url, str(bale_chat_id))
                 logger.info(f"📤 Test message to {dest} for {bale_chat_id}: {result}")
                 return result
         except Exception as e:
@@ -222,7 +188,6 @@ def _send_via_cloud_api(to, text, image_url=None, config=None):
         return False
 
 def get_qr_for_user(bale_chat_id, phone_number=None, service_url=None, own_phone=None, force=False):
-    """گرفتن QR - FIXED with force param"""
     if not service_url:
         service_url = DEFAULT_SERVICE_URL
     try:
@@ -240,18 +205,18 @@ def get_qr_for_user(bale_chat_id, phone_number=None, service_url=None, own_phone
             params["phone"] = phone_number
         if force:
             params["force"] = "true"
-        logger.info(f"📱 get_qr_for_user {bale_chat_id} ownPhone={effective_own} force={force}")
-        resp = requests.get(f"{service_url}/qr", params=params, timeout=20)
+        logger.info(f"📱 [Neonize] get_qr_for_user {bale_chat_id} ownPhone={effective_own} force={force}")
+        resp = requests.get(f"{service_url}/qr", params=params, timeout=25)
         if resp.status_code == 200:
             data = resp.json()
             if data.get("pairingCode"):
-                logger.info(f"🔑 QR pairingCode for {bale_chat_id}: {data.get('pairingCode')}")
+                logger.info(f"🔑 [Neonize] QR pairingCode for {bale_chat_id}: {data.get('pairingCode')}")
             return data
         else:
-            logger.warning(f"⚠️ get_qr failed: {resp.status_code} {resp.text[:500]}")
+            logger.warning(f"⚠️ [Neonize] get_qr failed: {resp.status_code} {resp.text[:500]}")
             return {"ok": False, "error": f"HTTP {resp.status_code} {resp.text[:300]}"}
     except Exception as e:
-        logger.error(f"❌ get_qr exception: {e}", exc_info=True)
+        logger.error(f"❌ [Neonize] get_qr exception: {e}", exc_info=True)
         return {"ok": False, "error": str(e)}
 
 def get_pairing_code_for_user(bale_chat_id, own_phone, service_url=None):
@@ -267,12 +232,12 @@ def get_pairing_code_for_user(bale_chat_id, own_phone, service_url=None):
         resp = requests.get(f"{service_url}/pairing-code", params=params, timeout=20)
         if resp.status_code == 200:
             data = resp.json()
-            logger.info(f"🔑 Pairing code for {bale_chat_id} {cleaned}: {data.get('pairingCode')}")
+            logger.info(f"🔑 [Neonize] Pairing code for {bale_chat_id} {cleaned}: {data.get('pairingCode')}")
             return data
         else:
             return {"ok": False, "error": f"HTTP {resp.status_code}"}
     except Exception as e:
-        logger.error(f"❌ get_pairing_code exception: {e}")
+        logger.error(f"❌ [Neonize] get_pairing_code exception: {e}")
         return {"ok": False, "error": str(e)}
 
 def check_connection_status(bale_chat_id, service_url=None):
@@ -284,7 +249,7 @@ def check_connection_status(bale_chat_id, service_url=None):
             return resp.json()
         return {"ok": False, "connected": False}
     except Exception as e:
-        logger.error(f"❌ check_status error: {e}")
+        logger.error(f"❌ [Neonize] check_status error: {e}")
         return {"ok": False, "connected": False, "error": str(e)}
 
 def get_chats_for_user(bale_chat_id, service_url=None):
@@ -294,21 +259,20 @@ def get_chats_for_user(bale_chat_id, service_url=None):
         resp = requests.get(f"{service_url}/chats", params={"userId": str(bale_chat_id)}, timeout=45)
         if resp.status_code == 200:
             data = resp.json()
-            logger.info(f"📋 get_chats for {bale_chat_id}: ok={data.get('ok')} count={data.get('count')}")
+            logger.info(f"📋 [Neonize] get_chats for {bale_chat_id}: ok={data.get('ok')} count={data.get('count')}")
             if data.get("ok"):
                 return data
-        logger.warning(f"⚠️ get_chats failed: {resp.status_code} {resp.text[:500]}")
+        logger.warning(f"⚠️ [Neonize] get_chats failed: {resp.status_code} {resp.text[:500]}")
         try:
             j = resp.json()
             return {"ok": False, "chats": [], "error": f"HTTP {resp.status_code}", "debug": j.get("debug"), "raw": j, "code": j.get("code")}
         except:
             return {"ok": False, "chats": [], "error": f"HTTP {resp.status_code} {resp.text[:300]}"}
     except Exception as e:
-        logger.error(f"❌ get_chats exception: {e}", exc_info=True)
+        logger.error(f"❌ [Neonize] get_chats exception: {e}", exc_info=True)
         return {"ok": False, "chats": [], "error": str(e)}
 
 def disconnect_user(bale_chat_id, service_url=None, force=True):
-    """قطع اتصال و حذف سشن - FIXED with force"""
     if not service_url:
         service_url = DEFAULT_SERVICE_URL
     try:
@@ -317,26 +281,25 @@ def disconnect_user(bale_chat_id, service_url=None, force=True):
             params["force"] = "true"
         resp = requests.delete(f"{service_url}/session", params=params, timeout=10)
         if resp.status_code == 200:
-            logger.info(f"✅ WhatsApp session {bale_chat_id} deleted (force={force})")
+            logger.info(f"✅ [Neonize] WhatsApp session {bale_chat_id} deleted (force={force})")
             return True
         try:
             resp2 = requests.post(f"{service_url}/reset", json={"userId": str(bale_chat_id)}, timeout=10)
             if resp2.status_code == 200:
-                logger.info(f"✅ WhatsApp session {bale_chat_id} reset via /reset")
+                logger.info(f"✅ [Neonize] WhatsApp session {bale_chat_id} reset via /reset")
                 return True
         except:
             pass
         return resp.status_code == 200
     except Exception as e:
-        logger.error(f"❌ disconnect error: {e}")
+        logger.error(f"❌ [Neonize] disconnect error: {e}")
         return False
 
 def force_reset_session(bale_chat_id, phone_number=None, service_url=None):
-    """حذف کامل سشن خراب و درخواست QR جدید - برای حل No sessions + قبلا سشن هست"""
     if not service_url:
         service_url = DEFAULT_SERVICE_URL
     try:
-        logger.info(f"🔥 Force reset session {bale_chat_id} - deleting corrupted auth")
+        logger.info(f"🔥 [Neonize] Force reset session {bale_chat_id}")
         try:
             requests.delete(f"{service_url}/session", params={"userId": str(bale_chat_id), "force": "true"}, timeout=10)
         except:
@@ -345,10 +308,10 @@ def force_reset_session(bale_chat_id, phone_number=None, service_url=None):
             resp = requests.post(f"{service_url}/reset", json={"userId": str(bale_chat_id), "phone": phone_number}, timeout=15)
             if resp.status_code == 200:
                 data = resp.json()
-                logger.info(f"✅ Force reset OK for {bale_chat_id}: hasQR={data.get('hasQR')}")
+                logger.info(f"✅ [Neonize] Force reset OK for {bale_chat_id}: hasQR={data.get('hasQR')}")
                 return data
         except Exception as e:
-            logger.error(f"❌ force_reset /reset error: {e}")
+            logger.error(f"❌ [Neonize] force_reset /reset error: {e}")
         try:
             params = {"userId": str(bale_chat_id), "force": "true"}
             if phone_number:
@@ -358,10 +321,10 @@ def force_reset_session(bale_chat_id, phone_number=None, service_url=None):
             if resp.status_code == 200:
                 return resp.json()
         except Exception as e:
-            logger.error(f"❌ force_reset /qr force error: {e}")
+            logger.error(f"❌ [Neonize] force_reset /qr force error: {e}")
         return {"ok": False, "error": "force reset failed"}
     except Exception as e:
-        logger.error(f"❌ force_reset_session error: {e}", exc_info=True)
+        logger.error(f"❌ [Neonize] force_reset_session error: {e}", exc_info=True)
         return {"ok": False, "error": str(e)}
 
 def send_product(product, config, is_new=False):
@@ -370,12 +333,12 @@ def send_product(product, config, is_new=False):
         logger.debug("WhatsApp chat_id not configured, skipping")
         return False
     to = wa_cfg["chat_id"]
-    provider = wa_cfg.get("provider", "baileys")
+    provider = wa_cfg.get("provider", "neonize")
     caption = _format_product(product, config, is_new)
     images = product.get("images", [])
     user_id = _get_user_id_from_config(config)
     service_url = wa_cfg.get("service_url", DEFAULT_SERVICE_URL)
-    if provider == "baileys" and user_id:
+    if provider in ["baileys", "neonize"] and user_id:
         try:
             status = check_connection_status(user_id, service_url)
             if not status.get("connected"):
@@ -397,7 +360,7 @@ def send_product(product, config, is_new=False):
                         image_bytes = img_resp.content
                 except Exception as e:
                     logger.warning(f"⚠️ Failed to download image for WhatsApp: {e}")
-            result = _send_via_baileys(to, caption, image_bytes, service_url, user_id)
+            result = _send_via_neonize(to, caption, image_bytes, service_url, user_id)
             return result
     except Exception as e:
         logger.error(f"❌ WhatsApp send_product error: {e}", exc_info=True)
@@ -409,16 +372,16 @@ def send_manual_post(caption, media_content, media_type, config):
         logger.warning("⚠️ WhatsApp chat_id (destination) not configured, skipping")
         return False
     to = wa_cfg["chat_id"]
-    provider = wa_cfg.get("provider", "baileys")
+    provider = wa_cfg.get("provider", "neonize")
     service_url = wa_cfg.get("service_url", DEFAULT_SERVICE_URL)
     user_id = _get_user_id_from_config(config)
-    if provider == "baileys" and user_id:
+    if provider in ["baileys", "neonize"] and user_id:
         try:
             status = check_connection_status(user_id, service_url)
             if not status.get("connected"):
                 logger.warning(f"⚠️ WhatsApp not connected for user {user_id}, trying anyway to {to} - status={status}")
-                if status.get("exists") is False or status.get("empty"):
-                    logger.error(f"❌ WhatsApp session {user_id} does not exist or empty - needs QR reconnect")
+                if status.get("exists") is False:
+                    logger.error(f"❌ WhatsApp session {user_id} does not exist - needs QR reconnect")
                     return False
         except Exception as e:
             logger.debug(f"⚠️ Could not check WhatsApp status: {e}")
@@ -429,7 +392,7 @@ def send_manual_post(caption, media_content, media_type, config):
             result = _send_via_cloud_api(to, caption or "Manual post", None, config)
             return result
         else:
-            result = _send_via_baileys(to, caption or "Manual post", media_content, service_url, user_id, media_type)
+            result = _send_via_neonize(to, caption or "Manual post", media_content, service_url, user_id, media_type)
             return result
     except Exception as e:
         logger.error(f"❌ WhatsApp send_manual_post error to {to}: {e}", exc_info=True)

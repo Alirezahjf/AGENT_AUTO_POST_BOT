@@ -12,6 +12,7 @@ if [ -f "all_pg_agnet/AGENT-MANAGER_BOTS_MASSENGER/bot.pid" ]; then
 fi
 # بستن با pkill هم
 pkill -f "whatsapp-service/index.js" 2>/dev/null || true
+pkill -f "neonize_service.py" 2>/dev/null || true
 pkill -f "all_pg_agnet.*bot.py" 2>/dev/null || true
 fuser -k 3001/tcp 2>/dev/null || true
 echo "✅ بسته شد"

@@ -11,13 +11,9 @@ rm -f whatsapp-service/whatsapp.pid all_pg_agnet/AGENT-MANAGER_BOTS_MASSENGER/bo
 # rm -f whatsapp-service/auth/* 2>/dev/null; true
 mkdir -p whatsapp-service/auth
 
-# اجرای WhatsApp Service
-echo -e "${BLUE}📱 WhatsApp Service روی پورت 3001...${NC}"
+# اجرای WhatsApp Service - NEONIZE (Python whatsmeow) - حرفه‌ای بدون No sessions
+echo -e "${BLUE}📱 WhatsApp Neonize Service روی پورت 3001 (LID ساپورت)...${NC}"
 cd "$SCRIPT_DIR/whatsapp-service"
-if [ ! -d "node_modules" ]; then
-    echo -e "${YELLOW}📦 نصب وابستگی‌های WhatsApp...${NC}"
-    NODE_OPTIONS="--dns-result-order=ipv4first" npm install --legacy-peer-deps --no-audit --no-fund
-fi
 # اطمینان از وجود پوشه auth با لاگ
 mkdir -p auth
 echo -e "${BLUE}📁 Auth: $(pwd)/auth - $(ls auth 2>/dev/null | wc -l) session(s)${NC}"
@@ -25,10 +21,18 @@ ls -1 auth 2>/dev/null | head -5
 # بستن پروسه‌های قدیمی روی پورت 3001
 fuser -k 3001/tcp 2>/dev/null || true
 pkill -f "node.*index.js" 2>/dev/null || true
+pkill -f "neonize_service.py" 2>/dev/null || true
 sleep 1
-nohup node index.js > whatsapp.log 2>&1 &
+# نصب وابستگی‌های پایتون برای neonize
+if [ -f "requirements.txt" ]; then
+    echo -e "${YELLOW}📦 نصب وابستگی‌های Neonize...${NC}"
+    pip install -r requirements.txt --break-system-packages -q 2>&1 | tail -5 || pip install fastapi uvicorn neonize segno qrcode pillow --break-system-packages -q
+fi
+# اجرای سرویس Neonize
+echo -e "${BLUE}🚀 اجرای Neonize service...${NC}"
+nohup python3 neonize_service.py > whatsapp.log 2>&1 &
 echo $! > whatsapp.pid
-echo -e "${GREEN}✅ WhatsApp اجرا شد PID: $(cat whatsapp.pid)${NC}"
+echo -e "${GREEN}✅ WhatsApp Neonize اجرا شد PID: $(cat whatsapp.pid)${NC}"
 cd "$SCRIPT_DIR"
 sleep 4
 # چک کردن با چند تلاش

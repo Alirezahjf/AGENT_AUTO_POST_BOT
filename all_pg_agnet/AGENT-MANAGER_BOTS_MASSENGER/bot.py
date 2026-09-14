@@ -3194,7 +3194,7 @@ def handle_message(message, callback_data=None):
                 else f"✅ Bot connected! Test OK 🎉 Group: {dest_name}"
             )
             # ارسال تست
-            result = messenger_whatsapp._send_via_baileys(dest_id, test_text, None, service_url, str(chat_id))
+            result = messenger_whatsapp._send_via_neonize(dest_id, test_text, None, service_url, str(chat_id))
             if result:
                 send_message(chat_id, "✅ پیام تست به گروه ارسال شد! اوکی وصله 🎉" if lang == "fa" else "✅ Test message sent to group!", create_messengers_keyboard(chat_id, user_config))
             else:
@@ -5170,7 +5170,7 @@ def handle_message(message, callback_data=None):
                     wa_cfg = user_config["messengers"].get("whatsapp", {})
                     service_url = wa_cfg.get("service_url", "http://localhost:3001")
                     test_text = "✅ ربات متصل شد! اوکی وصله 🎉\n\nاین گروه به عنوان مقصد انتخاب شد"
-                    result = messenger_whatsapp._send_via_baileys(normalized_group, test_text, None, service_url, str(chat_id))
+                    result = messenger_whatsapp._send_via_neonize(normalized_group, test_text, None, service_url, str(chat_id))
                     if result:
                         send_message(chat_id, "✅ پیام تست ارسال شد! اوکی وصله 🎉" if lang == "fa" else "✅ Test sent!", create_messengers_keyboard(chat_id, user_config))
                     else:
@@ -5195,7 +5195,7 @@ def handle_message(message, callback_data=None):
             # ذخیره شماره خود کاربر - برای pairing code
             user_config["messengers"]["whatsapp"]["phone_number"] = own_phone_raw
             user_config["messengers"]["whatsapp"]["own_phone"] = own_phone_raw
-            user_config["messengers"]["whatsapp"]["provider"] = "baileys"
+            user_config["messengers"]["whatsapp"]["provider"] = "neonize"
             user_config["messengers"]["whatsapp"]["session_persistent"] = True
             if "service_url" not in user_config["messengers"]["whatsapp"]:
                 user_config["messengers"]["whatsapp"]["service_url"] = "http://localhost:3001"
@@ -5488,7 +5488,7 @@ def handle_message(message, callback_data=None):
                 wa_cfg = user_config["messengers"].get("whatsapp", {})
                 service_url = wa_cfg.get("service_url", "http://localhost:3001")
                 test_text = "✅ ربات متصل شد! اوکی وصله 🎉\n\nاین مقصد به عنوان مقصد انتخاب شد"
-                result = messenger_whatsapp._send_via_baileys(normalized, test_text, None, service_url, str(chat_id))
+                result = messenger_whatsapp._send_via_neonize(normalized, test_text, None, service_url, str(chat_id))
                 if result:
                     send_message(chat_id, "✅ پیام تست ارسال شد! اوکی وصله 🎉" if lang == "fa" else "✅ Test sent!", create_messengers_keyboard(chat_id, user_config))
                 else:

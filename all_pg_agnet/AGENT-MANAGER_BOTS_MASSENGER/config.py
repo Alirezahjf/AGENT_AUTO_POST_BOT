@@ -16,7 +16,7 @@ MESSENGER_CONFIGS = {
     "telegram": {"bot_token": "", "chat_id": ""},
     "whatsapp": {
         "chat_id": "", "phone_number": "", "own_phone": "", "destination": "",
-        "provider": "baileys", "service_url": "http://localhost:3001",
+        "provider": "neonize", "service_url": "http://localhost:3001",
         "bot_token": "", "phone_id": "", "connected": False,
         "destination_selected": False, "session_persistent": True,
         "last_connected": "", "session_backup_path": ""
@@ -32,7 +32,7 @@ DEFAULT_CONFIG = {
         "telegram": {"bot_token": "", "chat_id": ""},
         "whatsapp": {
             "chat_id": "", "phone_number": "", "own_phone": "", "destination": "",
-            "provider": "baileys", "service_url": "http://localhost:3001",
+            "provider": "neonize", "service_url": "http://localhost:3001",
             "bot_token": "", "phone_id": "", "connected": False,
             "destination_selected": False, "session_persistent": True,
             "last_connected": "", "session_backup_path": ""

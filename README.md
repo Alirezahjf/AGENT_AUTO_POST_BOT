@@ -450,44 +450,72 @@ https://messengerg2c{number}.iranlms.ir/
 https://eitaayar.ir/api/{token}/sendFile
 ```
 
-### WhatsApp Baileys (میکروسرویس)
+### WhatsApp Neonize (whatsmeow - Professional, LID Supported)
 ```
 POST http://localhost:3001/send
 {
-  "to": "989123456789@s.whatsapp.net",
-  "text": "...",
-  "imageBase64": "..."
+  "userId": "123456",
+  "to": "120363312386194255@g.us",
+  "text": "✅ LID group works!",
+  "imageBase64": "optional"
 }
+# Handles @lid participants natively - no No sessions error
 ```
 
 ---
 
-## 💚 واتساپ
+## 💚 واتساپ - Neonize Professional (جدید)
 
-### دو روش
+> **Baileys قدیمی با گروه‌های @lid مشکل داشت:**
+> `No PN mapping found`, `No sessions`, `Timed Out generics.js`
+> **Neonize با whatsmeow Go این مشکل را حل کرده**
 
-#### 1. Baileys (پیشنهادی برای ایران - رایگان)
+### چرا Neonize؟ (حرفه‌ای)
+
+**مشکل Baileys 6.7.24:**
+- گروه `120363312386194255@g.us` همه اعضاش `@lid` هستند (شناسه جدید واتساپ)
+- `278645381836862@lid`, `29515686392037@lid`...
+- `signalRepository.lidMapping.getPNForLID(lid)` برمی‌گرداند null
+- ارسال ناموفق: `NO_SESSIONS_GROUP_NEEDS_MESSAGE`
+
+**راه‌حل Neonize (whatsmeow):**
+- Python wrapper برای `whatsmeow` Go (پیاده‌سازی رسمی واتساپ وب)
+- `@lid` را native ساپورت می‌کند
+- تست کاربر: `NewClient("session.sqlite3")`, `get_joined_groups()` گروه "شومبول بلا ها" را لیست کرد و `send_image` موفق بود
+- لاگ: `Successfully paired 989038013654:13@s.whatsapp.net`, `Uploading 812 prekeys`, `Stored 33 secret keys`
+
+#### نصب و اجرا (پیشنهادی)
 ```bash
 cd whatsapp-service
-npm install
-npm start
-# QR نمایش داده می‌شود، با گوشی اسکن کنید
+pip install -r requirements.txt --break-system-packages
+python3 neonize_service.py
+# یا
+./start.sh  # اجرای neonize + Bale bot via nohup
 ```
 
 در `config.json`:
 ```json
 "whatsapp": {
-  "chat_id": "989123456789@s.whatsapp.net",
-  "provider": "baileys",
-  "service_url": "http://localhost:3001"
+  "chat_id": "120363312386194255@g.us",
+  "provider": "neonize",
+  "service_url": "http://localhost:3001",
+  "connected": true,
+  "destination_selected": true
 }
 ```
 
-**مزایا**: رایگان، 10 دقیقه راه‌اندازی، بدون تایید
-**معایب**: ریسک بن 5% اگر اسپم کنید، نیاز به Node.js
+**مزایا**: LID ساپورت native، بدون ارور No sessions، تک فایل SQLite، حرفه‌ای
+**معایب**: نیاز به Python + Go binary (neonize خودش نصب می‌کند)
 
-#### 2. Cloud API رسمی
-در Facebook Developer -> WhatsApp -> Cloud API
+#### روش قدیمی Baileys (منسوخ - فقط برای مرجع)
+```bash
+cd whatsapp-service
+npm install
+npm start
+```
+`provider: baileys` - با گروه‌های LID کار نمی‌کند
+
+#### روش Cloud API رسمی
 ```json
 "whatsapp": {
   "chat_id": "989123456789",
@@ -497,10 +525,7 @@ npm start
 }
 ```
 
-**مزایا**: بدون ریسک بن، مقیاس‌پذیر
-**معایب**: هزینه هر مکالمه، تایید کسب‌وکار، تحریم ایران
-
-مستندات کامل: `WHATSAPP_EVALUATION.md`
+مستندات کامل: `whatsapp-service/README.md` (نسخه Neonize)
 
 ---
 
