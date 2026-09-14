@@ -519,12 +519,31 @@ app.get('/chats', async (req, res) => {
     if (!session.isConnected) return res.status(400).json({ ok: false, error: 'Not connected - please scan QR', connected: false, exists: true })
     try {
         const sock = session.sock
-        // Get all chats - groups and contacts
         const chats = []
         
-        // Try to get groups
+        // Try to get groups with retry - WhatsApp needs time to sync after connect
+        let groups = {}
+        let lastError = null
+        for (let attempt = 1; attempt <= 4; attempt++) {
+            try {
+                console.log(`📋 Fetching groups for ${userId} attempt ${attempt}/4...`)
+                groups = await sock.groupFetchAllParticipating()
+                const count = Object.keys(groups).length
+                console.log(`📋 Groups fetch attempt ${attempt} for ${userId}: found ${count} groups`)
+                if (count > 0) break
+                // If empty, wait and retry - groups may not be synced yet
+                if (attempt < 4) {
+                    console.log(`⏳ No groups yet for ${userId}, waiting 3s before retry...`)
+                    await new Promise(r => setTimeout(r, 3000))
+                }
+            } catch (e) {
+                lastError = e
+                console.log(`⚠️ Group fetch attempt ${attempt} error for ${userId}: ${e.message}`)
+                if (attempt < 4) await new Promise(r => setTimeout(r, 2000))
+            }
+        }
+        
         try {
-            const groups = await sock.groupFetchAllParticipating()
             for (const [id, group] of Object.entries(groups)) {
                 chats.push({
                     id: id,
@@ -535,12 +554,10 @@ app.get('/chats', async (req, res) => {
                 })
             }
         } catch (e) {
-            console.log(`Group fetch error for ${userId}: ${e.message}`)
+            console.log(`Group parse error for ${userId}: ${e.message}`)
         }
         
-        // Also try to get contacts from store if available
-        // For Baileys, we can list recent chats from the session
-        // As fallback, return groups only
+        console.log(`📋 Final chats for ${userId}: ${chats.length} groups, lastError=${lastError?.message || 'none'}`)
         
         res.json({ 
             ok: true, 
@@ -548,11 +565,16 @@ app.get('/chats', async (req, res) => {
             chats: chats,
             count: chats.length,
             userId: String(userId),
-            message: chats.length > 0 ? `Found ${chats.length} groups` : 'No groups found, you can still send to phone numbers'
+            message: chats.length > 0 ? `Found ${chats.length} groups` : 'No groups found - WhatsApp may still be syncing, wait 30s and try again with /chats or button',
+            debug: {
+                attempts: 4,
+                lastError: lastError?.message || null,
+                sockConnected: session.isConnected
+            }
         })
     } catch (e) {
-        console.error(`Chats error for ${userId}: ${e}`)
-        res.status(500).json({ ok: false, error: e.message })
+        console.error(`Chats error for ${userId}: ${e} ${e.stack}`)
+        res.status(500).json({ ok: false, error: e.message, stack: e.stack?.slice(0,500) })
     }
 })
 

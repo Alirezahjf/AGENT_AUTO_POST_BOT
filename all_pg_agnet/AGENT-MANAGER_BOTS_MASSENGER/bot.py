@@ -2954,19 +2954,32 @@ def handle_message(message, callback_data=None):
                     set_state(chat_id, "waiting_whatsapp_destination", chats=chats)
                     return
                 else:
-                    # گروهی پیدا نشد، ولی متصل است - مقصد را شماره شخصی بگذار و بپرس
+                    # گروهی پیدا نشد، ولی متصل است
+                    err = chats_result.get("error", "")
                     msg = (
                         f"✅ *واتساپ متصل شد!* 🎉\n\n"
-                        f"📱 شماره: {wa_cfg.get('chat_id','')}\n\n"
-                        "⚠️ گروهی پیدا نشد (یا هنوز لود نشده)\n\n"
-                        "می‌توانید:\n"
-                        "1️⃣ شماره مقصد را دستی وارد کنید: 98912...\n"
-                        "2️⃣ یا همین شماره فعلی به عنوان مقصد استفاده شود\n\n"
-                        "شماره مقصد را ارسال کنید یا بنویسید `ok` برای تایید همین شماره"
+                        f"📱 شماره: {wa_cfg.get('chat_id','')}\n"
+                        f"⚠️ گروهی پیدا نشد (یا هنوز در حال همگام‌سازی)\n"
+                        f"خطا: {err}\n\n"
+                        "💡 واتساپ بعد از اتصال 30-60 ثانیه طول می‌کشد تا گروه‌ها را لود کند.\n\n"
+                        "🔄 30 ثانیه صبر کن و دوباره بزن:\n"
+                        "📋 لیست گروه‌ها\n\n"
+                        "✅ یا سریع دستی وارد کن - گروه هدف شما:\n"
+                        "`120363312386194255@g.us`\n\n"
+                        "این را کپی و ارسال کن تا به عنوان مقصد ذخیره شود،\n"
+                        "یا شماره مقصد را وارد کن: 98912...\n"
+                        "یا بنویس `ok` برای تایید شماره فعلی"
                         if lang == "fa"
-                        else f"✅ WhatsApp connected! No groups found, send destination number or type ok"
+                        else f"✅ WhatsApp connected! No groups found ({err}), wait 30s or send ID: 120363312386194255@g.us"
                     )
-                    send_message(chat_id, msg)
+                    keyboard = {
+                        "inline_keyboard": [
+                            [{"text": "🔄 لیست گروه‌ها (30 ثانیه بعد)", "callback_data": "wa_list_groups"}],
+                            [{"text": "✅ انتخاب گروه 120363...", "callback_data": "wa_select_dest_120363312386194255@g.us"}],
+                            [{"text": "📱 وارد کردن دستی", "callback_data": "wa_select_personal"}]
+                        ]
+                    }
+                    send_message(chat_id, msg, keyboard)
                     set_state(chat_id, "waiting_whatsapp_destination", chats=[])
                     return
                 
@@ -3310,13 +3323,35 @@ def handle_message(message, callback_data=None):
             wa_cfg = user_config["messengers"].get("whatsapp", {})
             service_url = wa_cfg.get("service_url", "http://localhost:3001")
             
-            sending_msg = "⏳ در حال دریافت لیست گروه‌ها..." if lang == "fa" else "⏳ Getting groups..."
+            sending_msg = "⏳ در حال دریافت لیست گروه‌ها... (ممکن است 15 ثانیه طول بکشد، واتساپ در حال همگام‌سازی)" if lang == "fa" else "⏳ Getting groups... (may take 15s)"
             send_message(chat_id, sending_msg)
             
             chats_result = messenger_whatsapp.get_chats_for_user(chat_id, service_url)
             
             if chats_result.get("ok") and chats_result.get("chats"):
                 chats = chats_result["chats"]
+                if len(chats) == 0:
+                    # گروهی نیست ولی ok - واتساپ هنوز sync نکرده
+                    msg = (
+                        "⚠️ *هنوز گروهی پیدا نشد*\n\n"
+                        "این طبیعی است - واتساپ بعد از اتصال 30-60 ثانیه طول می‌کشد تا گروه‌ها را همگام کند.\n\n"
+                        "🔄 لطفاً 30 ثانیه صبر کنید و دوباره دکمه لیست گروه‌ها را بزنید.\n\n"
+                        "💡 یا می‌توانید آیدی گروه را دستی وارد کنید:\n"
+                        "`120363312386194255@g.us`\n\n"
+                        "این آیدی گروه مورد نظر شماست - آن را کپی و ارسال کنید تا به عنوان مقصد ذخیره شود."
+                        if lang == "fa"
+                        else "No groups yet - WhatsApp syncing, wait 30s and try again, or send group ID manually: 120363312386194255@g.us"
+                    )
+                    keyboard = {
+                        "inline_keyboard": [
+                            [{"text": "🔄 تلاش مجدد - لیست گروه‌ها", "callback_data": "wa_list_groups"}],
+                            [{"text": "📱 وارد کردن دستی آیدی گروه", "callback_data": "wa_select_personal"}]
+                        ]
+                    }
+                    send_message(chat_id, msg, keyboard)
+                    set_state(chat_id, "waiting_whatsapp_destination", chats=[])
+                    return
+
                 msg = (
                     f"📋 *{len(chats)} گروه پیدا شد*\n\n"
                     "مقصد ارسال را انتخاب کنید:"
@@ -3333,6 +3368,11 @@ def handle_message(message, callback_data=None):
                     btn_text = f"👥 {name} ({participants})" if participants else f"👥 {name}"
                     keyboard.append([{"text": btn_text, "callback_data": f"wa_select_dest_{chat_id_val}"}])
                 
+                # اگر گروه 120363312386194255@g.us در لیست نیست، دستی اضافه کن
+                target_group = "120363312386194255@g.us"
+                if not any(c.get("id") == target_group for c in chats):
+                    keyboard.append([{"text": f"👥 گروه هدف: {target_group[:20]}...", "callback_data": f"wa_select_dest_{target_group}"}])
+                
                 keyboard.append([{"text": "📱 شماره شخصی", "callback_data": "wa_select_personal"}])
                 keyboard.append([{"text": t(chat_id, "back_to_settings"), "callback_data": "back_to_messengers_list"}])
                 
@@ -3340,19 +3380,33 @@ def handle_message(message, callback_data=None):
                 set_state(chat_id, "waiting_whatsapp_destination", chats=chats)
             else:
                 error = chats_result.get("error", "Unknown")
+                debug_info = chats_result.get("debug", {})
                 msg = (
                     f"❌ خطا در دریافت گروه‌ها: {error}\n\n"
-                    "ممکن است واتساپ هنوز گروه‌ها را لود نکرده\n"
-                    "چند ثانیه صبر کنید و دوباره تلاش کنید\n\n"
-                    "یا شماره مقصد را دستی وارد کنید: 98912..."
+                    f"🔍 دیباگ: {debug_info}\n\n"
+                    "💡 دلایل احتمالی:\n"
+                    "1️⃣ واتساپ هنوز گروه‌ها را لود نکرده - 30 ثانیه صبر کن\n"
+                    "2️⃣ گروهی نداری یا واتساپ بیزینس نیست\n"
+                    "3️⃣ سشن قطع شده - دوباره QR بزن\n\n"
+                    "✅ راه‌حل سریع:\n"
+                    "آیدی گروهت رو دستی بفرست:\n"
+                    "`120363312386194255@g.us`\n"
+                    "یا بنویس `groups` دوباره"
                     if lang == "fa"
-                    else f"❌ Error getting groups: {error}"
+                    else f"❌ Error getting groups: {error} - send ID manually: 120363312386194255@g.us"
                 )
-                send_message(chat_id, msg)
+                keyboard = {
+                    "inline_keyboard": [
+                        [{"text": "🔄 تلاش مجدد", "callback_data": "wa_list_groups"}],
+                        [{"text": f"✅ انتخاب گروه هدف", "callback_data": f"wa_select_dest_120363312386194255@g.us"}]
+                    ]
+                }
+                send_message(chat_id, msg, keyboard)
                 set_state(chat_id, "waiting_whatsapp_destination", chats=[])
         except Exception as e:
-            logger.error(f"❌ wa_list_groups error: {e}")
-            send_message(chat_id, f"❌ خطا: {e}")
+            logger.error(f"❌ wa_list_groups error: {e}", exc_info=True)
+            send_message(chat_id, f"❌ خطا: {e}\n\nدستی بفرست: 120363312386194255@g.us")
+            set_state(chat_id, "waiting_whatsapp_destination", chats=[])
         return
     
     elif callback_data == "submit_messenger_selection":
@@ -5235,10 +5289,21 @@ def handle_message(message, callback_data=None):
                     send_message(chat_id, "❌ مقصدی وجود ندارد، شماره وارد کنید" if lang == "fa" else "❌ No destination")
                     return
             
-            # نرمال‌سازی ورودی
-            normalized = dest_input.replace(" ", "").replace("+", "")
-            if normalized.startswith("0"):
-                normalized = "98" + normalized[1:]
+            # نرمال‌سازی ورودی - حفظ آیدی گروه @g.us
+            normalized = dest_input.replace(" ", "").replace("+", "").strip()
+            # اگر آیدی گروه کامل است، دست نزن
+            if "@g.us" in normalized or "@s.whatsapp.net" in normalized:
+                pass  # همان بماند
+            elif normalized.startswith("120363") or (normalized.isdigit() and len(normalized) > 15):
+                # گروه واتساپ - @g.us اضافه کن اگر نیست
+                if "@g.us" not in normalized:
+                    normalized = f"{normalized}@g.us"
+            else:
+                # شماره شخصی
+                if normalized.startswith("0"):
+                    normalized = "98" + normalized[1:]
+                if normalized.isdigit() and len(normalized) == 10 and normalized.startswith("9"):
+                    normalized = "98" + normalized
             
             # ذخیره به عنوان مقصد
             user_config["messengers"]["whatsapp"]["chat_id"] = normalized
