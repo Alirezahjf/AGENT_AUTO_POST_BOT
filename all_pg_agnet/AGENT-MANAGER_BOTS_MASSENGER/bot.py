@@ -2027,17 +2027,20 @@ def handle_user_detail(chat_id, target_chat_id, edit_id=None):
     is_permanent = summary and summary.get('access_type') == 'permanent' and not summary.get('expired')
     action_rows = []
 
+    # هدیه و تمدید برای همه کاربران (دائمی هم قابل تغییر است - با تایید)
+    action_rows.append([
+        {"text": t(chat_id, "grant_free_access"), "callback_data": f"admin_grant_{target_chat_id}"},
+        {"text": t(chat_id, "extend_access"), "callback_data": f"admin_extend_{target_chat_id}"},
+    ])
     if not is_permanent:
-        action_rows.append([
-            {"text": t(chat_id, "grant_free_access"), "callback_data": f"admin_grant_{target_chat_id}"},
-            {"text": t(chat_id, "extend_access"), "callback_data": f"admin_extend_{target_chat_id}"},
-        ])
         action_rows.append([
             {"text": t(chat_id, "make_permanent"), "callback_data": f"admin_perm_{target_chat_id}"},
         ])
     else:
-        # برای دائمی‌ها فقط هدیه/تغییر مدت نامعتبر نیست - امکان محدود کردن نداریم، فقط پرداخت‌ها
-        pass
+        # برای دائمی‌ها: دکمه تغییر صریح به مدت‌دار
+        action_rows.append([
+            {"text": "⏱️ تغییر به دسترسی مدت‌دار", "callback_data": f"admin_to_timed_{target_chat_id}"},
+        ])
 
     action_rows.append([
         {"text": t(chat_id, "view_payments"), "callback_data": f"admin_payments_{target_chat_id}"},
@@ -2170,6 +2173,20 @@ def handle_grant_force(admin_chat_id, target_chat_id, days):
 
 def handle_extend_set(admin_chat_id, target_chat_id, days):
     """تمدید مدت دسترسی X روز"""
+    # محافظ: کاربر دائمی با تمدید، از دائمی به محدود تبدیل می‌شود - تایید بگیر
+    summary = auth_manager.get_access_summary(target_chat_id)
+    if summary and summary.get('access_type') == 'permanent' and not summary.get('expired'):
+        send_message(
+            admin_chat_id,
+            "♾️ این کاربر دسترسی دائمی دارد!\n"
+            f"تمدید {days} روز، دسترسی او را به «محدود تا {days} روز آینده» تغییر می‌دهد.\n\n"
+            "آیا مطمئنید؟",
+            {"inline_keyboard": [[
+                {"text": f"✅ بله، {days} روز محدود شود", "callback_data": f"admin_extend_force_{target_chat_id}_{days}"},
+                {"text": t(admin_chat_id, "no_keep"), "callback_data": f"admin_user_{target_chat_id}"},
+            ]]}
+        )
+        return
     result = auth_manager.set_user_access(
         target_chat_id, 'timed',
         granted_by=admin_chat_id, grant_days=days,
@@ -2177,6 +2194,50 @@ def handle_extend_set(admin_chat_id, target_chat_id, days):
     )
     _apply_access_change(admin_chat_id, target_chat_id, result, "access_extended_success")
     auth_manager.log_activity(admin_chat_id, "admin_extend", f"{days}d -> {target_chat_id}")
+
+
+def handle_extend_force(admin_chat_id, target_chat_id, days):
+    """تبدیل دائمی به محدود با تمدید - با تایید قبلی"""
+    result = auth_manager.set_user_access(
+        target_chat_id, 'timed',
+        granted_by=admin_chat_id, grant_days=days,
+        note=f"تبدیل دائمی به {days} روز محدود (توسط ادمین)"
+    )
+    _apply_access_change(admin_chat_id, target_chat_id, result, "access_extended_success")
+    auth_manager.log_activity(admin_chat_id, "admin_extend_force", f"{days}d -> {target_chat_id}")
+
+
+def handle_to_timed_menu(admin_chat_id, target_chat_id, edit_id=None):
+    """منوی تغییر صریح کاربر دائمی به مدت‌دار"""
+    if not auth_manager.is_admin(admin_chat_id):
+        return
+    msg = (
+        "⏱️ *تغییر به دسترسی مدت‌دار*\n\n"
+        f"🆔 `{target_chat_id}`\n"
+        "دسترسی دائمی این کاربر به مدت دلخواه محدود می‌شود.\n"
+        "مدت را انتخاب کنید:"
+    )
+    options = [("days_7", 7), ("days_30", 30), ("days_90", 90), ("days_180", 180)]
+    inline_rows = []
+    row = []
+    for key, days in options:
+        row.append({"text": t(admin_chat_id, key), "callback_data": f"admin_extend_set_{target_chat_id}_{days}"})
+        if len(row) == 2:
+            inline_rows.append(row)
+            row = []
+    if row:
+        inline_rows.append(row)
+    inline_rows.append([
+        {"text": t(admin_chat_id, "custom"), "callback_data": f"admin_extend_custom_{target_chat_id}"}
+    ])
+    inline_rows.append([
+        {"text": t(admin_chat_id, "back_to_admin_menu"), "callback_data": f"admin_user_{target_chat_id}"}
+    ])
+    keyboard = {"inline_keyboard": inline_rows}
+    if edit_id:
+        edit_message(admin_chat_id, edit_id, msg, keyboard)
+    else:
+        send_message(admin_chat_id, msg, keyboard)
 
 
 def handle_make_permanent(admin_chat_id, target_chat_id):
@@ -2967,12 +3028,28 @@ def handle_message(message, callback_data=None):
         handle_extend_set(chat_id, target_id, days)
         return
 
+    elif callback_data and callback_data.startswith("admin_extend_force_"):
+        if not auth_manager.is_admin(chat_id):
+            return
+        parts = callback_data.replace("admin_extend_force_", "").split("_")
+        target_id = int(parts[0])
+        days = int(parts[1])
+        handle_extend_force(chat_id, target_id, days)
+        return
+
     elif callback_data and callback_data.startswith("admin_extend_custom_"):
         if not auth_manager.is_admin(chat_id):
             return
         target_id = int(callback_data.replace("admin_extend_custom_", ""))
         set_state(chat_id, "awaiting_custom_extend_days", target_id=target_id)
         send_message(chat_id, t(chat_id, "custom_days_prompt"))
+        return
+
+    elif callback_data and callback_data.startswith("admin_to_timed_"):
+        if not auth_manager.is_admin(chat_id):
+            return
+        target_id = int(callback_data.replace("admin_to_timed_", ""))
+        handle_to_timed_menu(chat_id, target_id, edit_id=message_id)
         return
 
     elif callback_data and callback_data.startswith("admin_extend_"):
