@@ -151,6 +151,80 @@ class AuthManager:
                 )
             ''')
 
+            # ========== جدول کدهای تخفیف (Discount Coupons) ==========
+            # سیستم حرفه‌ای کوپن: درصدی/مبلغی، عمومی/شخصی، سقف، کف خرید،
+            # محدودیت کلی و per-user، بازه اعتبار، فقط-خرید-اول
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS discount_codes (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    code TEXT UNIQUE NOT NULL,
+                    title TEXT DEFAULT '',
+                    discount_type TEXT NOT NULL DEFAULT 'percent',
+                    percent INTEGER,
+                    amount_rial INTEGER DEFAULT 0,
+                    max_discount_rial INTEGER,
+                    min_order_rial INTEGER,
+                    scope TEXT NOT NULL DEFAULT 'public',
+                    first_purchase_only INTEGER DEFAULT 0,
+                    total_limit INTEGER,
+                    per_user_limit INTEGER NOT NULL DEFAULT 1,
+                    used_count INTEGER NOT NULL DEFAULT 0,
+                    starts_at TEXT,
+                    expires_at TEXT,
+                    is_active INTEGER DEFAULT 1,
+                    created_by INTEGER,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT,
+                    note TEXT DEFAULT ''
+                )
+            ''')
+
+            # کاربران مجاز کد شخصی (اگر scope=personal خالی باشد کد برای هیچ‌کس معتبر نیست)
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS discount_allowed_users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    discount_id INTEGER NOT NULL,
+                    chat_id INTEGER NOT NULL,
+                    added_at TEXT NOT NULL,
+                    UNIQUE(discount_id, chat_id)
+                )
+            ''')
+
+            # پلن‌های مجاز (اگر رکوردی نباشد = همه پلن‌ها)
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS discount_allowed_plans (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    discount_id INTEGER NOT NULL,
+                    plan_id INTEGER NOT NULL,
+                    UNIQUE(discount_id, plan_id)
+                )
+            ''')
+
+            # تاریخچه استفاده‌ها (با denormalize کد تا بعد از حذف کد هم گزارش بماند)
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS discount_usages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    discount_id INTEGER,
+                    code TEXT NOT NULL,
+                    chat_id INTEGER NOT NULL,
+                    username TEXT,
+                    plan_id INTEGER,
+                    plan_name TEXT,
+                    original_rial INTEGER NOT NULL DEFAULT 0,
+                    discount_rial INTEGER NOT NULL DEFAULT 0,
+                    final_rial INTEGER NOT NULL DEFAULT 0,
+                    payment_id TEXT,
+                    created_at TEXT NOT NULL
+                )
+            ''')
+
+            try:
+                cursor.execute('CREATE INDEX IF NOT EXISTS idx_disc_code ON discount_codes(code)')
+                cursor.execute('CREATE INDEX IF NOT EXISTS idx_disc_usage ON discount_usages(discount_id, chat_id)')
+                cursor.execute('CREATE INDEX IF NOT EXISTS idx_disc_usage_chat ON discount_usages(chat_id)')
+            except sqlite3.OperationalError:
+                pass
+
             # ========== جدول تاریخچه تغییرات دسترسی (audit) ==========
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS access_changes (
@@ -180,6 +254,11 @@ class AuthManager:
                 'ALTER TABLE users ADD COLUMN last_grant_at TEXT',
                 'ALTER TABLE users ADD COLUMN granted_by INTEGER',
                 'ALTER TABLE users ADD COLUMN access_note TEXT',
+                # ستون‌های تخفیف روی پرداخت‌ها (بدون اثر روی رکوردهای قدیمی)
+                'ALTER TABLE payments ADD COLUMN discount_code_id INTEGER',
+                'ALTER TABLE payments ADD COLUMN discount_code TEXT',
+                'ALTER TABLE payments ADD COLUMN original_amount INTEGER DEFAULT 0',
+                'ALTER TABLE payments ADD COLUMN discount_amount INTEGER DEFAULT 0',
             ]
             for migration in migrations:
                 try:
@@ -479,16 +558,24 @@ class AuthManager:
 
     def record_payment(self, chat_id: int, username: str,
                        payload: str, amount: int,
-                       currency: str = "IRR") -> int:
+                       currency: str = "IRR",
+                       discount_code_id: int = None,
+                       discount_code: str = None,
+                       original_amount: int = 0,
+                       discount_amount: int = 0) -> int:
         """
-        ثبت پرداخت جدید (pending)
+        ثبت پرداخت جدید (pending) - با پشتیبانی تخفیف
 
         Args:
             chat_id: شناسه چت
             username: نام کاربری
             payload: payload پرداخت
-            amount: مبلغ
+            amount: مبلغ نهایی (بعد از تخفیف)
             currency: واحد پول
+            discount_code_id: آیدی کد تخفیف (اختیاری)
+            discount_code: متن کد تخفیف (اختیاری)
+            original_amount: مبلغ اصلی قبل از تخفیف
+            discount_amount: مبلغ تخفیف
 
         Returns:
             int: شناسه پرداخت
@@ -498,11 +585,22 @@ class AuthManager:
 
         try:
             created_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            cursor.execute('''
-                INSERT INTO payments
-                (chat_id, username, amount, currency, status, payload, created_at)
-                VALUES (?, ?, ?, ?, 'pending', ?, ?)
-            ''', (chat_id, username, amount, currency, payload, created_at))
+            try:
+                cursor.execute('''
+                    INSERT INTO payments
+                    (chat_id, username, amount, currency, status, payload, created_at,
+                     discount_code_id, discount_code, original_amount, discount_amount)
+                    VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?)
+                ''', (chat_id, username, amount, currency, payload, created_at,
+                      discount_code_id, discount_code, original_amount or amount,
+                      discount_amount or 0))
+            except sqlite3.OperationalError:
+                # سازگاری با دیتابیس قدیمی بدون ستون تخفیف
+                cursor.execute('''
+                    INSERT INTO payments
+                    (chat_id, username, amount, currency, status, payload, created_at)
+                    VALUES (?, ?, ?, ?, 'pending', ?, ?)
+                ''', (chat_id, username, amount, currency, payload, created_at))
 
             payment_db_id = cursor.lastrowid
             conn.commit()
@@ -518,15 +616,20 @@ class AuthManager:
             conn.close()
 
     def complete_payment(self, chat_id: int, payment_id: str,
-                         amount: int, currency: str = "IRR") -> bool:
+                         amount: int, currency: str = "IRR",
+                         discount_code_id: int = None,
+                         discount_code: str = None,
+                         original_amount: int = 0,
+                         discount_amount: int = 0) -> bool:
         """
-        تکمیل پرداخت و ثبت payment_id نهایی
+        تکمیل پرداخت و ثبت payment_id نهایی - با پشتیبانی تخفیف
 
         Args:
             chat_id: شناسه چت
             payment_id: شناسه پرداخت از بیل (telegram_payment_charge_id)
-            amount: مبلغ
+            amount: مبلغ نهایی پرداختی
             currency: واحد پول
+            discount_code_id/discount_code/original_amount/discount_amount: اطلاعات تخفیف
 
         Returns:
             bool: موفقیت
@@ -538,29 +641,62 @@ class AuthManager:
             completed_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
             # به‌روزرسانی آخرین پرداخت pending این کاربر
-            cursor.execute('''
-                UPDATE payments
-                SET status = 'completed',
-                    payment_id = ?,
-                    amount = ?,
-                    currency = ?,
-                    completed_at = ?
-                WHERE chat_id = ?
-                AND status = 'pending'
-                ORDER BY created_at DESC
-                LIMIT 1
-            ''', (payment_id, amount, currency, completed_at, chat_id))
+            try:
+                cursor.execute('''
+                    UPDATE payments
+                    SET status = 'completed',
+                        payment_id = ?,
+                        amount = ?,
+                        currency = ?,
+                        completed_at = ?,
+                        discount_code_id = COALESCE(?, discount_code_id),
+                        discount_code = COALESCE(?, discount_code),
+                        original_amount = CASE WHEN ? > 0 THEN ? ELSE original_amount END,
+                        discount_amount = CASE WHEN ? > 0 THEN ? ELSE discount_amount END
+                    WHERE chat_id = ?
+                    AND status = 'pending'
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                ''', (payment_id, amount, currency, completed_at,
+                      discount_code_id, discount_code,
+                      original_amount or 0, original_amount or 0,
+                      discount_amount or 0, discount_amount or 0, chat_id))
+            except sqlite3.OperationalError:
+                cursor.execute('''
+                    UPDATE payments
+                    SET status = 'completed',
+                        payment_id = ?,
+                        amount = ?,
+                        currency = ?,
+                        completed_at = ?
+                    WHERE chat_id = ?
+                    AND status = 'pending'
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                ''', (payment_id, amount, currency, completed_at, chat_id))
 
             if cursor.rowcount == 0:
                 # اگر پرداخت pending نداشت، جدید ایجاد کن
                 created_at = completed_at
-                cursor.execute('''
-                    INSERT INTO payments
-                    (chat_id, payment_id, amount, currency,
-                     status, created_at, completed_at)
-                    VALUES (?, ?, ?, ?, 'completed', ?, ?)
-                ''', (chat_id, payment_id, amount, currency,
-                      created_at, completed_at))
+                try:
+                    cursor.execute('''
+                        INSERT INTO payments
+                        (chat_id, payment_id, amount, currency,
+                         status, created_at, completed_at,
+                         discount_code_id, discount_code, original_amount, discount_amount)
+                        VALUES (?, ?, ?, ?, 'completed', ?, ?, ?, ?, ?, ?)
+                    ''', (chat_id, payment_id, amount, currency,
+                          created_at, completed_at,
+                          discount_code_id, discount_code,
+                          original_amount or amount, discount_amount or 0))
+                except sqlite3.OperationalError:
+                    cursor.execute('''
+                        INSERT INTO payments
+                        (chat_id, payment_id, amount, currency,
+                         status, created_at, completed_at)
+                        VALUES (?, ?, ?, ?, 'completed', ?, ?)
+                    ''', (chat_id, payment_id, amount, currency,
+                          created_at, completed_at))
 
             conn.commit()
             logger.info(f"✅ پرداخت {payment_id} برای {chat_id} تکمیل شد")
@@ -574,32 +710,71 @@ class AuthManager:
             conn.close()
 
     def get_user_payments(self, chat_id: int) -> List[Dict]:
-        """دریافت تاریخچه پرداخت‌های کاربر"""
+        """دریافت تاریخچه پرداخت‌های کاربر - با اطلاعات تخفیف"""
         conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
-            cursor.execute('''
-                SELECT payment_id, amount, currency, status,
-                       created_at, completed_at
-                FROM payments
-                WHERE chat_id = ?
-                ORDER BY created_at DESC
-            ''', (chat_id,))
+            try:
+                cursor.execute('''
+                    SELECT payment_id, amount, currency, status,
+                           created_at, completed_at,
+                           discount_code_id, discount_code,
+                           original_amount, discount_amount
+                    FROM payments
+                    WHERE chat_id = ?
+                    ORDER BY created_at DESC
+                ''', (chat_id,))
+                rows = cursor.fetchall()
+                with_discount = True
+            except sqlite3.OperationalError:
+                cursor.execute('''
+                    SELECT payment_id, amount, currency, status,
+                           created_at, completed_at
+                    FROM payments
+                    WHERE chat_id = ?
+                    ORDER BY created_at DESC
+                ''', (chat_id,))
+                rows = cursor.fetchall()
+                with_discount = False
 
             payments = []
-            for row in cursor.fetchall():
-                payments.append({
+            for row in rows:
+                p = {
                     'payment_id': row[0],
                     'amount': row[1],
                     'currency': row[2],
                     'status': row[3],
                     'created_at': row[4],
                     'completed_at': row[5]
-                })
+                }
+                if with_discount:
+                    p['discount_code_id'] = row[6]
+                    p['discount_code'] = row[7]
+                    p['original_amount'] = row[8] or 0
+                    p['discount_amount'] = row[9] or 0
+                else:
+                    p['discount_code_id'] = None
+                    p['discount_code'] = None
+                    p['original_amount'] = 0
+                    p['discount_amount'] = 0
+                payments.append(p)
 
             return payments
 
+        finally:
+            conn.close()
+
+    def count_user_completed_purchases(self, chat_id: int) -> int:
+        """تعداد خریدهای موفق کاربر (برای قانون فقط-خرید-اول)"""
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                SELECT COUNT(*) FROM payments
+                WHERE chat_id = ? AND status = 'completed'
+            ''', (chat_id,))
+            return cursor.fetchone()[0] or 0
         finally:
             conn.close()
 
@@ -1405,6 +1580,826 @@ class AuthManager:
             ''', (datetime.now().strftime('%Y-%m-%d %H:%M:%S'),))
             stats['expired'] = cursor.fetchone()[0]
             return stats
+        finally:
+            conn.close()
+
+    # ================================================================
+    # ========== سیستم کدهای تخفیف (Discount Coupons) ==========
+    # ================================================================
+    # قابلیت‌ها:
+    #  - نوع درصدی (با سقف تخفیف اختیاری) یا مبلغی ثابت
+    #  - دامنه عمومی (همه کاربران) یا شخصی (فقط کاربران مجاز)
+    #  - محدودیت تعداد کل استفاده + محدودیت هر کاربر
+    #  - بازه اعتبار (شروع/انقضا)، کف مبلغ خرید، فقط-خرید-اول
+    #  - محدودسازی به پلن‌های خاص، تاریخچه کامل استفاده، آمار
+    # ================================================================
+
+    @staticmethod
+    def normalize_discount_code(code) -> str:
+        """
+        نرمال‌سازی کد تخفیف برای مقایسه یکسان:
+        - ارقام فارسی به انگلیسی
+        - حذف فاصله‌ها و نیم‌فاصله
+        - یکدست‌سازی ی/ک عربی
+        - حروف لاتین به بزرگ (case-insensitive)
+        """
+        if code is None:
+            return ''
+        s = str(code).strip()
+        s = s.translate(str.maketrans('۰۱۲۳۴۵۶۷۸۹', '0123456789'))
+        s = s.replace('ي', 'ی').replace('ك', 'ک')
+        s = s.replace('‌', '').replace('‍', '')  # ZWNJ/ZWJ
+        s = ''.join(s.split())
+        return s.upper()
+
+    @staticmethod
+    def is_valid_discount_code_format(code: str) -> bool:
+        """فرمت مجاز: 3 تا 32 کاراکتر (حرف/عدد/-/_) """
+        import re
+        if not code or len(code) < 3 or len(code) > 32:
+            return False
+        return re.match(r'^[\w\-]{3,32}$', code, re.UNICODE) is not None
+
+    def generate_discount_code(self, prefix: str = '', length: int = 8) -> str:
+        """تولید کد تصادفی یکتا (بدون کاراکترهای اشتباه‌شونده مثل 0/O و 1/I)"""
+        alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+        prefix = self.normalize_discount_code(prefix or '')
+        for _ in range(50):
+            core = ''.join(secrets.choice(alphabet) for _ in range(length))
+            # گروه‌بندی خوانا: XXXX-XXXX
+            if length == 8:
+                core = core[:4] + '-' + core[4:]
+            code = f"{prefix}-{core}" if prefix else core
+            if not self.get_discount_by_code(code, with_relations=False):
+                return code
+        # fallback بسیار بعید
+        return f"{prefix + '-' if prefix else ''}{secrets.token_hex(4).upper()}"
+
+    # ---------- ایجاد ----------
+
+    def create_discount(self, code: str, discount_type: str,
+                        percent: int = None, amount_rial: int = 0,
+                        title: str = '', note: str = '',
+                        max_discount_rial: int = None,
+                        min_order_rial: int = None,
+                        scope: str = 'public',
+                        allowed_chat_ids: List[int] = None,
+                        allowed_plan_ids: List[int] = None,
+                        first_purchase_only: bool = False,
+                        total_limit: int = None,
+                        per_user_limit: int = 1,
+                        starts_at: str = None,
+                        expires_at: str = None,
+                        is_active: bool = True,
+                        created_by: int = None) -> Dict:
+        """
+        ایجاد کد تخفیف جدید با اعتبارسنجی کامل.
+        amount_rial / max_discount_rial / min_order_rial به ریال هستند.
+        starts_at/expires_at رشته '%Y-%m-%d %H:%M:%S' یا None.
+        """
+        norm = self.normalize_discount_code(code)
+        if not norm:
+            return {'success': False, 'error': 'کد تخفیف نمی‌تواند خالی باشد'}
+        if not self.is_valid_discount_code_format(norm):
+            return {'success': False,
+                    'error': 'فرمت کد نامعتبر است (3 تا 32 کاراکتر: حروف، عدد، - و _)'}
+        if discount_type not in ('percent', 'fixed'):
+            return {'success': False, 'error': 'نوع تخفیف نامعتبر است'}
+        if discount_type == 'percent':
+            if percent is None:
+                return {'success': False, 'error': 'درصد تخفیف مشخص نشده'}
+            try:
+                percent = int(percent)
+            except (TypeError, ValueError):
+                return {'success': False, 'error': 'درصد باید عدد باشد'}
+            if not 1 <= percent <= 100:
+                return {'success': False, 'error': 'درصد باید بین 1 تا 100 باشد'}
+            amount_rial = 0
+        else:
+            try:
+                amount_rial = int(amount_rial or 0)
+            except (TypeError, ValueError):
+                return {'success': False, 'error': 'مبلغ تخفیف باید عدد باشد'}
+            if amount_rial <= 0:
+                return {'success': False, 'error': 'مبلغ تخفیف باید بزرگ‌تر از صفر باشد'}
+            percent = None
+        if max_discount_rial is not None:
+            try:
+                max_discount_rial = int(max_discount_rial)
+            except (TypeError, ValueError):
+                return {'success': False, 'error': 'سقف تخفیف باید عدد باشد'}
+            if max_discount_rial <= 0:
+                return {'success': False, 'error': 'سقف تخفیف باید بزرگ‌تر از صفر باشد'}
+        if min_order_rial is not None:
+            try:
+                min_order_rial = int(min_order_rial)
+            except (TypeError, ValueError):
+                return {'success': False, 'error': 'کف مبلغ خرید باید عدد باشد'}
+            if min_order_rial <= 0:
+                return {'success': False, 'error': 'کف مبلغ خرید باید بزرگ‌تر از صفر باشد'}
+        if scope not in ('public', 'personal'):
+            return {'success': False, 'error': 'دامنه کد نامعتبر است'}
+        allowed_chat_ids = [int(c) for c in (allowed_chat_ids or [])]
+        if scope == 'personal' and not allowed_chat_ids:
+            return {'success': False,
+                    'error': 'برای کد شخصی باید حداقل یک کاربر مجاز مشخص شود'}
+        try:
+            per_user_limit = int(per_user_limit or 1)
+        except (TypeError, ValueError):
+            return {'success': False, 'error': 'سقف هر کاربر باید عدد باشد'}
+        if per_user_limit < 1:
+            return {'success': False, 'error': 'سقف هر کاربر حداقل 1 است'}
+        if total_limit is not None:
+            try:
+                total_limit = int(total_limit)
+            except (TypeError, ValueError):
+                return {'success': False, 'error': 'سقف کل باید عدد باشد'}
+            if total_limit < 1:
+                return {'success': False, 'error': 'سقف کل حداقل 1 است'}
+        # اعتبارسنجی تاریخ‌ها
+        for label, val in (('شروع', starts_at), ('انقضا', expires_at)):
+            if val:
+                try:
+                    datetime.strptime(val, '%Y-%m-%d %H:%M:%S')
+                except (ValueError, TypeError):
+                    return {'success': False, 'error': f'فرمت تاریخ {label} نامعتبر است'}
+        if starts_at and expires_at and starts_at >= expires_at:
+            return {'success': False, 'error': 'تاریخ شروع باید قبل از انقضا باشد'}
+
+        if self.get_discount_by_code(norm, with_relations=False):
+            return {'success': False, 'error': f'این کد قبلاً ثبت شده: {norm}'}
+
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+        cursor = conn.cursor()
+        try:
+            now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            cursor.execute('''
+                INSERT INTO discount_codes
+                (code, title, discount_type, percent, amount_rial,
+                 max_discount_rial, min_order_rial, scope, first_purchase_only,
+                 total_limit, per_user_limit, used_count,
+                 starts_at, expires_at, is_active, created_by,
+                 created_at, updated_at, note)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?)
+            ''', (norm, (title or '').strip(), discount_type, percent, amount_rial,
+                  max_discount_rial, min_order_rial, scope,
+                  1 if first_purchase_only else 0,
+                  total_limit, per_user_limit,
+                  starts_at or now_str, expires_at,
+                  1 if is_active else 0, created_by,
+                  now_str, now_str, (note or '').strip()))
+            disc_id = cursor.lastrowid
+            if scope == 'personal':
+                for cid in set(allowed_chat_ids):
+                    cursor.execute('''
+                        INSERT OR IGNORE INTO discount_allowed_users
+                        (discount_id, chat_id, added_at) VALUES (?, ?, ?)
+                    ''', (disc_id, cid, now_str))
+            for pid in set(allowed_plan_ids or []):
+                cursor.execute('''
+                    INSERT OR IGNORE INTO discount_allowed_plans
+                    (discount_id, plan_id) VALUES (?, ?)
+                ''', (disc_id, int(pid)))
+            conn.commit()
+            logger.info(f"✅ کد تخفیف ایجاد شد: {norm} (id={disc_id}, type={discount_type})")
+            return {'success': True, 'discount_id': disc_id, 'code': norm}
+        except sqlite3.IntegrityError:
+            return {'success': False, 'error': f'این کد قبلاً ثبت شده: {norm}'}
+        except Exception as e:
+            logger.error(f"❌ خطا در ایجاد کد تخفیف: {e}")
+            return {'success': False, 'error': str(e)}
+        finally:
+            conn.close()
+
+    # ---------- خواندن ----------
+
+    def _row_to_discount(self, row, cursor=None, with_relations: bool = True) -> Dict:
+        d = {
+            'id': row[0], 'code': row[1], 'title': row[2] or '',
+            'discount_type': row[3], 'percent': row[4],
+            'amount_rial': row[5] or 0,
+            'max_discount_rial': row[6], 'min_order_rial': row[7],
+            'scope': row[8] or 'public',
+            'first_purchase_only': bool(row[9]),
+            'total_limit': row[10],
+            'per_user_limit': row[11] or 1,
+            'used_count': row[12] or 0,
+            'starts_at': row[13], 'expires_at': row[14],
+            'is_active': bool(row[15]),
+            'created_by': row[16], 'created_at': row[17],
+            'updated_at': row[18], 'note': row[19] or '',
+        }
+        if with_relations and cursor is not None:
+            cursor.execute('SELECT chat_id FROM discount_allowed_users WHERE discount_id = ?',
+                           (d['id'],))
+            d['allowed_users'] = [r[0] for r in cursor.fetchall()]
+            cursor.execute('SELECT plan_id FROM discount_allowed_plans WHERE discount_id = ?',
+                           (d['id'],))
+            d['allowed_plans'] = [r[0] for r in cursor.fetchall()]
+        else:
+            d['allowed_users'] = []
+            d['allowed_plans'] = []
+        d['status'] = self._discount_status(d)
+        d['status_fa'] = {
+            'active': '🟢 فعال', 'inactive': '⚪ غیرفعال',
+            'not_started': '⏳ شروع‌نشده', 'expired': '🔴 منقضی',
+            'exhausted': '⛔ تمام‌شده',
+        }.get(d['status'], d['status'])
+        if d['total_limit'] is None:
+            d['remaining'] = None  # نامحدود
+        else:
+            d['remaining'] = max(0, d['total_limit'] - d['used_count'])
+        return d
+
+    @staticmethod
+    def _discount_status(d: Dict) -> str:
+        """وضعیت محاسباتی کد (بدون نیاز به دیتابیس)"""
+        if not d.get('is_active'):
+            return 'inactive'
+        now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        if d.get('starts_at') and now_str < d['starts_at']:
+            return 'not_started'
+        if d.get('expires_at') and now_str > d['expires_at']:
+            return 'expired'
+        if d.get('total_limit') is not None and (d.get('used_count') or 0) >= d['total_limit']:
+            return 'exhausted'
+        return 'active'
+
+    def get_discount(self, discount_id: int, with_relations: bool = True) -> Optional[Dict]:
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                SELECT id, code, title, discount_type, percent, amount_rial,
+                       max_discount_rial, min_order_rial, scope, first_purchase_only,
+                       total_limit, per_user_limit, used_count,
+                       starts_at, expires_at, is_active, created_by,
+                       created_at, updated_at, note
+                FROM discount_codes WHERE id = ?
+            ''', (discount_id,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+            return self._row_to_discount(row, cursor, with_relations)
+        finally:
+            conn.close()
+
+    def get_discount_by_code(self, code: str, with_relations: bool = True) -> Optional[Dict]:
+        norm = self.normalize_discount_code(code)
+        if not norm:
+            return None
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                SELECT id, code, title, discount_type, percent, amount_rial,
+                       max_discount_rial, min_order_rial, scope, first_purchase_only,
+                       total_limit, per_user_limit, used_count,
+                       starts_at, expires_at, is_active, created_by,
+                       created_at, updated_at, note
+                FROM discount_codes WHERE code = ?
+            ''', (norm,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+            return self._row_to_discount(row, cursor, with_relations)
+        finally:
+            conn.close()
+
+    def list_discounts(self, status_filter: str = 'all',
+                       search: str = None, limit: int = 200) -> List[Dict]:
+        """لیست کدها با فیلتر وضعیت: all/active/public/personal/expired/exhausted/inactive"""
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+        cursor = conn.cursor()
+        try:
+            q = '''
+                SELECT id, code, title, discount_type, percent, amount_rial,
+                       max_discount_rial, min_order_rial, scope, first_purchase_only,
+                       total_limit, per_user_limit, used_count,
+                       starts_at, expires_at, is_active, created_by,
+                       created_at, updated_at, note
+                FROM discount_codes
+            '''
+            params: List[Any] = []
+            if search:
+                q += ' WHERE code LIKE ? OR title LIKE ?'
+                like = f"%{self.normalize_discount_code(search)}%"
+                params = [like, f"%{search.strip()}%"]
+            q += ' ORDER BY id DESC LIMIT ?'
+            params.append(limit)
+            cursor.execute(q, params)
+            rows = cursor.fetchall()
+            out = []
+            for row in rows:
+                d = self._row_to_discount(row, cursor, True)
+                if status_filter == 'all':
+                    out.append(d)
+                elif status_filter in ('public', 'personal'):
+                    if d['scope'] == status_filter:
+                        out.append(d)
+                elif d['status'] == status_filter:
+                    out.append(d)
+            return out
+        finally:
+            conn.close()
+
+    # ---------- ویرایش ----------
+
+    def update_discount(self, discount_id: int, **fields) -> Dict:
+        """به‌روزرسانی کد - فیلد code غیرقابل تغییر است (ثبات حسابرسی)"""
+        allowed = {'title', 'note', 'discount_type', 'percent', 'amount_rial',
+                   'max_discount_rial', 'min_order_rial', 'scope',
+                   'first_purchase_only', 'total_limit', 'per_user_limit',
+                   'starts_at', 'expires_at', 'is_active'}
+        updates = {k: v for k, v in fields.items() if k in allowed}
+        if not updates:
+            return {'success': False, 'error': 'چیزی برای به‌روزرسانی نیست'}
+
+        current = self.get_discount(discount_id, with_relations=False)
+        if not current:
+            return {'success': False, 'error': 'کد تخفیف یافت نشد'}
+
+        # اعتبارسنجی مقادیر جدید
+        dtype = updates.get('discount_type', current['discount_type'])
+        if dtype not in ('percent', 'fixed'):
+            return {'success': False, 'error': 'نوع تخفیف نامعتبر است'}
+        if 'percent' in updates and updates['percent'] is not None:
+            try:
+                updates['percent'] = int(updates['percent'])
+            except (TypeError, ValueError):
+                return {'success': False, 'error': 'درصد باید عدد باشد'}
+            if not 1 <= updates['percent'] <= 100:
+                return {'success': False, 'error': 'درصد باید بین 1 تا 100 باشد'}
+        if 'amount_rial' in updates and updates['amount_rial'] is not None:
+            try:
+                updates['amount_rial'] = int(updates['amount_rial'])
+            except (TypeError, ValueError):
+                return {'success': False, 'error': 'مبلغ باید عدد باشد'}
+            if updates['amount_rial'] <= 0:
+                return {'success': False, 'error': 'مبلغ باید بزرگ‌تر از صفر باشد'}
+        if dtype == 'percent' and 'percent' not in updates and current['percent'] is None:
+            return {'success': False, 'error': 'برای نوع درصدی، درصد را مشخص کنید'}
+        if dtype == 'fixed' and 'amount_rial' not in updates and not current['amount_rial']:
+            return {'success': False, 'error': 'برای نوع مبلغی، مبلغ را مشخص کنید'}
+        for key in ('max_discount_rial', 'min_order_rial', 'total_limit'):
+            if key in updates and updates[key] is not None:
+                try:
+                    updates[key] = int(updates[key])
+                except (TypeError, ValueError):
+                    return {'success': False, 'error': f'مقدار {key} باید عدد باشد'}
+                if updates[key] <= 0:
+                    return {'success': False, 'error': f'مقدار {key} باید بزرگ‌تر از صفر باشد'}
+        if 'per_user_limit' in updates:
+            try:
+                updates['per_user_limit'] = int(updates['per_user_limit'])
+            except (TypeError, ValueError):
+                return {'success': False, 'error': 'سقف هر کاربر باید عدد باشد'}
+            if updates['per_user_limit'] < 1:
+                return {'success': False, 'error': 'سقف هر کاربر حداقل 1 است'}
+        if 'scope' in updates and updates['scope'] not in ('public', 'personal'):
+            return {'success': False, 'error': 'دامنه نامعتبر است'}
+        starts = updates.get('starts_at', current['starts_at'])
+        expires = updates.get('expires_at', current['expires_at'])
+        for label, val in (('شروع', starts), ('انقضا', expires)):
+            if val:
+                try:
+                    datetime.strptime(val, '%Y-%m-%d %H:%M:%S')
+                except (ValueError, TypeError):
+                    return {'success': False, 'error': f'فرمت تاریخ {label} نامعتبر است'}
+        if starts and expires and starts >= expires:
+            return {'success': False, 'error': 'تاریخ شروع باید قبل از انقضا باشد'}
+
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+        cursor = conn.cursor()
+        try:
+            sets, params = [], []
+            for k, v in updates.items():
+                if k == 'first_purchase_only':
+                    v = 1 if v else 0
+                if k == 'is_active':
+                    v = 1 if v else 0
+                sets.append(f"{k} = ?")
+                params.append(v)
+            sets.append('updated_at = ?')
+            params.append(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+            params.append(discount_id)
+            cursor.execute(f"UPDATE discount_codes SET {', '.join(sets)} WHERE id = ?", params)
+            if cursor.rowcount == 0:
+                return {'success': False, 'error': 'کد تخفیف یافت نشد'}
+            # اگر دامنه به عمومی تغییر کرد، لیست کاربران شخصی پاک شود
+            if updates.get('scope') == 'public':
+                cursor.execute('DELETE FROM discount_allowed_users WHERE discount_id = ?',
+                               (discount_id,))
+            conn.commit()
+            logger.info(f"✅ کد تخفیف {discount_id} به‌روزرسانی شد: {list(updates.keys())}")
+            return {'success': True}
+        except Exception as e:
+            logger.error(f"❌ خطا در به‌روزرسانی کد تخفیف: {e}")
+            return {'success': False, 'error': str(e)}
+        finally:
+            conn.close()
+
+    def set_discount_active(self, discount_id: int, active: bool) -> Dict:
+        return self.update_discount(discount_id, is_active=bool(active))
+
+    def delete_discount(self, discount_id: int) -> Dict:
+        """حذف کد - تاریخچه استفاده‌ها حفظ می‌شود (گزارش‌ها پاک نمی‌شوند)"""
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('SELECT code FROM discount_codes WHERE id = ?', (discount_id,))
+            row = cursor.fetchone()
+            if not row:
+                return {'success': False, 'error': 'کد تخفیف یافت نشد'}
+            code = row[0]
+            cursor.execute('SELECT COUNT(*) FROM discount_usages WHERE discount_id = ?',
+                           (discount_id,))
+            usage_count = cursor.fetchone()[0] or 0
+            cursor.execute('DELETE FROM discount_allowed_users WHERE discount_id = ?',
+                           (discount_id,))
+            cursor.execute('DELETE FROM discount_allowed_plans WHERE discount_id = ?',
+                           (discount_id,))
+            cursor.execute('DELETE FROM discount_codes WHERE id = ?', (discount_id,))
+            conn.commit()
+            logger.info(f"🗑️ کد تخفیف حذف شد: {code} (id={discount_id}, usages_kept={usage_count})")
+            return {'success': True, 'code': code, 'usages_kept': usage_count}
+        except Exception as e:
+            logger.error(f"❌ خطا در حذف کد تخفیف: {e}")
+            return {'success': False, 'error': str(e)}
+        finally:
+            conn.close()
+
+    # ---------- کاربران/پلن‌های مجاز ----------
+
+    def get_discount_users(self, discount_id: int) -> List[int]:
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('SELECT chat_id FROM discount_allowed_users WHERE discount_id = ? ORDER BY chat_id',
+                           (discount_id,))
+            return [r[0] for r in cursor.fetchall()]
+        finally:
+            conn.close()
+
+    def add_discount_users(self, discount_id: int, chat_ids: List[int]) -> Dict:
+        if not self.get_discount(discount_id, with_relations=False):
+            return {'success': False, 'error': 'کد تخفیف یافت نشد'}
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+        cursor = conn.cursor()
+        try:
+            now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            added = 0
+            for cid in set(int(c) for c in chat_ids):
+                cursor.execute('''
+                    INSERT OR IGNORE INTO discount_allowed_users
+                    (discount_id, chat_id, added_at) VALUES (?, ?, ?)
+                ''', (discount_id, cid, now_str))
+                added += cursor.rowcount
+            conn.commit()
+            return {'success': True, 'added': added}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+        finally:
+            conn.close()
+
+    def remove_discount_user(self, discount_id: int, chat_id: int) -> Dict:
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('DELETE FROM discount_allowed_users WHERE discount_id = ? AND chat_id = ?',
+                           (discount_id, chat_id))
+            conn.commit()
+            return {'success': True, 'removed': cursor.rowcount}
+        finally:
+            conn.close()
+
+    def get_discount_plans(self, discount_id: int) -> List[int]:
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('SELECT plan_id FROM discount_allowed_plans WHERE discount_id = ?',
+                           (discount_id,))
+            return [r[0] for r in cursor.fetchall()]
+        finally:
+            conn.close()
+
+    def set_discount_plans(self, discount_id: int, plan_ids: List[int]) -> Dict:
+        """جایگزینی کامل لیست پلن‌ها (لیست خالی = همه پلن‌ها)"""
+        if not self.get_discount(discount_id, with_relations=False):
+            return {'success': False, 'error': 'کد تخفیف یافت نشد'}
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('DELETE FROM discount_allowed_plans WHERE discount_id = ?',
+                           (discount_id,))
+            for pid in set(int(p) for p in (plan_ids or [])):
+                cursor.execute('INSERT OR IGNORE INTO discount_allowed_plans (discount_id, plan_id) VALUES (?, ?)',
+                               (discount_id, pid))
+            conn.commit()
+            return {'success': True}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+        finally:
+            conn.close()
+
+    # ---------- محاسبه و اعتبارسنجی ----------
+
+    @staticmethod
+    def compute_discount_amount(discount: Dict, plan_price_rial: int) -> Tuple[int, int]:
+        """
+        محاسبه مبلغ تخفیف و مبلغ نهایی.
+        Returns: (discount_rial, final_rial) - نهایی هرگز منفی نمی‌شود.
+        """
+        price = max(0, int(plan_price_rial or 0))
+        if discount['discount_type'] == 'percent':
+            disc = price * int(discount['percent'] or 0) // 100
+            cap = discount.get('max_discount_rial')
+            if cap is not None:
+                disc = min(disc, int(cap))
+        else:
+            disc = min(int(discount.get('amount_rial') or 0), price)
+        disc = max(0, min(disc, price))
+        return disc, price - disc
+
+    def count_discount_user_uses(self, discount_id: int, chat_id: int) -> int:
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                SELECT COUNT(*) FROM discount_usages
+                WHERE discount_id = ? AND chat_id = ?
+            ''', (discount_id, chat_id))
+            return cursor.fetchone()[0] or 0
+        finally:
+            conn.close()
+
+    def validate_discount(self, code: str, chat_id: int,
+                          plan_id: int = None,
+                          plan_price_rial: int = None,
+                          plan_name: str = None) -> Dict:
+        """
+        اعتبارسنجی کامل کد برای یک کاربر و پلن.
+        اگر plan_id داده نشود، فقط بررسی‌های عمومی (بدون پلن/کف خرید) انجام می‌شود.
+        """
+        norm = self.normalize_discount_code(code)
+        if not norm:
+            return {'valid': False, 'reason': 'empty',
+                    'message': '❌ کد تخفیف وارد نشده است.'}
+        d = self.get_discount_by_code(norm, with_relations=True)
+        if not d:
+            return {'valid': False, 'reason': 'not_found',
+                    'message': '❌ این کد تخفیف وجود ندارد.\nاز صحت کد اطمینان حاصل کنید.'}
+        if not d['is_active']:
+            return {'valid': False, 'reason': 'inactive', 'discount': d,
+                    'message': '❌ این کد تخفیف غیرفعال است.'}
+        now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        if d['starts_at'] and now_str < d['starts_at']:
+            return {'valid': False, 'reason': 'not_started', 'discount': d,
+                    'message': f"⏳ این کد هنوز فعال نشده است.\nشروع اعتبار: {d['starts_at']}"}
+        if d['expires_at'] and now_str > d['expires_at']:
+            return {'valid': False, 'reason': 'expired', 'discount': d,
+                    'message': '⏰ مهلت استفاده از این کد به پایان رسیده است.'}
+        if d['total_limit'] is not None and d['used_count'] >= d['total_limit']:
+            return {'valid': False, 'reason': 'exhausted', 'discount': d,
+                    'message': '⛔ ظرفیت استفاده از این کد به پایان رسیده است.'}
+        used_by_user = self.count_discount_user_uses(d['id'], chat_id)
+        if used_by_user >= d['per_user_limit']:
+            return {'valid': False, 'reason': 'per_user_exhausted', 'discount': d,
+                    'message': ('⛔ شما قبلاً از این کد استفاده کرده‌اید.\n'
+                                f"سقف هر کاربر: {d['per_user_limit']} بار")}
+        if d['scope'] == 'personal' and chat_id not in (d.get('allowed_users') or []):
+            return {'valid': False, 'reason': 'not_for_you', 'discount': d,
+                    'message': '🔒 این کد تخفیف اختصاصی است و برای شما صادر نشده.'}
+        if plan_id is not None and d.get('allowed_plans'):
+            if int(plan_id) not in [int(p) for p in d['allowed_plans']]:
+                return {'valid': False, 'reason': 'plan_not_allowed', 'discount': d,
+                        'message': '❌ این کد برای این پلن قابل استفاده نیست.'}
+        if plan_price_rial is not None and d.get('min_order_rial'):
+            if int(plan_price_rial) < int(d['min_order_rial']):
+                toman = int(d['min_order_rial']) // 10
+                return {'valid': False, 'reason': 'min_order', 'discount': d,
+                        'message': (f"❌ این کد فقط برای خریدهای بالای {toman:,} تومان است.\n"
+                                    f"مبلغ این پلن کمتر از حد مجاز است.")}
+        if d['first_purchase_only'] and self.count_user_completed_purchases(chat_id) > 0:
+            return {'valid': False, 'reason': 'not_first_purchase', 'discount': d,
+                    'message': '❌ این کد فقط برای اولین خرید است و شما قبلاً خرید داشته‌اید.'}
+
+        original = int(plan_price_rial or 0)
+        disc_rial, final_rial = self.compute_discount_amount(d, original)
+        if plan_price_rial is not None and disc_rial <= 0:
+            return {'valid': False, 'reason': 'no_effect', 'discount': d,
+                    'message': '❌ این کد روی این پلن تخفیفی اعمال نمی‌کند.'}
+        return {
+            'valid': True, 'reason': None, 'message': '✅ کد معتبر است.',
+            'discount': d,
+            'plan_id': plan_id, 'plan_name': plan_name,
+            'original_rial': original,
+            'discount_rial': disc_rial, 'final_rial': final_rial,
+            'is_free': bool(plan_price_rial is not None and final_rial == 0),
+        }
+
+    def consume_discount(self, discount_id: int, chat_id: int,
+                         username: str = '', plan_id: int = None,
+                         plan_name: str = None,
+                         original_rial: int = 0,
+                         discount_rial: int = 0, final_rial: int = 0,
+                         payment_id: str = '',
+                         code_fallback: str = '',
+                         force: bool = False) -> Dict:
+        """
+        ثبت استفاده از کد (اتمیک با BEGIN IMMEDIATE در برابر race-condition).
+        force=True فقط برای پرداخت موفقِ انجام‌شده استفاده می‌شود:
+        چون پول گرفته شده، استفاده حتماً ثبت می‌شود حتی اگر ظرفیت تمام شده باشد.
+        """
+        conn = sqlite3.connect(self.auth_db_path, timeout=15, check_same_thread=False)
+        try:
+            conn.execute('BEGIN IMMEDIATE')
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT id, code, title, discount_type, percent, amount_rial,
+                       max_discount_rial, min_order_rial, scope, first_purchase_only,
+                       total_limit, per_user_limit, used_count,
+                       starts_at, expires_at, is_active, created_by,
+                       created_at, updated_at, note
+                FROM discount_codes WHERE id = ?
+            ''', (discount_id,))
+            row = cursor.fetchone()
+
+            code_text = code_fallback or ''
+            if not row:
+                if not force:
+                    conn.rollback()
+                    return {'success': False, 'error': 'کد تخفیف یافت نشد'}
+                # کد بعد از صدور فاکتور حذف شده - پول گرفته شده پس ثبت می‌کنیم
+                code_text = code_text or f"#{discount_id}"
+                discount_id_value = None
+            else:
+                d = self._row_to_discount(row, cursor, True)
+                code_text = d['code']
+                if not force:
+                    now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    if not d['is_active']:
+                        conn.rollback()
+                        return {'success': False, 'error': 'کد غیرفعال است'}
+                    if d['starts_at'] and now_str < d['starts_at']:
+                        conn.rollback()
+                        return {'success': False, 'error': 'کد هنوز فعال نشده'}
+                    if d['expires_at'] and now_str > d['expires_at']:
+                        conn.rollback()
+                        return {'success': False, 'error': 'کد منقضی شده'}
+                    if d['total_limit'] is not None and d['used_count'] >= d['total_limit']:
+                        conn.rollback()
+                        return {'success': False, 'error': 'ظرفیت کد تمام شده'}
+                    cursor.execute('SELECT COUNT(*) FROM discount_usages WHERE discount_id = ? AND chat_id = ?',
+                                   (discount_id, chat_id))
+                    if (cursor.fetchone()[0] or 0) >= d['per_user_limit']:
+                        conn.rollback()
+                        return {'success': False, 'error': 'سقف استفاده شما تمام شده'}
+                    if d['scope'] == 'personal' and chat_id not in (d.get('allowed_users') or []):
+                        conn.rollback()
+                        return {'success': False, 'error': 'کد برای شما نیست'}
+                discount_id_value = discount_id
+
+            now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            cursor.execute('''
+                INSERT INTO discount_usages
+                (discount_id, code, chat_id, username, plan_id, plan_name,
+                 original_rial, discount_rial, final_rial, payment_id, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (discount_id_value, code_text, chat_id, username or '',
+                  plan_id, plan_name or '',
+                  original_rial or 0, discount_rial or 0, final_rial or 0,
+                  payment_id or '', now_str))
+            usage_id = cursor.lastrowid
+            if row:
+                cursor.execute('''
+                    UPDATE discount_codes
+                    SET used_count = used_count + 1, updated_at = ?
+                    WHERE id = ?
+                ''', (now_str, discount_id))
+            conn.commit()
+            logger.info(f"🎟️ استفاده از کد {code_text} ثبت شد (user={chat_id}, plan={plan_id}, usage={usage_id})")
+            return {'success': True, 'usage_id': usage_id, 'code': code_text}
+        except Exception as e:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+            logger.error(f"❌ خطا در ثبت استفاده تخفیف: {e}")
+            return {'success': False, 'error': str(e)}
+        finally:
+            conn.close()
+
+    # ---------- گزارش‌ها ----------
+
+    def get_discount_usages(self, discount_id: int, limit: int = 20) -> List[Dict]:
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                SELECT id, code, chat_id, username, plan_id, plan_name,
+                       original_rial, discount_rial, final_rial, payment_id, created_at
+                FROM discount_usages
+                WHERE discount_id = ?
+                ORDER BY id DESC LIMIT ?
+            ''', (discount_id, limit))
+            return [{
+                'id': r[0], 'code': r[1], 'chat_id': r[2], 'username': r[3],
+                'plan_id': r[4], 'plan_name': r[5],
+                'original_rial': r[6] or 0, 'discount_rial': r[7] or 0,
+                'final_rial': r[8] or 0, 'payment_id': r[9], 'created_at': r[10],
+            } for r in cursor.fetchall()]
+        finally:
+            conn.close()
+
+    def get_discount_stats(self, discount_id: int) -> Optional[Dict]:
+        d = self.get_discount(discount_id, with_relations=True)
+        if not d:
+            return None
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                SELECT COUNT(*), COUNT(DISTINCT chat_id),
+                       COALESCE(SUM(discount_rial), 0),
+                       COALESCE(SUM(final_rial), 0),
+                       MAX(created_at)
+                FROM discount_usages WHERE discount_id = ?
+            ''', (discount_id,))
+            row = cursor.fetchone()
+            return {
+                'discount': d,
+                'usages': row[0] or 0,
+                'unique_users': row[1] or 0,
+                'total_discount_rial': row[2] or 0,
+                'total_final_rial': row[3] or 0,
+                'last_used_at': row[4],
+            }
+        finally:
+            conn.close()
+
+    def get_discounts_overview(self) -> Dict:
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+        cursor = conn.cursor()
+        try:
+            now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            cursor.execute('SELECT COUNT(*) FROM discount_codes')
+            total = cursor.fetchone()[0] or 0
+            cursor.execute("SELECT COUNT(*) FROM discount_codes WHERE is_active = 1")
+            active_flag = cursor.fetchone()[0] or 0
+            cursor.execute("SELECT COUNT(*) FROM discount_codes WHERE is_active = 0")
+            inactive = cursor.fetchone()[0] or 0
+            cursor.execute("SELECT COUNT(*) FROM discount_codes WHERE scope = 'personal'")
+            personal = cursor.fetchone()[0] or 0
+            cursor.execute('''
+                SELECT COUNT(*) FROM discount_codes
+                WHERE expires_at IS NOT NULL AND expires_at < ?
+            ''', (now_str,))
+            expired = cursor.fetchone()[0] or 0
+            cursor.execute('''
+                SELECT COUNT(*) FROM discount_codes
+                WHERE total_limit IS NOT NULL AND used_count >= total_limit
+            ''')
+            exhausted = cursor.fetchone()[0] or 0
+            cursor.execute('SELECT COUNT(*), COALESCE(SUM(discount_rial), 0) FROM discount_usages')
+            urow = cursor.fetchone()
+            return {
+                'total': total, 'active_flag': active_flag, 'inactive': inactive,
+                'personal': personal, 'public': total - personal,
+                'expired': expired, 'exhausted': exhausted,
+                'total_usages': urow[0] or 0,
+                'total_discount_rial': urow[1] or 0,
+            }
+        finally:
+            conn.close()
+
+    def get_user_personal_discounts(self, chat_id: int, only_valid: bool = True) -> List[Dict]:
+        """کدهای شخصی صادرشده برای یک کاربر"""
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                SELECT id, code, title, discount_type, percent, amount_rial,
+                       max_discount_rial, min_order_rial, scope, first_purchase_only,
+                       total_limit, per_user_limit, used_count,
+                       starts_at, expires_at, is_active, created_by,
+                       created_at, updated_at, note
+                FROM discount_codes
+                WHERE scope = 'personal'
+                AND id IN (SELECT discount_id FROM discount_allowed_users WHERE chat_id = ?)
+                ORDER BY id DESC
+            ''', (chat_id,))
+            rows = cursor.fetchall()
+            out = []
+            for row in rows:
+                d = self._row_to_discount(row, cursor, True)
+                if only_valid:
+                    if d['status'] != 'active':
+                        continue
+                    if self.count_discount_user_uses(d['id'], chat_id) >= d['per_user_limit']:
+                        continue
+                out.append(d)
+            return out
         finally:
             conn.close()
 
