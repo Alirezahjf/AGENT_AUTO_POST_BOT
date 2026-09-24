@@ -254,6 +254,15 @@ LANGUAGES = {
         "disc_autogen": "🎲 تولید خودکار کد",
         "disc_notify_users": "📣 ارسال به کاربران مجاز",
         "disc_broadcast": "📣 اطلاع‌رسانی به همه کاربران",
+        "disc_pick_done": "✅ ثبت انتخاب",
+        "disc_pick_search": "🔍 جستجو",
+        "disc_pick_all": "🔙 کل لیست",
+        "disc_pick_manual": "✍️ ورود دستی آیدی",
+        "disc_pick_from_list": "📋 انتخاب از لیست",
+        "disc_pick_empty": "❌ هنوز کاربری انتخاب نشده! روی نام کاربران بزنید.",
+        "disc_pick_search_prompt": "🔍 نام کاربری یا بخشی از آیدی عددی را وارد کنید:",
+        "disc_copy_code": "📋 کپی کد",
+        "disc_code_detail": "🔍 جزئیات کد",
     },
     "en": {
         # ===== پیام‌های خوش‌آمدگویی =====
@@ -479,6 +488,15 @@ LANGUAGES = {
         "disc_autogen": "🎲 Auto-generate code",
         "disc_notify_users": "📣 Send to allowed users",
         "disc_broadcast": "📣 Notify all users",
+        "disc_pick_done": "✅ Confirm selection",
+        "disc_pick_search": "🔍 Search",
+        "disc_pick_all": "🔙 Full list",
+        "disc_pick_manual": "✍️ Manual ID entry",
+        "disc_pick_from_list": "📋 Pick from list",
+        "disc_pick_empty": "❌ No user selected yet! Tap user names.",
+        "disc_pick_search_prompt": "🔍 Enter username or part of numeric ID:",
+        "disc_copy_code": "📋 Copy code",
+        "disc_code_detail": "🔍 Code details",
     }
 }
 
@@ -2928,6 +2946,10 @@ def handle_discount_detail(chat_id, disc_id, edit_id=None):
     n_users = len(d.get('allowed_users') or [])
     rows = [
         [
+            {"text": f"{t(chat_id, 'disc_copy_code')}: {d['code']}",
+             "copy_text": {"text": d['code']}},
+        ],
+        [
             {"text": toggle_label, "callback_data": f"admin_disc_toggle_{d['id']}"},
             {"text": t(chat_id, "disc_edit"), "callback_data": f"admin_disc_edit_{d['id']}"},
         ],
@@ -3120,6 +3142,307 @@ def _disc_send_confirm(chat_id):
         ]
     ]}
     send_message(chat_id, msg, kb)
+
+
+# ---------- پیکر انتخاب کاربر (دکمه شیشه‌ای چندانتخابی) ----------
+
+USERPICK_PER_PAGE = 8
+USERPICK_STATES = ("awaiting_disc_userpick", "awaiting_disc_euserpick", "awaiting_disc_uaddpick")
+
+
+def _filter_pick_users(users, query):
+    """فیلتر کاربران بر اساس نام کاربری/آیدی - خالص و قابل تست"""
+    q = (query or "").strip().lower().lstrip("@")
+    if not q:
+        return list(users)
+    try:
+        from auth_handlers import fa_to_en_digits
+        q = fa_to_en_digits(q)
+    except Exception:
+        pass
+    out = []
+    for u in users:
+        uname = (u.get('username') or "").lower()
+        cid = str(u.get('chat_id') or "")
+        if q in uname or q in cid:
+            out.append(u)
+    return out
+
+
+def _build_userpick_keyboard(chat_id, page_users, selected, page, total_pages, query):
+    """ساخت کیبورد پیکر - خالص و قابل تست"""
+    selected = set(int(x) for x in (selected or []))
+    rows = []
+    for u in page_users:
+        uid = u['chat_id']
+        mark = "✅" if uid in selected else "⚪"
+        uname = u.get('username') or "—"
+        role = "👨‍💼" if u.get('is_admin') else "👤"
+        label = f"{mark} {role} {uname} ({uid})"
+        if len(label) > 60:
+            label = label[:57] + "..."
+        rows.append([{"text": label, "callback_data": f"admin_disc_upick_{uid}"}])
+    if total_pages > 1:
+        nav = []
+        if page > 0:
+            nav.append({"text": t(chat_id, "prev_page"),
+                        "callback_data": f"admin_disc_upage_{page - 1}"})
+        nav.append({"text": t(chat_id, "page_of").format(page=page + 1, total=total_pages),
+                    "callback_data": "ignore"})
+        if page < total_pages - 1:
+            nav.append({"text": t(chat_id, "next_page"),
+                        "callback_data": f"admin_disc_upage_{page + 1}"})
+        rows.append(nav)
+    if query:
+        q_short = query if len(query) <= 18 else query[:15] + "..."
+        rows.append([{"text": f"{t(chat_id, 'disc_pick_all')} (🔍 {q_short})",
+                      "callback_data": "admin_disc_uall"}])
+    else:
+        rows.append([{"text": t(chat_id, "disc_pick_search"),
+                      "callback_data": "admin_disc_usearch"}])
+    rows.append([
+        {"text": f"{t(chat_id, 'disc_pick_done')} ({len(selected)})",
+         "callback_data": "admin_disc_udone"},
+    ])
+    rows.append([
+        {"text": t(chat_id, "disc_pick_manual"), "callback_data": "admin_disc_umanual"},
+        {"text": t(chat_id, "disc_cancel"), "callback_data": "admin_disc_ucancel"},
+    ])
+    return {"inline_keyboard": rows}
+
+
+def _restore_pick_state(chat_id, search_state):
+    """بازگردانی state پیکر از داخل state جستجو"""
+    pick = search_state.get('pick_state', 'awaiting_disc_userpick')
+    if pick not in USERPICK_STATES:
+        pick = 'awaiting_disc_userpick'
+    new = {'selected': search_state.get('selected', []),
+           'page': search_state.get('page', 0),
+           'query': search_state.get('query', '')}
+    if 'disc' in search_state:
+        new['disc'] = search_state['disc']
+    if 'disc_id' in search_state:
+        new['disc_id'] = search_state['disc_id']
+    set_state(chat_id, pick, **new)
+    return pick
+
+
+def handle_userpick_menu(chat_id, edit_id=None):
+    """رندر منوی انتخاب کاربر بر اساس state فعلی (هر ۳ حالت ویزارد/تبدیل/افزودن)"""
+    if not auth_manager.is_admin(chat_id):
+        return
+    st_name, st = get_state(chat_id)
+    if st_name not in USERPICK_STATES:
+        return
+    lang = get_user_lang(chat_id)
+    selected = [int(x) for x in st.get('selected', [])]
+    query = st.get('query', '') or ''
+
+    users = auth_manager.get_all_users()
+    if st_name == "awaiting_disc_uaddpick":
+        # در حالت افزودن، اعضای فعلی را از لیست حذف کن (تکراری انتخاب نشود)
+        try:
+            current = set(auth_manager.get_discount_users(st.get('disc_id')))
+            users = [u for u in users if u['chat_id'] not in current]
+        except Exception:
+            pass
+    users = _filter_pick_users(users, query)
+
+    total_pages = max(1, (len(users) + USERPICK_PER_PAGE - 1) // USERPICK_PER_PAGE)
+    page = max(0, min(int(st.get('page', 0)), total_pages - 1))
+    st['page'] = page
+    page_users = users[page * USERPICK_PER_PAGE:(page + 1) * USERPICK_PER_PAGE]
+    kb = _build_userpick_keyboard(chat_id, page_users, selected, page, total_pages, query)
+
+    if lang == "fa":
+        if st_name == "awaiting_disc_userpick":
+            title = "👤 *کد شخصی — انتخاب کاربران مجاز:*\n\n"
+        elif st_name == "awaiting_disc_euserpick":
+            title = "👤 *تبدیل به شخصی — انتخاب کاربران مجاز:*\n\n"
+        else:
+            title = "➕ *افزودن کاربر مجاز:*\n\n"
+        msg = title + "روی هر کاربر بزنید تا انتخاب/حذف شود (چندنفره).\n"
+        msg += f"✅ انتخاب‌شده: *{len(selected)} نفر*\n"
+        if query:
+            msg += f"🔍 جستجو: `{query}` ({len(users)} نتیجه)\n"
+        if not page_users:
+            msg += "\n📭 کاربری در این صفحه نیست."
+        msg += ("\n\n💡 کاربرانی که هنوز ربات را /start نکرده‌اند در لیست نیستند؛\n"
+                "برای آن‌ها «✍️ ورود دستی آیدی» را بزنید.")
+    else:
+        msg = f"👥 *Select users* ({len(selected)} selected)\n\nTap to toggle."
+    if edit_id:
+        edit_message(chat_id, edit_id, msg, kb)
+    else:
+        send_message(chat_id, msg, kb)
+
+
+MANUAL2PICK = {"awaiting_disc_users": "awaiting_disc_userpick",
+                "awaiting_disc_eusers": "awaiting_disc_euserpick",
+                "awaiting_disc_useradd": "awaiting_disc_uaddpick"}
+PICK2MANUAL = {v: k for k, v in MANUAL2PICK.items()}
+
+
+def handle_userpick_callback(chat_id, message_id, rest):
+    """روت کال‌بک‌های پیکر انتخاب کاربر (تاگل، صفحه، جستجو، ورود دستی، تأیید، لغو)"""
+    if not auth_manager.is_admin(chat_id):
+        return
+    st_name, st = get_state(chat_id)
+
+    # --- بازگشت به لیست (از حالت دستی یا جستجو) ---
+    if rest == "upickopen":
+        if st_name == "awaiting_disc_usearch":
+            _restore_pick_state(chat_id, st)
+        elif st_name in MANUAL2PICK:
+            new = {'selected': st.get('pick_selected', []),
+                   'page': st.get('pick_page', 0),
+                   'query': st.get('pick_query', '')}
+            if 'disc' in st:
+                new['disc'] = st['disc']
+            if 'disc_id' in st:
+                new['disc_id'] = st['disc_id']
+            set_state(chat_id, MANUAL2PICK[st_name], **new)
+        else:
+            return
+        handle_userpick_menu(chat_id, edit_id=message_id)
+        return
+
+    # --- لغو (حساس به زمینه) ---
+    if rest == "ucancel":
+        origin = st_name
+        if st_name == "awaiting_disc_usearch":
+            origin = st.get('pick_state', 'awaiting_disc_userpick')
+        elif st_name in MANUAL2PICK:
+            origin = MANUAL2PICK[st_name]
+        did = st.get('disc_id')
+        clear_state(chat_id)
+        if origin == "awaiting_disc_euserpick" and did:
+            handle_discount_detail(chat_id, did)
+        elif origin == "awaiting_disc_uaddpick" and did:
+            handle_discount_users(chat_id, did)
+        else:
+            handle_discount_list(chat_id)
+        return
+
+    # --- از اینجا فقط در یکی از ۳ state پیکر ---
+    if st_name not in USERPICK_STATES:
+        return
+    selected = [int(x) for x in st.get('selected', [])]
+
+    # --- تاگل انتخاب ---
+    if rest.startswith("upick_"):
+        try:
+            uid = int(rest.replace("upick_", "", 1))
+        except ValueError:
+            return
+        if uid in selected:
+            selected.remove(uid)
+        else:
+            selected.append(uid)
+        st['selected'] = selected
+        set_state(chat_id, st_name, **st)
+        handle_userpick_menu(chat_id, edit_id=message_id)
+        return
+
+    # --- صفحه‌بندی ---
+    if rest.startswith("upage_"):
+        try:
+            st['page'] = max(0, int(rest.replace("upage_", "", 1)))
+        except ValueError:
+            return
+        set_state(chat_id, st_name, **st)
+        handle_userpick_menu(chat_id, edit_id=message_id)
+        return
+
+    # --- بازگشت به لیست کامل (حذف فیلتر جستجو) ---
+    if rest == "uall":
+        st['query'] = ''
+        st['page'] = 0
+        set_state(chat_id, st_name, **st)
+        handle_userpick_menu(chat_id, edit_id=message_id)
+        return
+
+    # --- جستجو ---
+    if rest == "usearch":
+        new = {'pick_state': st_name, 'selected': selected,
+               'page': st.get('page', 0), 'query': st.get('query', '')}
+        if 'disc' in st:
+            new['disc'] = st['disc']
+        if 'disc_id' in st:
+            new['disc_id'] = st['disc_id']
+        set_state(chat_id, "awaiting_disc_usearch", **new)
+        kb = {"inline_keyboard": [
+            [{"text": t(chat_id, "disc_pick_from_list"),
+              "callback_data": "admin_disc_upickopen"}],
+            [{"text": t(chat_id, "disc_cancel"),
+              "callback_data": "admin_disc_ucancel"}],
+        ]}
+        edit_message(chat_id, message_id, t(chat_id, "disc_pick_search_prompt"), kb)
+        return
+
+    # --- ورود دستی آیدی (برای کاربران ثبت‌نشده) ---
+    if rest == "umanual":
+        new = {'pick_selected': selected,
+               'pick_page': st.get('page', 0),
+               'pick_query': st.get('query', '')}
+        if 'disc' in st:
+            new['disc'] = st['disc']
+        if 'disc_id' in st:
+            new['disc_id'] = st['disc_id']
+        set_state(chat_id, PICK2MANUAL[st_name], **new)
+        if get_user_lang(chat_id) == "fa":
+            prompt = ("✍️ *ورود دستی آیدی:*\n\n"
+                      "آیدی عددی کاربران را با کاما یا خط جدید جدا کنید:\n"
+                      "مثال: `123456789, 987654321`\n\n"
+                      "💡 برای کاربرانی که هنوز /start نکرده‌اند هم می‌توانید "
+                      "از قبل آیدی بدهید (وقتی عضو شوند کد کار می‌کند).")
+        else:
+            prompt = "✍️ Enter numeric chat IDs separated by comma:"
+        kb = {"inline_keyboard": [
+            [{"text": t(chat_id, "disc_pick_from_list"),
+              "callback_data": "admin_disc_upickopen"}],
+            [{"text": t(chat_id, "disc_cancel"),
+              "callback_data": "admin_disc_ucancel"}],
+        ]}
+        edit_message(chat_id, message_id, prompt, kb)
+        return
+
+    # --- تأیید نهایی ---
+    if rest == "udone":
+        if not selected:
+            send_message(chat_id, t(chat_id, "disc_pick_empty"))
+            return
+        if st_name == "awaiting_disc_userpick":
+            disc = st.get('disc', {})
+            disc['allowed_chat_ids'] = selected
+            set_state(chat_id, "awaiting_disc_plans", disc=disc)
+            edit_message(chat_id, message_id, f"✅ {len(selected)} کاربر انتخاب شد.")
+            _disc_send_plans_menu(chat_id)
+        elif st_name == "awaiting_disc_euserpick":
+            did = st.get('disc_id')
+            auth_manager.update_discount(did, scope='personal')
+            res = auth_manager.add_discount_users(did, selected)
+            clear_state(chat_id)
+            if res.get('success'):
+                auth_manager.log_activity(chat_id, "disc_users_add",
+                                          f"{did} +{res.get('added', 0)}")
+                send_message(chat_id,
+                             f"✅ کد شخصی شد و {res.get('added', 0)} کاربر اضافه شد.")
+            else:
+                send_message(chat_id, f"❌ {res.get('error', 'خطا')}")
+            handle_discount_detail(chat_id, did)
+        else:  # awaiting_disc_uaddpick
+            did = st.get('disc_id')
+            res = auth_manager.add_discount_users(did, selected)
+            clear_state(chat_id)
+            if res.get('success'):
+                auth_manager.log_activity(chat_id, "disc_users_add",
+                                          f"{did} +{res.get('added', 0)}")
+                send_message(chat_id, f"✅ {res.get('added', 0)} کاربر اضافه شد.")
+            else:
+                send_message(chat_id, f"❌ {res.get('error', 'خطا')}")
+            handle_discount_users(chat_id, did)
+        return
 
 
 # ---------- اکشن‌های کد ----------
@@ -3873,6 +4196,13 @@ def handle_message(message, callback_data=None):
             return
         rest = callback_data.replace("admin_disc_", "", 1)
 
+        # ---- پیکر انتخاب کاربر ----
+        if (rest.startswith("upick_") or rest.startswith("upage_")
+                or rest in ("udone", "usearch", "uall", "umanual",
+                            "upickopen", "ucancel")):
+            handle_userpick_callback(chat_id, message_id, rest)
+            return
+
         # ---- لیست و فیلتر و صفحه‌بندی ----
         if rest == "list" or rest == "back_list":
             handle_discount_list(chat_id, edit_id=message_id)
@@ -3949,13 +4279,9 @@ def handle_message(message, callback_data=None):
                 _disc_send_plans_menu(chat_id)
             else:
                 disc['scope'] = 'personal'
-                set_state(chat_id, "awaiting_disc_users", disc=disc)
-                send_message(chat_id,
-                             "👤 *کد شخصی — کاربران مجاز:*\n\n"
-                             "آیدی عددی کاربران را با کاما یا خط جدید جدا کنید:\n"
-                             "مثال: `123456789, 987654321`\n\n"
-                             "💡 کاربر باید قبلاً ربات را /start کرده باشد تا نامش پیدا شود، "
-                             "اما می‌توانید از قبل هم آیدی بدهید (وقتی عضو شد کد کار می‌کند).")
+                set_state(chat_id, "awaiting_disc_userpick", disc=disc,
+                          selected=[], page=0, query='')
+                handle_userpick_menu(chat_id)
 
         # ---- انتخاب پلن‌ها (ویزارد) ----
         elif rest.startswith("plan_toggle_"):
@@ -4140,14 +4466,20 @@ def handle_message(message, callback_data=None):
             if res.get('success'):
                 auth_manager.log_activity(chat_id, "disc_create",
                                           f"{res.get('code')} id={res.get('discount_id')}")
-                send_message(chat_id, f"✅ کد تخفیف `{res.get('code')}` با موفقیت ساخته شد!")
+                new_code = res.get('code')
+                kb_ok = {"inline_keyboard": [[
+                    {"text": f"{t(chat_id, 'disc_copy_code')}: {new_code}",
+                     "copy_text": {"text": new_code}},
+                ]]}
+                send_message(chat_id, f"✅ کد تخفیف `{new_code}` با موفقیت ساخته شد!", kb_ok)
                 new_id = res.get('discount_id')
                 d = auth_manager.get_discount(new_id)
                 if d and d['scope'] == 'personal':
                     kb = {"inline_keyboard": [[
                         {"text": t(chat_id, "disc_notify_users"),
                          "callback_data": f"admin_disc_notify_{new_id}"},
-                        {"text": "بعداً", "callback_data": f"admin_disc_{new_id}"},
+                        {"text": t(chat_id, "disc_code_detail"),
+                         "callback_data": f"admin_disc_{new_id}"},
                     ]]}
                     send_message(chat_id,
                                  f"📣 کد شخصی است ({len(d.get('allowed_users') or [])} کاربر).\n"
@@ -4256,11 +4588,9 @@ def handle_message(message, callback_data=None):
             if not d:
                 return
             if d['scope'] == 'public':
-                set_state(chat_id, "awaiting_disc_eusers", disc_id=did)
-                send_message(chat_id,
-                             "👤 *تبدیل به شخصی:*\n\n"
-                             "آیدی کاربران مجاز را با کاما جدا کنید:\n"
-                             "مثال: `123456789, 987654321`")
+                set_state(chat_id, "awaiting_disc_euserpick", disc_id=did,
+                          selected=[], page=0, query='')
+                handle_userpick_menu(chat_id)
             else:
                 auth_manager.update_discount(did, scope='public')
                 auth_manager.log_activity(chat_id, "disc_scope", f"{did} -> public")
@@ -4297,10 +4627,9 @@ def handle_message(message, callback_data=None):
                 did = int(rest.replace("useradd_", ""))
             except ValueError:
                 return
-            set_state(chat_id, "awaiting_disc_useradd", disc_id=did)
-            send_message(chat_id,
-                         "➕ آیدی کاربران جدید را با کاما جدا کنید:\n"
-                         "مثال: `123456789, 987654321`")
+            set_state(chat_id, "awaiting_disc_uaddpick", disc_id=did,
+                          selected=[], page=0, query='')
+            handle_userpick_menu(chat_id)
         elif rest.startswith("users_"):
             try:
                 did = int(rest.replace("users_", ""))
@@ -6745,6 +7074,17 @@ def handle_message(message, callback_data=None):
             return
 
         # ===== ویزارد کد تخفیف: کاربران شخصی =====
+        # ===== پیکر کاربر: دریافت متن جستجو =====
+        elif current_state_name == "awaiting_disc_usearch":
+            if not auth_manager.is_admin(chat_id):
+                clear_state(chat_id)
+                return
+            current_state_data['query'] = (text or "").strip()
+            current_state_data['page'] = 0
+            _restore_pick_state(chat_id, current_state_data)
+            handle_userpick_menu(chat_id)
+            return
+
         elif current_state_name == "awaiting_disc_users":
             if not auth_manager.is_admin(chat_id):
                 clear_state(chat_id)

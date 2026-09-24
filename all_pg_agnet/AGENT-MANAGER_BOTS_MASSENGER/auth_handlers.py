@@ -496,6 +496,11 @@ def handle_unauthenticated_user(message, bot_token):
             ]
         }
         send_message(chat_id, msg, keyboard, bot_token=bot_token)
+        # 🎟️ اعلام کدهای تخفیف عمومی فعال به تازه‌وارد (فقط همین یک‌بار)
+        try:
+            announce_public_discounts_to_new_user(chat_id, bot_token, lang="fa")
+        except Exception as e:
+            logger.error(f"❌ خطا در اعلام تخفیف به تازه‌وارد {chat_id}: {e}")
         return True
     else:
         # کاربر جدید بدون تست (مثلاً تست غیرفعال) - مستقیم تعرفه‌ها
@@ -505,6 +510,11 @@ def handle_unauthenticated_user(message, bot_token):
         )
         keyboard = create_auth_keyboard_fa()
         send_message(chat_id, msg, keyboard, bot_token=bot_token)
+        if result.get('success'):
+            try:
+                announce_public_discounts_to_new_user(chat_id, bot_token, lang="fa")
+            except Exception as e:
+                logger.error(f"❌ خطا در اعلام تخفیف به تازه‌وارد {chat_id}: {e}")
         return False
 
 
@@ -1252,6 +1262,21 @@ def build_plan_purchase_text(plan, discount_result=None, lang="fa"):
     return msg
 
 
+def copy_code_button(code, lang="fa", with_code_text=True):
+    """
+    دکمه شیشه‌ای «کپی با یک لمس» (نیتیو - مستند رسمی بله: docs.bale.ai)
+    با لمس، متن کد مستقیم در کلیپ‌برد کاربر کپی می‌شود؛ بدون نیاز به callback.
+    """
+    fa = (lang == "fa")
+    if with_code_text:
+        label = f"📋 کپی {code}" if fa else f"📋 Copy {code}"
+    else:
+        label = "📋 کپی کد" if fa else "📋 Copy code"
+    if len(label) > 60:
+        label = label[:57] + "..."
+    return {"text": label, "copy_text": {"text": str(code)}}
+
+
 def build_plan_purchase_keyboard(plan_id, discount_result=None, lang="fa"):
     """دکمه‌های پیش‌فاکتور: اعمال/تغییر/حذف کد + پرداخت + بازگشت"""
     rows = []
@@ -1259,6 +1284,7 @@ def build_plan_purchase_keyboard(plan_id, discount_result=None, lang="fa"):
     if discount_result and discount_result.get('valid'):
         d = discount_result['discount']
         disc_id = d['id']
+        rows.append([copy_code_button(d['code'], lang)])
         if discount_result.get('is_free'):
             rows.append([{"text": "🎁 دریافت رایگان با کد تخفیف" if fa else "🎁 Get FREE with coupon",
                           "callback_data": f"buy_free_{plan_id}_d{disc_id}"}])
@@ -1506,10 +1532,12 @@ def show_my_discounts(chat_id, bot_token, lang="fa"):
         msg = "🎟️ *My personal coupons*\n\n"
         for d in codes:
             msg += f"🔹 `{d['code']}`\n"
-    kb = {"inline_keyboard": [
-        [{"text": "🏷️ مشاهده تعرفه‌ها" if fa else "🏷️ Tariffs",
-          "callback_data": "show_tariffs"}]
-    ]}
+    rows = []
+    for d in codes[:10]:
+        rows.append([copy_code_button(d['code'], lang)])
+    rows.append([{"text": "🏷️ مشاهده تعرفه‌ها" if fa else "🏷️ Tariffs",
+                  "callback_data": "show_tariffs"}])
+    kb = {"inline_keyboard": rows}
     send_message(chat_id, msg, kb, bot_token=bot_token)
 
 
@@ -1536,13 +1564,15 @@ def notify_personal_discount(user_chat_id, discount, bot_token, lang="fa"):
             msg += "⏰ انقضا: نامحدود\n"
         msg += (f"🔢 سقف استفاده شما: {discount.get('per_user_limit', 1)} بار\n\n"
                 "🔒 این کد فقط برای شماست و دیگران نمی‌توانند از آن استفاده کنند.\n"
-                "برای استفاده، هنگام خرید کد را وارد کنید:")
+                "👇 برای کپی، دکمه زیر را بزنید؛ بعد هنگام خرید واردش کنید:")
         kb = {"inline_keyboard": [
+            [copy_code_button(discount['code'], "fa")],
             [{"text": "🏷️ مشاهده تعرفه‌ها", "callback_data": "show_tariffs"}]
         ]}
     else:
         msg = (f"🎟️ *Personal coupon for you!*\n\n🔑 `{discount['code']}`")
         kb = {"inline_keyboard": [
+            [copy_code_button(discount['code'], "en")],
             [{"text": "🏷️ Tariffs", "callback_data": "show_tariffs"}]
         ]}
     return send_message(user_chat_id, msg, kb, bot_token=bot_token)
@@ -1584,13 +1614,15 @@ def broadcast_public_discount(discount_id, bot_token, lang="fa"):
             msg += f"⏰ انقضا: {d['expires_at']}\n"
         if d.get('total_limit') is not None:
             msg += f"🔢 ظرفیت محدود: {d['total_limit']} نفر اول!\n"
-        msg += "\n⚡ عجله کنید! هنگام خرید کد را وارد کنید:"
+        msg += "\n⚡ عجله کنید! 👇 دکمه زیر را بزنید تا کد کپی شود، بعد هنگام خرید واردش کنید:"
         kb = {"inline_keyboard": [
+            [copy_code_button(d['code'], "fa")],
             [{"text": "🏷️ مشاهده تعرفه‌ها", "callback_data": "show_tariffs"}]
         ]}
     else:
         msg = f"🎉 *New coupon!* `{d['code']}`"
         kb = {"inline_keyboard": [
+            [copy_code_button(d['code'], "en")],
             [{"text": "🏷️ Tariffs", "callback_data": "show_tariffs"}]
         ]}
     sent, failed = 0, 0
@@ -1665,3 +1697,81 @@ def parse_expiry_input(text):
         return {'success': True, 'expires_at': exp_s, 'label': exp_s}
     except ValueError:
         return {'success': False, 'error': 'فرمت تاریخ نامعتبر است (مثال: 1405/07/15 یا 30)'}
+
+
+def announce_public_discounts_to_new_user(chat_id, bot_token, lang="fa"):
+    """
+    اعلام خودکار کدهای تخفیف عمومی فعال به کاربر تازه‌وارد.
+    فقط در لحظه ثبت‌نام صدا زده می‌شود (تکرار ندارد = بدون اسپم).
+    اگر کد معتبری نباشد هیچ پیامی نمی‌فرستد.
+    Returns: تعداد کدهای اعلام‌شده
+    """
+    fa = (lang == "fa")
+    try:
+        codes = auth_manager.get_valid_public_discounts_for_user(chat_id, limit=5)
+    except Exception as e:
+        logger.error(f"❌ خطا در دریافت کدهای عمومی برای {chat_id}: {e}")
+        return 0
+    if not codes:
+        return 0
+
+    if fa:
+        msg = ("🎉 *خبر خوب! همین الان کد تخفیف فعال داریم*\n\n"
+               "می‌تونی هنگام خرید اشتراک از این کدها استفاده کنی:\n\n")
+        for d in codes:
+            used = auth_manager.count_discount_user_uses(d['id'], chat_id)
+            left = max(0, d['per_user_limit'] - used)
+            msg += f"🔹 `{d['code']}` — {format_discount_value_fa(d)}\n"
+            if d.get('title'):
+                msg += f"   📝 {d['title']}\n"
+            if d.get('allowed_plans'):
+                names = []
+                for pid in d['allowed_plans']:
+                    p = auth_manager.get_plan(pid)
+                    names.append(p['name'] if p else f"#{pid}")
+                msg += f"   📦 مشمول: {', '.join(names)}\n"
+            else:
+                msg += "   📦 مشمول: همه پلن‌ها\n"
+            if d.get('expires_at'):
+                msg += f"   ⏰ انقضا: {d['expires_at']}\n"
+            else:
+                msg += "   ⏰ انقضا: نامحدود\n"
+            if d.get('total_limit') is not None:
+                remain = max(0, d['total_limit'] - d['used_count'])
+                msg += f"   🔥 ظرفیت باقی‌مانده: {remain} نفر\n"
+            msg += f"   🔢 سهم تو: {left} بار\n\n"
+        # اگر کد شخصی هم برایش صادر شده، راهنمایی‌اش کن
+        try:
+            n_personal = len(auth_manager.get_user_personal_discounts(chat_id, only_valid=True))
+        except Exception:
+            n_personal = 0
+        if n_personal:
+            msg += (f"🎁 *{n_personal} کد تخفیف اختصاصی* هم فقط برای تو صادر شده!\n"
+                    "از بخش «🎟️ کدهای تخفیف من» ببینشون.\n\n")
+        msg += ("👇 برای کپی هر کد، دکمه زیرش را بزن؛\n"
+                "بعد در بخش تعرفه‌ها هنگام خرید واردش کن.")
+        rows = []
+        for d in codes:
+            rows.append([copy_code_button(d['code'], "fa")])
+        rows.append([{"text": "🏷️ مشاهده تعرفه‌ها", "callback_data": "show_tariffs"}])
+        if n_personal:
+            rows.append([{"text": "🎟️ کدهای تخفیف من", "callback_data": "my_discounts"}])
+    else:
+        msg = "🎉 *Active public coupons:*\n\n"
+        for d in codes:
+            msg += f"🔹 `{d['code']}`\n"
+        rows = []
+        for d in codes:
+            rows.append([copy_code_button(d['code'], "en")])
+        rows.append([{"text": "🏷️ Tariffs", "callback_data": "show_tariffs"}])
+
+    kb = {"inline_keyboard": rows}
+    try:
+        if send_message(chat_id, msg, kb, bot_token=bot_token):
+            auth_manager.log_activity(chat_id, 'discount_announce',
+                                      f"{len(codes)} public codes")
+            logger.info(f"📢 اعلام {len(codes)} کد عمومی به کاربر جدید {chat_id}")
+            return len(codes)
+    except Exception as e:
+        logger.error(f"❌ خطا در اعلام کد به {chat_id}: {e}")
+    return 0

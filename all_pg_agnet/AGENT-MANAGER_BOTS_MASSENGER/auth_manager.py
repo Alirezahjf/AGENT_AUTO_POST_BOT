@@ -2403,6 +2403,43 @@ class AuthManager:
         finally:
             conn.close()
 
+    def get_valid_public_discounts_for_user(self, chat_id: int, limit: int = 5) -> List[Dict]:
+        """
+        کدهای عمومی که «الان» برای این کاربر قابل استفاده‌اند (برای اعلام به کاربر جدید).
+        فیلترها: عمومی بودن، وضعیت فعال (تاریخ+ظرفیت+فعال بودن)، سقف هر کاربر، فقط-خرید-اول.
+        محدودیت پلن/کف خرید چون بدون پلن قابل ارزیابی نیست، هنگام اعمال کد چک می‌شود.
+        """
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                SELECT id, code, title, discount_type, percent, amount_rial,
+                       max_discount_rial, min_order_rial, scope, first_purchase_only,
+                       total_limit, per_user_limit, used_count,
+                       starts_at, expires_at, is_active, created_by,
+                       created_at, updated_at, note
+                FROM discount_codes
+                WHERE scope = 'public'
+                ORDER BY id DESC LIMIT ?
+            ''', (max(limit * 4, 20),))
+            rows = cursor.fetchall()
+            has_purchase = self.count_user_completed_purchases(chat_id) > 0
+            out = []
+            for row in rows:
+                d = self._row_to_discount(row, cursor, True)
+                if d['status'] != 'active':
+                    continue
+                if self.count_discount_user_uses(d['id'], chat_id) >= d['per_user_limit']:
+                    continue
+                if d['first_purchase_only'] and has_purchase:
+                    continue
+                out.append(d)
+                if len(out) >= limit:
+                    break
+            return out
+        finally:
+            conn.close()
+
     # ========== مدیریت ادمین‌ها ==========
 
     def setup_initial_admin(self, chat_id: int, username: str) -> Dict:
