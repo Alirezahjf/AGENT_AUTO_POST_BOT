@@ -223,6 +223,46 @@ LANGUAGES = {
         "trial_days_success": "✅ مدت تست پیش‌فرض ذخیره شد",
         "users_count": "کاربران",
         "stats_line": "📊 آمار: {total} کاربر | {permanent} دائمی | {timed} محدود | {expired} منقضی",
+
+        # ===== کدهای تخفیف =====
+        "manage_discounts": "🎟️ کدهای تخفیف",
+        "discounts_title": "🎟️ *مدیریت کدهای تخفیف*",
+        "add_discount": "➕ کد تخفیف جدید",
+        "disc_all": "📋 همه",
+        "disc_active": "🟢 فعال",
+        "disc_public": "🌍 عمومی",
+        "disc_personal": "👤 شخصی",
+        "disc_expired": "🔴 منقضی",
+        "disc_exhausted": "⛔ تمام‌شده",
+        "disc_back_to_tariffs": "🔙 بازگشت به تعرفه‌ها",
+        "disc_toggle": "🔄 فعال/غیرفعال",
+        "disc_edit": "✏️ ویرایش",
+        "disc_usages": "📜 تاریخچه استفاده",
+        "disc_stats": "📊 آمار",
+        "disc_users": "👥 کاربران مجاز",
+        "disc_plans": "📦 پلن‌های مشمول",
+        "disc_notify": "📣 اطلاع‌رسانی",
+        "disc_delete": "🗑️ حذف کد",
+        "disc_percent": "٪ درصدی",
+        "disc_fixed": "💰 مبلغی",
+        "disc_scope_public": "🌍 عمومی (همه کاربران)",
+        "disc_scope_personal": "👤 شخصی (کاربران خاص)",
+        "disc_skip": "⏭️ رد شدن",
+        "disc_unlimited": "♾️ نامحدود",
+        "disc_confirm_create": "✅ ثبت نهایی",
+        "disc_cancel": "❌ انصراف",
+        "disc_autogen": "🎲 تولید خودکار کد",
+        "disc_notify_users": "📣 ارسال به کاربران مجاز",
+        "disc_broadcast": "📣 اطلاع‌رسانی به همه کاربران",
+        "disc_pick_done": "✅ ثبت انتخاب",
+        "disc_pick_search": "🔍 جستجو",
+        "disc_pick_all": "🔙 کل لیست",
+        "disc_pick_manual": "✍️ ورود دستی آیدی",
+        "disc_pick_from_list": "📋 انتخاب از لیست",
+        "disc_pick_empty": "❌ هنوز کاربری انتخاب نشده! روی نام کاربران بزنید.",
+        "disc_pick_search_prompt": "🔍 نام کاربری یا بخشی از آیدی عددی را وارد کنید:",
+        "disc_copy_code": "📋 کپی کد",
+        "disc_code_detail": "🔍 جزئیات کد",
     },
     "en": {
         # ===== پیام‌های خوش‌آمدگویی =====
@@ -417,6 +457,46 @@ LANGUAGES = {
         "trial_days_success": "✅ Default trial duration saved",
         "users_count": "users",
         "stats_line": "📊 Stats: {total} users | {permanent} lifetime | {timed} limited | {expired} expired",
+
+        # ===== Discount coupons =====
+        "manage_discounts": "🎟️ Discount Codes",
+        "discounts_title": "🎟️ *Discount Code Management*",
+        "add_discount": "➕ New discount code",
+        "disc_all": "📋 All",
+        "disc_active": "🟢 Active",
+        "disc_public": "🌍 Public",
+        "disc_personal": "👤 Personal",
+        "disc_expired": "🔴 Expired",
+        "disc_exhausted": "⛔ Exhausted",
+        "disc_back_to_tariffs": "🔙 Back to tariffs",
+        "disc_toggle": "🔄 Enable/Disable",
+        "disc_edit": "✏️ Edit",
+        "disc_usages": "📜 Usage history",
+        "disc_stats": "📊 Stats",
+        "disc_users": "👥 Allowed users",
+        "disc_plans": "📦 Eligible plans",
+        "disc_notify": "📣 Notify",
+        "disc_delete": "🗑️ Delete code",
+        "disc_percent": "٪ Percent",
+        "disc_fixed": "💰 Fixed amount",
+        "disc_scope_public": "🌍 Public (everyone)",
+        "disc_scope_personal": "👤 Personal (specific users)",
+        "disc_skip": "⏭️ Skip",
+        "disc_unlimited": "♾️ Unlimited",
+        "disc_confirm_create": "✅ Confirm & create",
+        "disc_cancel": "❌ Cancel",
+        "disc_autogen": "🎲 Auto-generate code",
+        "disc_notify_users": "📣 Send to allowed users",
+        "disc_broadcast": "📣 Notify all users",
+        "disc_pick_done": "✅ Confirm selection",
+        "disc_pick_search": "🔍 Search",
+        "disc_pick_all": "🔙 Full list",
+        "disc_pick_manual": "✍️ Manual ID entry",
+        "disc_pick_from_list": "📋 Pick from list",
+        "disc_pick_empty": "❌ No user selected yet! Tap user names.",
+        "disc_pick_search_prompt": "🔍 Enter username or part of numeric ID:",
+        "disc_copy_code": "📋 Copy code",
+        "disc_code_detail": "🔍 Code details",
     }
 }
 
@@ -1827,7 +1907,7 @@ def handle_admin_menu(chat_id, message_id=None):
             "━━━━━━━━━━━━━━━━\n\n"
             "یک گزینه را انتخاب کنید:\n\n"
             "👥 *مدیریت کاربران* — مشاهده پروفایل، هدیه و تمدید مدت دسترسی\n"
-            "🏷️ *تعرفه‌ها* — تنظیم قیمت و مدت پلن‌های خرید\n"
+            "🏷️ *تعرفه‌ها* — تنظیم قیمت و مدت پلن‌ها + 🎟️ کدهای تخفیف\n"
             "📋 *درخواست‌ها* — بررسی درخواست‌های معلق\n"
             "⏱️ *تست پیش‌فرض* — مدت تست رایگان کاربران جدید"
         )
@@ -2263,6 +2343,10 @@ def handle_user_payments(admin_chat_id, target_chat_id, edit_id=None):
             toman = (p['amount'] or 0) // 10
             status_icon = "✅" if p['status'] == 'completed' else "⏳" if p['status'] == 'pending' else "❌"
             msg += f"{status_icon} {toman:,} تومان | {p['status']}\n"
+            if p.get('discount_code'):
+                d_toman = (p.get('discount_amount') or 0) // 10
+                o_toman = (p.get('original_amount') or p['amount'] or 0) // 10
+                msg += f"   🎟️ {p['discount_code']} | تخفیف: {d_toman:,} (اصلی: {o_toman:,})\n"
             msg += f"   🆔 {p.get('payment_id') or '-'}\n"
             msg += f"   📅 {p.get('created_at') or '-'}\n\n"
 
@@ -2498,6 +2582,12 @@ def handle_manage_tariffs(chat_id, edit_id=None):
         inline_rows.append([{"text": label, "callback_data": f"admin_plan_{plan['id']}"}])
 
     inline_rows.append([{"text": t(chat_id, "add_new_plan"), "callback_data": "admin_plan_new"}])
+    try:
+        dover = auth_manager.get_discounts_overview()
+        disc_label = f"{t(chat_id, 'manage_discounts')} ({dover['total']} کد)"
+    except Exception:
+        disc_label = t(chat_id, "manage_discounts")
+    inline_rows.append([{"text": disc_label, "callback_data": "admin_disc_list"}])
     inline_rows.append([{"text": t(chat_id, "broadcast_new_plan"), "callback_data": "admin_broadcast_tariffs"}])
     inline_rows.append([{"text": t(chat_id, "back_to_admin_menu"), "callback_data": "admin_menu_back"}])
 
@@ -2621,6 +2711,998 @@ def handle_default_trial_days_prompt(chat_id):
     set_state(chat_id, "awaiting_trial_days")
 
 
+# ================================================================
+# ========== مدیریت کدهای تخفیف (پنل ادمین) ==========
+# ================================================================
+
+DISCOUNTS_PER_PAGE = 6
+DISC_FILTERS = ['all', 'active', 'public', 'personal', 'expired', 'exhausted']
+
+
+def _disc_value_short(d):
+    if d.get('discount_type') == 'percent':
+        return f"٪{d.get('percent')}"
+    return f"{int(d.get('amount_rial') or 0) // 10:,}ت"
+
+
+def _disc_status_icon(status):
+    return {'active': '🟢', 'inactive': '⚪', 'not_started': '⏳',
+            'expired': '🔴', 'exhausted': '⛔'}.get(status, '•')
+
+
+def _disc_scope_icon(d):
+    return '👤' if d.get('scope') == 'personal' else '🌍'
+
+
+def _disc_plan_names(plan_ids):
+    if not plan_ids:
+        return 'همه پلن‌ها'
+    names = []
+    for pid in plan_ids:
+        try:
+            p = auth_manager.get_plan(int(pid))
+            names.append(p['name'] if p else f"#{pid} (حذف‌شده)")
+        except Exception:
+            names.append(f"#{pid}")
+    return '، '.join(names)
+
+
+def _disc_equivalents_text(disc_like):
+    """پیش‌نمایش محاسبه خودکار معادل قیمت روی پلن‌های فعال"""
+    try:
+        plans = auth_manager.get_plans(include_disabled=False)
+    except Exception:
+        return ""
+    if not plans:
+        return ""
+    lines = []
+    for p in plans[:6]:
+        price = int(p['price_rial'])
+        disc, final = AuthManager.compute_discount_amount(disc_like, price)
+        lines.append(f"• {p['name']}: {price // 10:,} ← 🎟️{disc // 10:,} ← 💳*{final // 10:,}*")
+    more = f"\n… و {len(plans) - 6} پلن دیگر" if len(plans) > 6 else ""
+    return "🧮 *معادل قیمت روی پلن‌ها:*\n" + "\n".join(lines) + more
+
+
+def _disc_full_card(d, lang="fa"):
+    """کارت کامل اطلاعات کد برای ادمین"""
+    fa = (lang == "fa")
+    if d['discount_type'] == 'percent':
+        val_line = f"٪{d['percent']} درصدی"
+        if d.get('max_discount_rial'):
+            val_line += f"\n🎯 سقف تخفیف: {int(d['max_discount_rial']) // 10:,} تومان"
+    else:
+        val_line = f"{int(d['amount_rial'] or 0) // 10:,} تومان (مبلغی)"
+    if d['scope'] == 'personal':
+        scope_line = f"👤 شخصی ({len(d.get('allowed_users') or [])} کاربر مجاز)"
+    else:
+        scope_line = "🌍 عمومی (همه کاربران)"
+    if d['total_limit'] is None:
+        cap_line = f"♾️ نامحدود (استفاده‌شده: {d['used_count']})"
+    else:
+        cap_line = f"{d['used_count']} از {d['total_limit']} (باقی: {d.get('remaining', 0)})"
+    first_line = "✅ بله" if d.get('first_purchase_only') else "❌ نه"
+    min_line = f"{int(d['min_order_rial']) // 10:,} تومان" if d.get('min_order_rial') else "—"
+    exp_line = d['expires_at'] if d.get('expires_at') else "♾️ نامحدود"
+    start_line = d.get('starts_at') or "—"
+
+    if fa:
+        msg = (f"🎟️ *کد: `{d['code']}`*\n\n"
+               f"{d.get('status_fa', '')} | {scope_line}\n")
+        if d.get('title'):
+            msg += f"📝 عنوان: {d['title']}\n"
+        msg += (f"💸 تخفیف: {val_line}\n"
+                f"🧾 کف خرید: {min_line}\n"
+                f"📦 پلن‌ها: {_disc_plan_names(d.get('allowed_plans'))}\n"
+                f"🔢 ظرفیت کل: {cap_line}\n"
+                f"👤 سقف هر کاربر: {d.get('per_user_limit', 1)} بار\n"
+                f"🛒 فقط خرید اول: {first_line}\n"
+                f"▶️ شروع: {start_line}\n"
+                f"⏰ انقضا: {exp_line}\n")
+        if d.get('note'):
+            msg += f"🗒️ یادداشت: {d['note']}\n"
+        msg += f"\n🆔 ID: `{d['id']}` | 📅 ایجاد: {d.get('created_at') or '-'}"
+        return msg
+    return (f"🎟️ `{d['code']}`\n{d.get('status_fa', '')}\n"
+            f"Type: {d['discount_type']} | Used: {d['used_count']}")
+
+
+def _parse_chat_ids(text):
+    """تجزیه آیدی‌های عددی جدا شده با کاما/فاصله/خط جدید + ارقام فارسی"""
+    import re
+    try:
+        from auth_handlers import fa_to_en_digits as _fa
+        s = _fa(text)
+    except Exception:
+        s = str(text or '')
+    s = s.replace('،', ',').replace(';', ',')
+    parts = re.split(r'[\s,]+', s)
+    ids, bad = [], []
+    for p in parts:
+        p = (p or '').strip()
+        if not p:
+            continue
+        try:
+            v = int(p)
+            if v <= 0:
+                raise ValueError
+            ids.append(v)
+        except ValueError:
+            bad.append(p)
+    # حذف تکراری با حفظ ترتیب
+    seen, uniq = set(), []
+    for v in ids:
+        if v not in seen:
+            seen.add(v)
+            uniq.append(v)
+    return uniq, bad
+
+
+def handle_discount_list(chat_id, page=0, dfilter='all', edit_id=None):
+    """لیست کدهای تخفیف با فیلتر و صفحه‌بندی"""
+    if not auth_manager.is_admin(chat_id):
+        send_message(chat_id, t(chat_id, "unauthorized_access"), create_main_keyboard(chat_id))
+        return
+    if dfilter not in DISC_FILTERS:
+        dfilter = 'all'
+    lang = get_user_lang(chat_id)
+
+    codes = auth_manager.list_discounts(status_filter=dfilter)
+    try:
+        over = auth_manager.get_discounts_overview()
+    except Exception:
+        over = None
+
+    if lang == "fa":
+        msg = t(chat_id, "discounts_title") + "\n"
+        if over:
+            msg += (f"\n📊 {over['total']} کد | 🟢{over['active_flag']} فعال | "
+                    f"👤{over['personal']} شخصی | "
+                    f"🎟️ {over['total_usages']} استفاده | "
+                    f"💸 {over['total_discount_rial'] // 10:,} تومان تخفیف\n")
+        msg += "\nروی هر کد برای جزئیات بزنید:\n"
+    else:
+        msg = t(chat_id, "discounts_title") + "\n\n"
+
+    total_pages = max(1, (len(codes) + DISCOUNTS_PER_PAGE - 1) // DISCOUNTS_PER_PAGE)
+    page = max(0, min(page, total_pages - 1))
+    page_codes = codes[page * DISCOUNTS_PER_PAGE:(page + 1) * DISCOUNTS_PER_PAGE]
+
+    if not page_codes:
+        msg += "\n📭 کدی در این دسته وجود ندارد."
+
+    rows = []
+    # ردیف‌های فیلتر
+    rows.append([
+        {"text": ("✅ " if dfilter == 'all' else "") + t(chat_id, "disc_all"),
+         "callback_data": "admin_disc_filter_all"},
+        {"text": ("✅ " if dfilter == 'active' else "") + t(chat_id, "disc_active"),
+         "callback_data": "admin_disc_filter_active"},
+    ])
+    rows.append([
+        {"text": ("✅ " if dfilter == 'public' else "") + t(chat_id, "disc_public"),
+         "callback_data": "admin_disc_filter_public"},
+        {"text": ("✅ " if dfilter == 'personal' else "") + t(chat_id, "disc_personal"),
+         "callback_data": "admin_disc_filter_personal"},
+    ])
+    rows.append([
+        {"text": ("✅ " if dfilter == 'expired' else "") + t(chat_id, "disc_expired"),
+         "callback_data": "admin_disc_filter_expired"},
+        {"text": ("✅ " if dfilter == 'exhausted' else "") + t(chat_id, "disc_exhausted"),
+         "callback_data": "admin_disc_filter_exhausted"},
+    ])
+    for d in page_codes:
+        if d['total_limit'] is None:
+            use_s = f"{d['used_count']}/∞"
+        else:
+            use_s = f"{d['used_count']}/{d['total_limit']}"
+        label = (f"{_disc_status_icon(d['status'])} {_disc_scope_icon(d)} "
+                 f"{d['code']} | {_disc_value_short(d)} | {use_s}")
+        if len(label) > 64:
+            label = label[:61] + "..."
+        rows.append([{"text": label, "callback_data": f"admin_disc_{d['id']}"}])
+
+    # صفحه‌بندی
+    if total_pages > 1:
+        nav = []
+        if page > 0:
+            nav.append({"text": t(chat_id, "prev_page"),
+                        "callback_data": f"admin_disc_page_{dfilter}_{page - 1}"})
+        nav.append({"text": t(chat_id, "page_of").format(page=page + 1, total=total_pages),
+                    "callback_data": "ignore"})
+        if page < total_pages - 1:
+            nav.append({"text": t(chat_id, "next_page"),
+                        "callback_data": f"admin_disc_page_{dfilter}_{page + 1}"})
+        rows.append(nav)
+
+    rows.append([{"text": t(chat_id, "add_discount"), "callback_data": "admin_disc_new"}])
+    rows.append([{"text": t(chat_id, "disc_back_to_tariffs"), "callback_data": "admin_tariffs_back"}])
+
+    kb = {"inline_keyboard": rows}
+    if edit_id:
+        edit_message(chat_id, edit_id, msg, kb)
+    else:
+        send_message(chat_id, msg, kb)
+
+
+def handle_discount_detail(chat_id, disc_id, edit_id=None):
+    """جزئیات کامل یک کد + پیش‌نمایش معادل قیمت + اکشن‌ها"""
+    if not auth_manager.is_admin(chat_id):
+        return
+    lang = get_user_lang(chat_id)
+    d = auth_manager.get_discount(disc_id)
+    if not d:
+        send_message(chat_id, "❌ کد یافت نشد", create_admin_menu_keyboard(chat_id))
+        return
+
+    msg = _disc_full_card(d, lang)
+    eq = _disc_equivalents_text(d)
+    if eq:
+        msg += "\n\n" + eq
+
+    toggle_label = "⚪ غیرفعال کن" if d['is_active'] else "✅ فعال کن"
+    if lang != "fa":
+        toggle_label = "⚪ Disable" if d['is_active'] else "✅ Enable"
+    n_users = len(d.get('allowed_users') or [])
+    rows = [
+        [
+            {"text": f"{t(chat_id, 'disc_copy_code')}: {d['code']}",
+             "copy_text": {"text": d['code']}},
+        ],
+        [
+            {"text": toggle_label, "callback_data": f"admin_disc_toggle_{d['id']}"},
+            {"text": t(chat_id, "disc_edit"), "callback_data": f"admin_disc_edit_{d['id']}"},
+        ],
+        [
+            {"text": f"{t(chat_id, 'disc_users')} ({n_users})",
+             "callback_data": f"admin_disc_users_{d['id']}"},
+            {"text": t(chat_id, "disc_plans"), "callback_data": f"admin_disc_plans_{d['id']}"},
+        ],
+        [
+            {"text": t(chat_id, "disc_usages"), "callback_data": f"admin_disc_usages_{d['id']}"},
+            {"text": t(chat_id, "disc_stats"), "callback_data": f"admin_disc_stats_{d['id']}"},
+        ],
+        [
+            {"text": t(chat_id, "disc_notify"), "callback_data": f"admin_disc_notify_{d['id']}"},
+            {"text": t(chat_id, "disc_delete"), "callback_data": f"admin_disc_del_{d['id']}"},
+        ],
+        [
+            {"text": "🎟️ لیست کدها", "callback_data": "admin_disc_back_list"},
+            {"text": t(chat_id, "disc_back_to_tariffs"), "callback_data": "admin_tariffs_back"},
+        ],
+    ]
+    kb = {"inline_keyboard": rows}
+    if edit_id:
+        edit_message(chat_id, edit_id, msg, kb)
+    else:
+        send_message(chat_id, msg, kb)
+
+
+# ---------- ویزارد ساخت کد ----------
+
+def handle_discount_create_start(chat_id):
+    if not auth_manager.is_admin(chat_id):
+        return
+    lang = get_user_lang(chat_id)
+    set_state(chat_id, "awaiting_disc_code", disc={})
+    if lang == "fa":
+        msg = ("🎟️ *ساخت کد تخفیف جدید — مرحله ۱ از ۱۰*\n\n"
+               "🔑 *کد را وارد کنید:*\n"
+               "• 3 تا 32 کاراکتر (حروف، عدد، - و _)\n"
+               "• مثال: `SUMMER20` یا `VIP-50000`\n\n"
+               "💡 یا دکمه تولید خودکار را بزنید:")
+    else:
+        msg = "🎟️ *New coupon — step 1/10*\n\n🔑 Enter the code (3-32 chars):"
+    kb = {"inline_keyboard": [
+        [{"text": t(chat_id, "disc_autogen"), "callback_data": "admin_disc_autogen"}],
+        [{"text": t(chat_id, "disc_cancel"), "callback_data": "admin_disc_cancel"}],
+    ]}
+    send_message(chat_id, msg, kb)
+
+
+def _disc_send_type_menu(chat_id, code):
+    set_state(chat_id, "awaiting_disc_type", disc=get_state(chat_id)[1].get('disc', {}))
+    lang = get_user_lang(chat_id)
+    if lang == "fa":
+        msg = (f"🎟️ کد: `{code}`\n\n"
+               "💸 *مرحله ۲: نوع تخفیف؟*\n\n"
+               "٪ *درصدی:* مثلاً ۲۰٪ از مبلغ هر پلن کم می‌شود\n"
+               "💰 *مبلغی:* مبلغ ثابت تومان از قیمت کم می‌شود")
+    else:
+        msg = f"🎟️ `{code}`\n\n💸 Step 2: discount type?"
+    kb = {"inline_keyboard": [
+        [
+            {"text": t(chat_id, "disc_percent"), "callback_data": "admin_disc_type_percent"},
+            {"text": t(chat_id, "disc_fixed"), "callback_data": "admin_disc_type_fixed"},
+        ],
+        [{"text": t(chat_id, "disc_cancel"), "callback_data": "admin_disc_cancel"}],
+    ]}
+    send_message(chat_id, msg, kb)
+
+
+def _disc_send_scope_menu(chat_id):
+    st = get_state(chat_id)[1].get('disc', {})
+    set_state(chat_id, "awaiting_disc_scope", disc=st)
+    lang = get_user_lang(chat_id)
+    if lang == "fa":
+        msg = ("🌍👤 *مرحله ۵: دامنه کد؟*\n\n"
+               "🌍 *عمومی:* همه کاربران می‌توانند استفاده کنند\n"
+               "👤 *شخصی:* فقط کاربران خاصی که شما مشخص می‌کنید "
+               "(بقیه خطای «این کد برای شما نیست» می‌گیرند)")
+    else:
+        msg = "🌍👤 Step 5: scope?"
+    kb = {"inline_keyboard": [
+        [{"text": t(chat_id, "disc_scope_public"), "callback_data": "admin_disc_scope_public"}],
+        [{"text": t(chat_id, "disc_scope_personal"), "callback_data": "admin_disc_scope_personal"}],
+        [{"text": t(chat_id, "disc_cancel"), "callback_data": "admin_disc_cancel"}],
+    ]}
+    send_message(chat_id, msg, kb)
+
+
+def _disc_send_plans_menu(chat_id, edit_id=None, for_edit=False):
+    """منوی چندانتخابی پلن‌ها (ویزارد یا ویرایش)"""
+    lang = get_user_lang(chat_id)
+    state_data = get_state(chat_id)[1]
+    if for_edit:
+        selected = [int(x) for x in state_data.get('selected', [])]
+    else:
+        selected = [int(x) for x in state_data.get('disc', {}).get('allowed_plan_ids', [])]
+    plans = auth_manager.get_plans(include_disabled=True)
+    prefix = "admin_disc_eplan_toggle_" if for_edit else "admin_disc_plan_toggle_"
+
+    if lang == "fa":
+        if for_edit:
+            msg = "📦 *پلن‌های مشمول:*\n\nروی هر پلن بزنید تا انتخاب/حذف شود.\nاگر هیچ‌کدام انتخاب نشود = *همه پلن‌ها*"
+        else:
+            msg = ("📦 *مرحله ۶: پلن‌های مشمول؟*\n\n"
+                   "روی هر پلن بزنید تا انتخاب/حذف شود.\n"
+                   "اگر هیچ‌کدام انتخاب نشود = *همه پلن‌ها* ✅")
+    else:
+        msg = "📦 Select eligible plans (none = all):"
+
+    rows = []
+    for p in plans:
+        mark = "✅" if p['id'] in selected else "⚪"
+        en = "" if p['enabled'] else " (غیرفعال)"
+        label = f"{mark} {p['name']}{en}"
+        rows.append([{"text": label[:60], "callback_data": f"{prefix}{p['id']}"}])
+    if for_edit:
+        all_label = "🌍 همه پلن‌ها" if lang == "fa" else "🌍 All plans"
+        done_label = "✅ ثبت" if lang == "fa" else "✅ Save"
+        rows.append([
+            {"text": all_label, "callback_data": "admin_disc_eplans_all"},
+            {"text": done_label, "callback_data": "admin_disc_eplans_done"},
+        ])
+        if state_data.get('disc_id'):
+            cancel_label = "❌ انصراف (بدون تغییر)" if lang == "fa" else "❌ Cancel"
+            rows.append([{"text": cancel_label, "callback_data": "admin_disc_eplans_cancel"}])
+    else:
+        rows.append([
+            {"text": "🌍 همه پلن‌ها", "callback_data": "admin_disc_plans_all"},
+            {"text": "✅ ثبت و ادامه", "callback_data": "admin_disc_plans_done"},
+        ])
+        rows.append([{"text": t(chat_id, "disc_cancel"), "callback_data": "admin_disc_cancel"}])
+    kb = {"inline_keyboard": rows}
+    if edit_id:
+        edit_message(chat_id, edit_id, msg, kb)
+    else:
+        send_message(chat_id, msg, kb)
+
+
+def _disc_send_confirm(chat_id):
+    """پیش‌نمایش نهایی ویزارد + دکمه ثبت"""
+    lang = get_user_lang(chat_id)
+    st = get_state(chat_id)[1].get('disc', {})
+    set_state(chat_id, "awaiting_disc_confirm", disc=st)
+
+    disc_like = {
+        'discount_type': st.get('discount_type'),
+        'percent': st.get('percent'),
+        'amount_rial': st.get('amount_rial', 0),
+        'max_discount_rial': st.get('max_discount_rial'),
+    }
+    if st.get('discount_type') == 'percent':
+        val = f"٪{st.get('percent')} درصدی"
+        if st.get('max_discount_rial'):
+            val += f" (سقف {st['max_discount_rial'] // 10:,} تومان)"
+    else:
+        val = f"{st.get('amount_rial', 0) // 10:,} تومان (مبلغی)"
+    scope = "👤 شخصی" if st.get('scope') == 'personal' else "🌍 عمومی"
+    users_s = ""
+    if st.get('scope') == 'personal':
+        users_s = f"\n👥 کاربران: {', '.join(str(x) for x in st.get('allowed_chat_ids', []))}"
+    total = "♾️ نامحدود" if st.get('total_limit') is None else str(st['total_limit'])
+    exp = st.get('expires_label') or (st.get('expires_at') or "♾️ نامحدود")
+    first = "✅ بله" if st.get('first_purchase_only') else "❌ نه"
+    min_s = f"{st['min_order_rial'] // 10:,} تومان" if st.get('min_order_rial') else "—"
+
+    if lang == "fa":
+        msg = ("🧾 *تأیید نهایی کد تخفیف*\n\n"
+               f"🔑 کد: `{st.get('code')}`\n"
+               f"💸 تخفیف: {val}\n"
+               f"📡 دامنه: {scope}{users_s}\n"
+               f"📦 پلن‌ها: {_disc_plan_names(st.get('allowed_plan_ids'))}\n"
+               f"🔢 ظرفیت کل: {total}\n"
+               f"👤 سقف هر کاربر: {st.get('per_user_limit', 1)} بار\n"
+               f"⏰ انقضا: {exp}\n"
+               f"🧾 کف خرید: {min_s}\n"
+               f"🛒 فقط خرید اول: {first}\n")
+        if st.get('title'):
+            msg += f"📝 عنوان: {st['title']}\n"
+        eq = _disc_equivalents_text(disc_like)
+        if eq:
+            msg += "\n" + eq
+        msg += "\n\nثبت شود؟"
+    else:
+        msg = f"🧾 Confirm coupon `{st.get('code')}`?"
+    kb = {"inline_keyboard": [
+        [
+            {"text": t(chat_id, "disc_confirm_create"), "callback_data": "admin_disc_confirm"},
+            {"text": t(chat_id, "disc_cancel"), "callback_data": "admin_disc_cancel"},
+        ]
+    ]}
+    send_message(chat_id, msg, kb)
+
+
+# ---------- پیکر انتخاب کاربر (دکمه شیشه‌ای چندانتخابی) ----------
+
+USERPICK_PER_PAGE = 8
+USERPICK_STATES = ("awaiting_disc_userpick", "awaiting_disc_euserpick", "awaiting_disc_uaddpick")
+
+
+def _filter_pick_users(users, query):
+    """فیلتر کاربران بر اساس نام کاربری/آیدی - خالص و قابل تست"""
+    q = (query or "").strip().lower().lstrip("@")
+    if not q:
+        return list(users)
+    try:
+        from auth_handlers import fa_to_en_digits
+        q = fa_to_en_digits(q)
+    except Exception:
+        pass
+    out = []
+    for u in users:
+        uname = (u.get('username') or "").lower()
+        cid = str(u.get('chat_id') or "")
+        if q in uname or q in cid:
+            out.append(u)
+    return out
+
+
+def _build_userpick_keyboard(chat_id, page_users, selected, page, total_pages, query):
+    """ساخت کیبورد پیکر - خالص و قابل تست"""
+    selected = set(int(x) for x in (selected or []))
+    rows = []
+    for u in page_users:
+        uid = u['chat_id']
+        mark = "✅" if uid in selected else "⚪"
+        uname = u.get('username') or "—"
+        role = "👨‍💼" if u.get('is_admin') else "👤"
+        label = f"{mark} {role} {uname} ({uid})"
+        if len(label) > 60:
+            label = label[:57] + "..."
+        rows.append([{"text": label, "callback_data": f"admin_disc_upick_{uid}"}])
+    if total_pages > 1:
+        nav = []
+        if page > 0:
+            nav.append({"text": t(chat_id, "prev_page"),
+                        "callback_data": f"admin_disc_upage_{page - 1}"})
+        nav.append({"text": t(chat_id, "page_of").format(page=page + 1, total=total_pages),
+                    "callback_data": "ignore"})
+        if page < total_pages - 1:
+            nav.append({"text": t(chat_id, "next_page"),
+                        "callback_data": f"admin_disc_upage_{page + 1}"})
+        rows.append(nav)
+    if query:
+        q_short = query if len(query) <= 18 else query[:15] + "..."
+        rows.append([{"text": f"{t(chat_id, 'disc_pick_all')} (🔍 {q_short})",
+                      "callback_data": "admin_disc_uall"}])
+    else:
+        rows.append([{"text": t(chat_id, "disc_pick_search"),
+                      "callback_data": "admin_disc_usearch"}])
+    rows.append([
+        {"text": f"{t(chat_id, 'disc_pick_done')} ({len(selected)})",
+         "callback_data": "admin_disc_udone"},
+    ])
+    rows.append([
+        {"text": t(chat_id, "disc_pick_manual"), "callback_data": "admin_disc_umanual"},
+        {"text": t(chat_id, "disc_cancel"), "callback_data": "admin_disc_ucancel"},
+    ])
+    return {"inline_keyboard": rows}
+
+
+def _restore_pick_state(chat_id, search_state):
+    """بازگردانی state پیکر از داخل state جستجو"""
+    pick = search_state.get('pick_state', 'awaiting_disc_userpick')
+    if pick not in USERPICK_STATES:
+        pick = 'awaiting_disc_userpick'
+    new = {'selected': search_state.get('selected', []),
+           'page': search_state.get('page', 0),
+           'query': search_state.get('query', '')}
+    if 'disc' in search_state:
+        new['disc'] = search_state['disc']
+    if 'disc_id' in search_state:
+        new['disc_id'] = search_state['disc_id']
+    set_state(chat_id, pick, **new)
+    return pick
+
+
+def handle_userpick_menu(chat_id, edit_id=None):
+    """رندر منوی انتخاب کاربر بر اساس state فعلی (هر ۳ حالت ویزارد/تبدیل/افزودن)"""
+    if not auth_manager.is_admin(chat_id):
+        return
+    st_name, st = get_state(chat_id)
+    if st_name not in USERPICK_STATES:
+        return
+    lang = get_user_lang(chat_id)
+    selected = [int(x) for x in st.get('selected', [])]
+    query = st.get('query', '') or ''
+
+    users = auth_manager.get_all_users()
+    if st_name == "awaiting_disc_uaddpick":
+        # در حالت افزودن، اعضای فعلی را از لیست حذف کن (تکراری انتخاب نشود)
+        try:
+            current = set(auth_manager.get_discount_users(st.get('disc_id')))
+            users = [u for u in users if u['chat_id'] not in current]
+        except Exception:
+            pass
+    users = _filter_pick_users(users, query)
+
+    total_pages = max(1, (len(users) + USERPICK_PER_PAGE - 1) // USERPICK_PER_PAGE)
+    page = max(0, min(int(st.get('page', 0)), total_pages - 1))
+    st['page'] = page
+    page_users = users[page * USERPICK_PER_PAGE:(page + 1) * USERPICK_PER_PAGE]
+    kb = _build_userpick_keyboard(chat_id, page_users, selected, page, total_pages, query)
+
+    if lang == "fa":
+        if st_name == "awaiting_disc_userpick":
+            title = "👤 *کد شخصی — انتخاب کاربران مجاز:*\n\n"
+        elif st_name == "awaiting_disc_euserpick":
+            title = "👤 *تبدیل به شخصی — انتخاب کاربران مجاز:*\n\n"
+        else:
+            title = "➕ *افزودن کاربر مجاز:*\n\n"
+        msg = title + "روی هر کاربر بزنید تا انتخاب/حذف شود (چندنفره).\n"
+        msg += f"✅ انتخاب‌شده: *{len(selected)} نفر*\n"
+        if query:
+            msg += f"🔍 جستجو: `{query}` ({len(users)} نتیجه)\n"
+        if not page_users:
+            msg += "\n📭 کاربری در این صفحه نیست."
+        msg += ("\n\n💡 کاربرانی که هنوز ربات را /start نکرده‌اند در لیست نیستند؛\n"
+                "برای آن‌ها «✍️ ورود دستی آیدی» را بزنید.")
+    else:
+        msg = f"👥 *Select users* ({len(selected)} selected)\n\nTap to toggle."
+    if edit_id:
+        edit_message(chat_id, edit_id, msg, kb)
+    else:
+        send_message(chat_id, msg, kb)
+
+
+MANUAL2PICK = {"awaiting_disc_users": "awaiting_disc_userpick",
+                "awaiting_disc_eusers": "awaiting_disc_euserpick",
+                "awaiting_disc_useradd": "awaiting_disc_uaddpick"}
+PICK2MANUAL = {v: k for k, v in MANUAL2PICK.items()}
+
+
+def handle_userpick_callback(chat_id, message_id, rest):
+    """روت کال‌بک‌های پیکر انتخاب کاربر (تاگل، صفحه، جستجو، ورود دستی، تأیید، لغو)"""
+    if not auth_manager.is_admin(chat_id):
+        return
+    st_name, st = get_state(chat_id)
+
+    # --- بازگشت به لیست (از حالت دستی یا جستجو) ---
+    if rest == "upickopen":
+        if st_name == "awaiting_disc_usearch":
+            _restore_pick_state(chat_id, st)
+        elif st_name in MANUAL2PICK:
+            new = {'selected': st.get('pick_selected', []),
+                   'page': st.get('pick_page', 0),
+                   'query': st.get('pick_query', '')}
+            if 'disc' in st:
+                new['disc'] = st['disc']
+            if 'disc_id' in st:
+                new['disc_id'] = st['disc_id']
+            set_state(chat_id, MANUAL2PICK[st_name], **new)
+        else:
+            return
+        handle_userpick_menu(chat_id, edit_id=message_id)
+        return
+
+    # --- لغو (حساس به زمینه) ---
+    if rest == "ucancel":
+        origin = st_name
+        if st_name == "awaiting_disc_usearch":
+            origin = st.get('pick_state', 'awaiting_disc_userpick')
+        elif st_name in MANUAL2PICK:
+            origin = MANUAL2PICK[st_name]
+        did = st.get('disc_id')
+        clear_state(chat_id)
+        if origin == "awaiting_disc_euserpick" and did:
+            handle_discount_detail(chat_id, did)
+        elif origin == "awaiting_disc_uaddpick" and did:
+            handle_discount_users(chat_id, did)
+        else:
+            handle_discount_list(chat_id)
+        return
+
+    # --- از اینجا فقط در یکی از ۳ state پیکر ---
+    if st_name not in USERPICK_STATES:
+        return
+    selected = [int(x) for x in st.get('selected', [])]
+
+    # --- تاگل انتخاب ---
+    if rest.startswith("upick_"):
+        try:
+            uid = int(rest.replace("upick_", "", 1))
+        except ValueError:
+            return
+        if uid in selected:
+            selected.remove(uid)
+        else:
+            selected.append(uid)
+        st['selected'] = selected
+        set_state(chat_id, st_name, **st)
+        handle_userpick_menu(chat_id, edit_id=message_id)
+        return
+
+    # --- صفحه‌بندی ---
+    if rest.startswith("upage_"):
+        try:
+            st['page'] = max(0, int(rest.replace("upage_", "", 1)))
+        except ValueError:
+            return
+        set_state(chat_id, st_name, **st)
+        handle_userpick_menu(chat_id, edit_id=message_id)
+        return
+
+    # --- بازگشت به لیست کامل (حذف فیلتر جستجو) ---
+    if rest == "uall":
+        st['query'] = ''
+        st['page'] = 0
+        set_state(chat_id, st_name, **st)
+        handle_userpick_menu(chat_id, edit_id=message_id)
+        return
+
+    # --- جستجو ---
+    if rest == "usearch":
+        new = {'pick_state': st_name, 'selected': selected,
+               'page': st.get('page', 0), 'query': st.get('query', '')}
+        if 'disc' in st:
+            new['disc'] = st['disc']
+        if 'disc_id' in st:
+            new['disc_id'] = st['disc_id']
+        set_state(chat_id, "awaiting_disc_usearch", **new)
+        kb = {"inline_keyboard": [
+            [{"text": t(chat_id, "disc_pick_from_list"),
+              "callback_data": "admin_disc_upickopen"}],
+            [{"text": t(chat_id, "disc_cancel"),
+              "callback_data": "admin_disc_ucancel"}],
+        ]}
+        edit_message(chat_id, message_id, t(chat_id, "disc_pick_search_prompt"), kb)
+        return
+
+    # --- ورود دستی آیدی (برای کاربران ثبت‌نشده) ---
+    if rest == "umanual":
+        new = {'pick_selected': selected,
+               'pick_page': st.get('page', 0),
+               'pick_query': st.get('query', '')}
+        if 'disc' in st:
+            new['disc'] = st['disc']
+        if 'disc_id' in st:
+            new['disc_id'] = st['disc_id']
+        set_state(chat_id, PICK2MANUAL[st_name], **new)
+        if get_user_lang(chat_id) == "fa":
+            prompt = ("✍️ *ورود دستی آیدی:*\n\n"
+                      "آیدی عددی کاربران را با کاما یا خط جدید جدا کنید:\n"
+                      "مثال: `123456789, 987654321`\n\n"
+                      "💡 برای کاربرانی که هنوز /start نکرده‌اند هم می‌توانید "
+                      "از قبل آیدی بدهید (وقتی عضو شوند کد کار می‌کند).")
+        else:
+            prompt = "✍️ Enter numeric chat IDs separated by comma:"
+        kb = {"inline_keyboard": [
+            [{"text": t(chat_id, "disc_pick_from_list"),
+              "callback_data": "admin_disc_upickopen"}],
+            [{"text": t(chat_id, "disc_cancel"),
+              "callback_data": "admin_disc_ucancel"}],
+        ]}
+        edit_message(chat_id, message_id, prompt, kb)
+        return
+
+    # --- تأیید نهایی ---
+    if rest == "udone":
+        if not selected:
+            send_message(chat_id, t(chat_id, "disc_pick_empty"))
+            return
+        if st_name == "awaiting_disc_userpick":
+            disc = st.get('disc', {})
+            disc['allowed_chat_ids'] = selected
+            set_state(chat_id, "awaiting_disc_plans", disc=disc)
+            edit_message(chat_id, message_id, f"✅ {len(selected)} کاربر انتخاب شد.")
+            _disc_send_plans_menu(chat_id)
+        elif st_name == "awaiting_disc_euserpick":
+            did = st.get('disc_id')
+            auth_manager.update_discount(did, scope='personal')
+            res = auth_manager.add_discount_users(did, selected)
+            clear_state(chat_id)
+            if res.get('success'):
+                auth_manager.log_activity(chat_id, "disc_users_add",
+                                          f"{did} +{res.get('added', 0)}")
+                send_message(chat_id,
+                             f"✅ کد شخصی شد و {res.get('added', 0)} کاربر اضافه شد.")
+            else:
+                send_message(chat_id, f"❌ {res.get('error', 'خطا')}")
+            handle_discount_detail(chat_id, did)
+        else:  # awaiting_disc_uaddpick
+            did = st.get('disc_id')
+            res = auth_manager.add_discount_users(did, selected)
+            clear_state(chat_id)
+            if res.get('success'):
+                auth_manager.log_activity(chat_id, "disc_users_add",
+                                          f"{did} +{res.get('added', 0)}")
+                send_message(chat_id, f"✅ {res.get('added', 0)} کاربر اضافه شد.")
+            else:
+                send_message(chat_id, f"❌ {res.get('error', 'خطا')}")
+            handle_discount_users(chat_id, did)
+        return
+
+
+# ---------- اکشن‌های کد ----------
+
+def handle_discount_toggle(chat_id, disc_id):
+    if not auth_manager.is_admin(chat_id):
+        return
+    d = auth_manager.get_discount(disc_id)
+    if not d:
+        return
+    auth_manager.set_discount_active(disc_id, not d['is_active'])
+    auth_manager.log_activity(chat_id, "disc_toggle", f"{disc_id} -> {not d['is_active']}")
+    handle_discount_detail(chat_id, disc_id)
+
+
+def handle_discount_delete_ask(chat_id, disc_id, edit_id=None):
+    if not auth_manager.is_admin(chat_id):
+        return
+    d = auth_manager.get_discount(disc_id)
+    if not d:
+        return
+    lang = get_user_lang(chat_id)
+    if lang == "fa":
+        msg = (f"🗑️ حذف کد `{d['code']}`؟\n\n"
+               f"⚠️ تاریخچه {d['used_count']} استفاده برای گزارش‌ها *حفظ* می‌شود، "
+               f"اما کد دیگر قابل استفاده نخواهد بود.")
+    else:
+        msg = f"🗑️ Delete `{d['code']}`?"
+    kb = {"inline_keyboard": [[
+        {"text": t(chat_id, "yes_delete"), "callback_data": f"admin_disc_delconfirm_{disc_id}"},
+        {"text": t(chat_id, "no_keep"), "callback_data": f"admin_disc_{disc_id}"},
+    ]]}
+    if edit_id:
+        edit_message(chat_id, edit_id, msg, kb)
+    else:
+        send_message(chat_id, msg, kb)
+
+
+def handle_discount_delete_confirm(chat_id, disc_id):
+    if not auth_manager.is_admin(chat_id):
+        return
+    res = auth_manager.delete_discount(disc_id)
+    if res.get('success'):
+        auth_manager.log_activity(chat_id, "disc_delete", f"{res.get('code')}")
+        send_message(chat_id,
+                     f"🗑️ کد `{res.get('code')}` حذف شد.\n"
+                     f"📜 تاریخچه {res.get('usages_kept', 0)} استفاده حفظ شد.")
+    else:
+        send_message(chat_id, f"❌ {res.get('error', 'خطا')}")
+    handle_discount_list(chat_id)
+
+
+def handle_discount_edit_menu(chat_id, disc_id, edit_id=None):
+    if not auth_manager.is_admin(chat_id):
+        return
+    d = auth_manager.get_discount(disc_id)
+    if not d:
+        return
+    lang = get_user_lang(chat_id)
+    if d['discount_type'] == 'percent':
+        val_btn = f"٪ ویرایش درصد (فعلی: ٪{d['percent']})"
+    else:
+        val_btn = f"💰 ویرایش مبلغ (فعلی: {int(d['amount_rial']) // 10:,}ت)"
+    scope_btn = "🌍 عمومی کن" if d['scope'] == 'personal' else "👤 شخصی کن"
+    first_btn = f"🛒 فقط-خرید-اول: {'✅' if d['first_purchase_only'] else '❌'}"
+    rows = [
+        [{"text": val_btn, "callback_data": f"admin_disc_efield_value_{disc_id}"}],
+    ]
+    if d['discount_type'] == 'percent':
+        cap_s = f"{int(d['max_discount_rial']) // 10:,}ت" if d.get('max_discount_rial') else "—"
+        rows.append([{"text": f"🎯 سقف تخفیف (فعلی: {cap_s})",
+                      "callback_data": f"admin_disc_efield_cap_{disc_id}"}])
+    min_s = f"{int(d['min_order_rial']) // 10:,}ت" if d.get('min_order_rial') else "—"
+    tot_s = "∞" if d['total_limit'] is None else str(d['total_limit'])
+    rows.append([{"text": f"🧾 کف خرید (فعلی: {min_s})",
+                  "callback_data": f"admin_disc_efield_min_{disc_id}"}])
+    rows.append([
+        {"text": f"🔢 سقف کل (فعلی: {tot_s})",
+         "callback_data": f"admin_disc_efield_total_{disc_id}"},
+        {"text": f"👤 سقف هر کاربر ({d['per_user_limit']})",
+         "callback_data": f"admin_disc_efield_peruser_{disc_id}"},
+    ])
+    rows.append([{"text": "⏰ ویرایش انقضا",
+                  "callback_data": f"admin_disc_efield_expiry_{disc_id}"}])
+    rows.append([{"text": "📝 ویرایش عنوان",
+                  "callback_data": f"admin_disc_efield_title_{disc_id}"}])
+    rows.append([
+        {"text": scope_btn, "callback_data": f"admin_disc_escope_{disc_id}"},
+        {"text": first_btn, "callback_data": f"admin_disc_efirst_{disc_id}"},
+    ])
+    rows.append([{"text": "🔙 بازگشت به جزئیات",
+                  "callback_data": f"admin_disc_{disc_id}"}])
+    msg = f"✏️ *ویرایش کد `{d['code']}`*\n\nکدام فیلد؟" if lang == "fa" else f"✏️ Edit `{d['code']}`"
+    kb = {"inline_keyboard": rows}
+    if edit_id:
+        edit_message(chat_id, edit_id, msg, kb)
+    else:
+        send_message(chat_id, msg, kb)
+
+
+def handle_discount_usages(chat_id, disc_id, edit_id=None):
+    if not auth_manager.is_admin(chat_id):
+        return
+    d = auth_manager.get_discount(disc_id)
+    if not d:
+        return
+    usages = auth_manager.get_discount_usages(disc_id, limit=15)
+    lang = get_user_lang(chat_id)
+    if lang == "fa":
+        msg = f"📜 *تاریخچه استفاده `{d['code']}`* (مجموع: {d['used_count']})\n\n"
+        if not usages:
+            msg += "📭 هنوز استفاده‌ای ثبت نشده."
+        for u in usages:
+            who = f"@{u['username']}" if u.get('username') else str(u['chat_id'])
+            msg += (f"• {who} (`{u['chat_id']}`)\n"
+                    f"  📦 {u.get('plan_name') or '-'} | "
+                    f"💰{u['original_rial'] // 10:,} ← 🎟️{u['discount_rial'] // 10:,} "
+                    f"← 💳{u['final_rial'] // 10:,}\n"
+                    f"  ⏰ {u['created_at']}\n")
+    else:
+        msg = f"📜 Usages of `{d['code']}`: {d['used_count']}"
+    kb = {"inline_keyboard": [[
+        {"text": "🔙 بازگشت به جزئیات", "callback_data": f"admin_disc_{disc_id}"}
+    ]]}
+    if edit_id:
+        edit_message(chat_id, edit_id, msg, kb)
+    else:
+        send_message(chat_id, msg, kb)
+
+
+def handle_discount_stats(chat_id, disc_id, edit_id=None):
+    if not auth_manager.is_admin(chat_id):
+        return
+    s = auth_manager.get_discount_stats(disc_id)
+    if not s:
+        return
+    d = s['discount']
+    lang = get_user_lang(chat_id)
+    if lang == "fa":
+        msg = (f"📊 *آمار کد `{d['code']}`*\n\n"
+               f"🔢 دفعات استفاده: {s['usages']}\n"
+               f"👥 کاربران یکتا: {s['unique_users']}\n"
+               f"💸 مجموع تخفیف اعطاشده: {s['total_discount_rial'] // 10:,} تومان\n"
+               f"💰 مجموع دریافتی از این کد: {s['total_final_rial'] // 10:,} تومان\n")
+        if d['total_limit'] is None:
+            msg += f"♾️ ظرفیت: نامحدود\n"
+        else:
+            msg += f"📦 ظرفیت: {d['used_count']}/{d['total_limit']} (باقی: {d.get('remaining', 0)})\n"
+        msg += f"⏰ آخرین استفاده: {s['last_used_at'] or '—'}\n"
+    else:
+        msg = f"📊 Stats `{d['code']}`: {s['usages']} uses"
+    kb = {"inline_keyboard": [[
+        {"text": "🔙 بازگشت به جزئیات", "callback_data": f"admin_disc_{disc_id}"}
+    ]]}
+    if edit_id:
+        edit_message(chat_id, edit_id, msg, kb)
+    else:
+        send_message(chat_id, msg, kb)
+
+
+def handle_discount_users(chat_id, disc_id, edit_id=None):
+    if not auth_manager.is_admin(chat_id):
+        return
+    d = auth_manager.get_discount(disc_id)
+    if not d:
+        return
+    lang = get_user_lang(chat_id)
+    users = auth_manager.get_discount_users(disc_id)
+    if lang == "fa":
+        if d['scope'] == 'public':
+            msg = (f"👥 کد `{d['code']}` *عمومی* است و همه کاربران مجازند.\n\n"
+                   f"برای شخصی‌سازی از «✏️ ویرایش ← 👤 شخصی کن» استفاده کنید.")
+        else:
+            msg = f"👥 *کاربران مجاز `{d['code']}`* ({len(users)} نفر)\n\n"
+            if not users:
+                msg += "⚠️ هیچ کاربری ثبت نشده — این کد برای هیچ‌کس کار نمی‌کند!\n"
+            msg += "برای حذف هر کاربر روی آن بزنید:"
+    else:
+        msg = f"👥 Allowed users: {len(users)}"
+
+    rows = []
+    for uid in users[:20]:
+        try:
+            info = auth_manager.get_user_info(uid)
+            uname = (info or {}).get('username') or "—"
+        except Exception:
+            uname = "—"
+        try:
+            used = auth_manager.count_discount_user_uses(disc_id, uid)
+        except Exception:
+            used = 0
+        label = f"❌ {uname} ({uid}) | {used}×"
+        rows.append([{"text": label[:60],
+                      "callback_data": f"admin_disc_userdel_{disc_id}_{uid}"}])
+    if len(users) > 20:
+        rows.append([{"text": f"… و {len(users) - 20} نفر دیگر", "callback_data": "ignore"}])
+    if d['scope'] == 'personal':
+        rows.append([{"text": "➕ افزودن کاربر", "callback_data": f"admin_disc_useradd_{disc_id}"}])
+        rows.append([{"text": t(chat_id, "disc_notify_users"),
+                      "callback_data": f"admin_disc_notify_{disc_id}"}])
+    rows.append([{"text": "🔙 بازگشت به جزئیات", "callback_data": f"admin_disc_{disc_id}"}])
+    kb = {"inline_keyboard": rows}
+    if edit_id:
+        edit_message(chat_id, edit_id, msg, kb)
+    else:
+        send_message(chat_id, msg, kb)
+
+
+def handle_discount_notify_ask(chat_id, disc_id, edit_id=None):
+    if not auth_manager.is_admin(chat_id):
+        return
+    d = auth_manager.get_discount(disc_id)
+    if not d:
+        return
+    lang = get_user_lang(chat_id)
+    if d['scope'] == 'personal':
+        n = len(d.get('allowed_users') or [])
+        msg = (f"📣 کد شخصی `{d['code']}` به {n} کاربر مجاز ارسال شود؟"
+               if lang == "fa" else f"📣 Send `{d['code']}` to {n} users?")
+    else:
+        try:
+            n_all = len([u for u in auth_manager.get_approved_users()
+                         if not auth_manager.is_admin(u['chat_id'])])
+        except Exception:
+            n_all = "?"
+        msg = (f"📣 کد عمومی `{d['code']}` به *همه کاربران* ({n_all} نفر) ارسال شود؟\n\n"
+               f"⚠️ این پیام برای همه ارسال می‌شود."
+               if lang == "fa" else f"📣 Broadcast `{d['code']}` to all?")
+    kb = {"inline_keyboard": [[
+        {"text": "✅ بله، ارسال شود", "callback_data": f"admin_disc_notifygo_{disc_id}"},
+        {"text": t(chat_id, "no_keep"), "callback_data": f"admin_disc_{disc_id}"},
+    ]]}
+    if edit_id:
+        edit_message(chat_id, edit_id, msg, kb)
+    else:
+        send_message(chat_id, msg, kb)
+
+
+def handle_discount_notify_go(chat_id, disc_id):
+    if not auth_manager.is_admin(chat_id):
+        return
+    d = auth_manager.get_discount(disc_id)
+    if not d:
+        return
+    send_message(chat_id, "⏳ در حال ارسال اطلاع‌رسانی...")
+    try:
+        bot_token = config['messengers']['bale']['bot_token']
+        if d['scope'] == 'personal':
+            from auth_handlers import notify_personal_discount_bulk
+            sent, failed = notify_personal_discount_bulk(disc_id, bot_token)
+        else:
+            from auth_handlers import broadcast_public_discount
+            sent, failed = broadcast_public_discount(disc_id, bot_token)
+        send_message(chat_id, f"📣 اطلاع‌رسانی انجام شد: ✅ {sent} موفق، ❌ {failed} ناموفق")
+        auth_manager.log_activity(chat_id, "disc_notify", f"{d['code']} sent={sent} failed={failed}")
+    except Exception as e:
+        send_message(chat_id, f"❌ خطا در اطلاع‌رسانی: {e}")
+    handle_discount_detail(chat_id, disc_id)
+
+
 # ========== تابع کمکی - مدیریت یکپارچه state ==========
 
 def get_state(chat_id):
@@ -2652,6 +3734,16 @@ def clear_state(chat_id):
     """پاک کردن state کاربر"""
     if chat_id in user_states:
         del user_states[chat_id]
+
+
+def clear_buy_code_state(chat_id):
+    """پاک کردن state فقط اگر در حال ورود کد تخفیف باشد (بدون اثر روی stateهای دیگر)"""
+    try:
+        st = user_states.get(chat_id)
+        if isinstance(st, dict) and st.get('state') == 'awaiting_buy_code':
+            del user_states[chat_id]
+    except Exception:
+        pass
 
 
 # ========== هندلر اصلی ==========
@@ -2694,20 +3786,86 @@ def handle_message(message, callback_data=None):
 
         # ✅ تعرفه‌ها - حتی برای کاربران منقضی هم در دسترس
         elif text == t(chat_id, "tariffs") or callback_data == "show_tariffs":
+            clear_buy_code_state(chat_id)
             try:
                 from auth_handlers import show_tariffs
                 show_tariffs(chat_id, bot_token, lang=get_user_lang(chat_id))
             except Exception as e:
                 logger.error(f"❌ خطا در نمایش تعرفه‌ها: {e}")
 
-        # ✅ خرید پلن مشخص - برای کاربران منقضی
+        # ✅ خرید پلن مشخص - برای کاربران منقضی (پیش‌فاکتور با امکان تخفیف)
         elif callback_data and callback_data.startswith("buy_plan_"):
             try:
                 plan_id = int(callback_data.replace("buy_plan_", ""))
-                from auth_handlers import handle_purchase_confirm
-                handle_purchase_confirm(chat_id, username, bot_token, plan_id=plan_id)
+                clear_buy_code_state(chat_id)
+                from auth_handlers import show_plan_purchase_options
+                show_plan_purchase_options(chat_id, username, bot_token, plan_id,
+                                           lang=get_user_lang(chat_id))
             except ValueError:
                 pass
+
+        # 🎟️ شروع ورود کد تخفیف برای پلن
+        elif callback_data and callback_data.startswith("disc_enter_"):
+            try:
+                plan_id = int(callback_data.replace("disc_enter_", ""))
+                set_state(chat_id, "awaiting_buy_code", plan_id=plan_id)
+                kb = {"inline_keyboard": [[
+                    {"text": "❌ انصراف", "callback_data": f"disc_remove_{plan_id}"}
+                ]]}
+                send_message(chat_id, "🎟️ *کد تخفیف را وارد کنید:*\n\n"
+                                      "کد را دقیقاً همان‌طور که دریافت کرده‌اید بفرستید.",
+                             kb)
+            except ValueError:
+                pass
+
+        # 🎟️ انصراف/حذف کد - نمایش پیش‌فاکتور بدون تخفیف
+        elif callback_data and callback_data.startswith("disc_remove_"):
+            try:
+                plan_id = int(callback_data.replace("disc_remove_", ""))
+                clear_buy_code_state(chat_id)
+                from auth_handlers import show_plan_purchase_options
+                show_plan_purchase_options(chat_id, username, bot_token, plan_id,
+                                           lang=get_user_lang(chat_id))
+            except ValueError:
+                pass
+
+        # 💳 تایید و پرداخت (با/بدون تخفیف)
+        elif callback_data and callback_data.startswith("buy_confirm_"):
+            try:
+                rest = callback_data.replace("buy_confirm_", "")
+                if "_d" in rest:
+                    plan_s, disc_s = rest.split("_d", 1)
+                    plan_id, disc_id = int(plan_s), int(disc_s)
+                else:
+                    plan_id, disc_id = int(rest), None
+                clear_buy_code_state(chat_id)
+                from auth_handlers import handle_purchase_confirm
+                handle_purchase_confirm(chat_id, username, bot_token,
+                                        plan_id=plan_id, discount_id=disc_id)
+            except ValueError:
+                pass
+
+        # 🎁 دریافت رایگان با تخفیف ۱۰۰٪
+        elif callback_data and callback_data.startswith("buy_free_"):
+            try:
+                rest = callback_data.replace("buy_free_", "")
+                plan_s, disc_s = rest.split("_d", 1)
+                clear_buy_code_state(chat_id)
+                from auth_handlers import redeem_free_with_discount
+                redeem_free_with_discount(chat_id, username, bot_token,
+                                          int(plan_s), int(disc_s),
+                                          lang=get_user_lang(chat_id))
+            except ValueError:
+                pass
+
+        # 🎟️ کدهای تخفیف شخصی من
+        elif callback_data == "my_discounts":
+            clear_buy_code_state(chat_id)
+            try:
+                from auth_handlers import show_my_discounts
+                show_my_discounts(chat_id, bot_token, lang=get_user_lang(chat_id))
+            except Exception as e:
+                logger.error(f"❌ خطا در نمایش کدهای من: {e}")
 
         elif callback_data and callback_data.startswith('auth_'):
 
@@ -2748,6 +3906,17 @@ def handle_message(message, callback_data=None):
             if handle_token_input(chat_id, text, bot_token):
                 clear_state(chat_id)
                 send_message(chat_id, t(chat_id, "main_menu"), create_main_keyboard(chat_id))
+
+        # 🎟️ ورود کد تخفیف هنگام خرید (کاربر منقضی/جدید)
+        elif isinstance(user_states.get(chat_id), dict) and user_states.get(chat_id, {}).get('state') == 'awaiting_buy_code':
+            if text:
+                _st = user_states.get(chat_id, {})
+                from auth_handlers import handle_discount_code_input
+                ok = handle_discount_code_input(chat_id, username, text, bot_token,
+                                                _st.get('plan_id'),
+                                                lang=get_user_lang(chat_id))
+                if ok:
+                    clear_state(chat_id)
 
         else:
             handle_unauthenticated_user(message, bot_token)
@@ -2869,6 +4038,7 @@ def handle_message(message, callback_data=None):
 
     # ========== تعرفه‌ها - برای همه کاربران (دکمه اصلی روی کیبورد) ==========
     elif text == t(chat_id, "tariffs") or callback_data == "show_tariffs":
+        clear_buy_code_state(chat_id)
         try:
             from auth_handlers import show_tariffs
             show_tariffs(chat_id, bot_token, lang=get_user_lang(chat_id))
@@ -2877,14 +4047,80 @@ def handle_message(message, callback_data=None):
             send_message(chat_id, "❌ خطا در دریافت تعرفه‌ها", create_main_keyboard(chat_id))
         return
 
-    # ========== خرید پلن مشخص (از لیست تعرفه‌ها) ==========
+    # ========== خرید پلن مشخص (پیش‌فاکتور با امکان تخفیف) ==========
     elif callback_data and callback_data.startswith("buy_plan_"):
         try:
             plan_id = int(callback_data.replace("buy_plan_", ""))
-            from auth_handlers import handle_purchase_confirm
-            handle_purchase_confirm(chat_id, username, bot_token, plan_id=plan_id)
+            clear_buy_code_state(chat_id)
+            from auth_handlers import show_plan_purchase_options
+            show_plan_purchase_options(chat_id, username, bot_token, plan_id,
+                                       lang=get_user_lang(chat_id))
         except ValueError:
             pass
+        return
+
+    # ========== کد تخفیف سمت کاربر ==========
+    elif callback_data and callback_data.startswith("disc_enter_"):
+        try:
+            plan_id = int(callback_data.replace("disc_enter_", ""))
+            set_state(chat_id, "awaiting_buy_code", plan_id=plan_id)
+            kb = {"inline_keyboard": [[
+                {"text": "❌ انصراف", "callback_data": f"disc_remove_{plan_id}"}
+            ]]}
+            send_message(chat_id, "🎟️ *کد تخفیف را وارد کنید:*\n\n"
+                                  "کد را دقیقاً همان‌طور که دریافت کرده‌اید بفرستید.",
+                         kb)
+        except ValueError:
+            pass
+        return
+
+    elif callback_data and callback_data.startswith("disc_remove_"):
+        try:
+            plan_id = int(callback_data.replace("disc_remove_", ""))
+            clear_buy_code_state(chat_id)
+            from auth_handlers import show_plan_purchase_options
+            show_plan_purchase_options(chat_id, username, bot_token, plan_id,
+                                       lang=get_user_lang(chat_id))
+        except ValueError:
+            pass
+        return
+
+    elif callback_data and callback_data.startswith("buy_confirm_"):
+        try:
+            rest = callback_data.replace("buy_confirm_", "")
+            if "_d" in rest:
+                plan_s, disc_s = rest.split("_d", 1)
+                plan_id, disc_id = int(plan_s), int(disc_s)
+            else:
+                plan_id, disc_id = int(rest), None
+            clear_buy_code_state(chat_id)
+            from auth_handlers import handle_purchase_confirm
+            handle_purchase_confirm(chat_id, username, bot_token,
+                                    plan_id=plan_id, discount_id=disc_id)
+        except ValueError:
+            pass
+        return
+
+    elif callback_data and callback_data.startswith("buy_free_"):
+        try:
+            rest = callback_data.replace("buy_free_", "")
+            plan_s, disc_s = rest.split("_d", 1)
+            clear_buy_code_state(chat_id)
+            from auth_handlers import redeem_free_with_discount
+            redeem_free_with_discount(chat_id, username, bot_token,
+                                      int(plan_s), int(disc_s),
+                                      lang=get_user_lang(chat_id))
+        except ValueError:
+            pass
+        return
+
+    elif callback_data == "my_discounts":
+        clear_buy_code_state(chat_id)
+        try:
+            from auth_handlers import show_my_discounts
+            show_my_discounts(chat_id, bot_token, lang=get_user_lang(chat_id))
+        except Exception as e:
+            logger.error(f"❌ خطا در نمایش کدهای من: {e}")
         return
 
     # ========== مدیریت تعرفه‌ها (ادمین) ==========
@@ -2951,6 +4187,538 @@ def handle_message(message, callback_data=None):
 
     elif callback_data == "admin_broadcast_tariffs":
         handle_broadcast_tariffs(chat_id)
+        return
+
+    # ========== کدهای تخفیف (مدیریت ادمین) ==========
+    elif callback_data and callback_data.startswith("admin_disc_"):
+        if not auth_manager.is_admin(chat_id):
+            send_message(chat_id, t(chat_id, "unauthorized_access"), create_main_keyboard(chat_id))
+            return
+        rest = callback_data.replace("admin_disc_", "", 1)
+
+        # ---- پیکر انتخاب کاربر ----
+        if (rest.startswith("upick_") or rest.startswith("upage_")
+                or rest in ("udone", "usearch", "uall", "umanual",
+                            "upickopen", "ucancel")):
+            handle_userpick_callback(chat_id, message_id, rest)
+            return
+
+        # ---- لیست و فیلتر و صفحه‌بندی ----
+        if rest == "list" or rest == "back_list":
+            handle_discount_list(chat_id, edit_id=message_id)
+        elif rest.startswith("filter_"):
+            f = rest.replace("filter_", "", 1)
+            handle_discount_list(chat_id, page=0, dfilter=f, edit_id=message_id)
+        elif rest.startswith("page_"):
+            parts = rest.replace("page_", "", 1).rsplit("_", 1)
+            if len(parts) == 2:
+                f, p_raw = parts
+                try:
+                    p = int(p_raw)
+                except ValueError:
+                    f, p = "all", 0
+            else:
+                f, p = "all", 0
+            handle_discount_list(chat_id, page=p, dfilter=f, edit_id=message_id)
+
+        # ---- شروع ساخت ----
+        elif rest == "new":
+            handle_discount_create_start(chat_id)
+        elif rest == "cancel":
+            clear_state(chat_id)
+            handle_discount_list(chat_id)
+
+        # ---- تولید خودکار کد (ویزارد) ----
+        elif rest == "autogen":
+            st_name, st_data = get_state(chat_id)
+            if st_name != "awaiting_disc_code":
+                return
+            code = auth_manager.generate_discount_code()
+            disc = st_data.get('disc', {})
+            disc['code'] = code
+            set_state(chat_id, "awaiting_disc_type", disc=disc)
+            _disc_send_type_menu(chat_id, code)
+
+        # ---- نوع تخفیف ----
+        elif rest in ("type_percent", "type_fixed"):
+            st_name, st_data = get_state(chat_id)
+            if st_name != "awaiting_disc_type":
+                return
+            disc = st_data.get('disc', {})
+            disc['discount_type'] = 'percent' if rest == "type_percent" else 'fixed'
+            set_state(chat_id, "awaiting_disc_value", disc=disc)
+            if disc['discount_type'] == 'percent':
+                send_message(chat_id,
+                             "٪ *مرحله ۳: درصد تخفیف؟*\n\n"
+                             "عدد بین 1 تا 100 وارد کنید:\nمثال: `20` یعنی ۲۰٪ تخفیف")
+            else:
+                send_message(chat_id,
+                             "💰 *مرحله ۳: مبلغ تخفیف؟*\n\n"
+                             "مبلغ را به *تومان* وارد کنید:\nمثال: `50000`")
+
+        # ---- رد کردن سقف درصدی ----
+        elif rest == "skip_maxcap":
+            st_name, st_data = get_state(chat_id)
+            if st_name != "awaiting_disc_maxcap":
+                return
+            disc = st_data.get('disc', {})
+            disc['max_discount_rial'] = None
+            set_state(chat_id, "awaiting_disc_scope", disc=disc)
+            _disc_send_scope_menu(chat_id)
+
+        # ---- دامنه ----
+        elif rest in ("scope_public", "scope_personal"):
+            st_name, st_data = get_state(chat_id)
+            if st_name != "awaiting_disc_scope":
+                return
+            disc = st_data.get('disc', {})
+            if rest == "scope_public":
+                disc['scope'] = 'public'
+                disc['allowed_chat_ids'] = []
+                set_state(chat_id, "awaiting_disc_plans", disc=disc)
+                _disc_send_plans_menu(chat_id)
+            else:
+                disc['scope'] = 'personal'
+                set_state(chat_id, "awaiting_disc_userpick", disc=disc,
+                          selected=[], page=0, query='')
+                handle_userpick_menu(chat_id)
+
+        # ---- انتخاب پلن‌ها (ویزارد) ----
+        elif rest.startswith("plan_toggle_"):
+            st_name, st_data = get_state(chat_id)
+            if st_name != "awaiting_disc_plans":
+                return
+            try:
+                pid = int(rest.replace("plan_toggle_", ""))
+            except ValueError:
+                return
+            disc = st_data.get('disc', {})
+            sel = [int(x) for x in disc.get('allowed_plan_ids', [])]
+            if pid in sel:
+                sel.remove(pid)
+            else:
+                sel.append(pid)
+            disc['allowed_plan_ids'] = sel
+            set_state(chat_id, "awaiting_disc_plans", disc=disc)
+            _disc_send_plans_menu(chat_id, edit_id=message_id)
+        elif rest == "plans_all":
+            st_name, st_data = get_state(chat_id)
+            if st_name != "awaiting_disc_plans":
+                return
+            disc = st_data.get('disc', {})
+            disc['allowed_plan_ids'] = []
+            set_state(chat_id, "awaiting_disc_plans", disc=disc)
+            _disc_send_plans_menu(chat_id, edit_id=message_id)
+        elif rest == "plans_done":
+            st_name, st_data = get_state(chat_id)
+            if st_name != "awaiting_disc_plans":
+                return
+            disc = st_data.get('disc', {})
+            set_state(chat_id, "awaiting_disc_total", disc=disc)
+            kb = {"inline_keyboard": [
+                [{"text": t(chat_id, "disc_unlimited"), "callback_data": "admin_disc_skip_total"}],
+                [{"text": t(chat_id, "disc_cancel"), "callback_data": "admin_disc_cancel"}],
+            ]}
+            send_message(chat_id,
+                         "🔢 *مرحله ۷: سقف کل استفاده (ظرفیت کد)؟*\n\n"
+                         "• عدد وارد کنید (مثلاً `100` یعنی فقط ۱۰۰ نفر اول)\n"
+                         "• یا نامحدود را بزنید",
+                         kb)
+
+        # ---- رد کردن‌ها ----
+        elif rest == "skip_total":
+            st_name, st_data = get_state(chat_id)
+            if st_name != "awaiting_disc_total":
+                return
+            disc = st_data.get('disc', {})
+            disc['total_limit'] = None
+            set_state(chat_id, "awaiting_disc_peruser", disc=disc)
+            kb = {"inline_keyboard": [
+                [{"text": "⏭️ پیش‌فرض (۱ بار)", "callback_data": "admin_disc_skip_peruser"}],
+                [{"text": t(chat_id, "disc_cancel"), "callback_data": "admin_disc_cancel"}],
+            ]}
+            send_message(chat_id,
+                         "👤 *مرحله ۸: سقف استفاده هر کاربر؟*\n\n"
+                         "هر کاربر چند بار بتواند از این کد استفاده کند؟\n"
+                         "مثال: `1` (پیشنهاد امنیتی: ۱ بار)",
+                         kb)
+        elif rest == "skip_peruser":
+            st_name, st_data = get_state(chat_id)
+            if st_name != "awaiting_disc_peruser":
+                return
+            disc = st_data.get('disc', {})
+            disc['per_user_limit'] = 1
+            set_state(chat_id, "awaiting_disc_expiry", disc=disc)
+            kb = {"inline_keyboard": [
+                [
+                    {"text": "۷ روز", "callback_data": "admin_disc_exp_7"},
+                    {"text": "۳۰ روز", "callback_data": "admin_disc_exp_30"},
+                ],
+                [
+                    {"text": "۹۰ روز", "callback_data": "admin_disc_exp_90"},
+                    {"text": t(chat_id, "disc_unlimited"), "callback_data": "admin_disc_exp_0"},
+                ],
+                [{"text": t(chat_id, "disc_cancel"), "callback_data": "admin_disc_cancel"}],
+            ]}
+            send_message(chat_id,
+                         "⏰ *مرحله ۹: مدت اعتبار؟*\n\n"
+                         "• عدد = روز از الان (مثلاً `30`)\n"
+                         "• تاریخ شمسی (`1405/07/15`) یا میلادی (`2026-10-07`)\n"
+                         "• یا نامحدود",
+                         kb)
+        elif rest == "skip_min":
+            st_name, st_data = get_state(chat_id)
+            if st_name != "awaiting_disc_min":
+                return
+            disc = st_data.get('disc', {})
+            disc['min_order_rial'] = None
+            set_state(chat_id, "awaiting_disc_firstonly", disc=disc)
+            kb = {"inline_keyboard": [
+                [
+                    {"text": "✅ بله، فقط خرید اول", "callback_data": "admin_disc_first_yes"},
+                    {"text": "❌ نه، همه", "callback_data": "admin_disc_first_no"},
+                ],
+                [{"text": t(chat_id, "disc_cancel"), "callback_data": "admin_disc_cancel"}],
+            ]}
+            send_message(chat_id,
+                         "🛒 *فقط برای خرید اول؟*\n\n"
+                         "اگر «بله»، کاربرانی که قبلاً خرید موفق داشته‌اند "
+                         "نمی‌توانند از این کد استفاده کنند.",
+                         kb)
+        elif rest == "skip_title":
+            st_name, st_data = get_state(chat_id)
+            if st_name != "awaiting_disc_title":
+                return
+            disc = st_data.get('disc', {})
+            disc['title'] = ''
+            set_state(chat_id, "awaiting_disc_confirm", disc=disc)
+            _disc_send_confirm(chat_id)
+
+        # ---- انقضای سریع ----
+        elif rest.startswith("exp_"):
+            st_name, st_data = get_state(chat_id)
+            if st_name != "awaiting_disc_expiry":
+                return
+            try:
+                days = int(rest.replace("exp_", ""))
+            except ValueError:
+                return
+            from auth_handlers import parse_expiry_input
+            parsed = parse_expiry_input("0" if days == 0 else str(days))
+            if not parsed.get('success'):
+                send_message(chat_id, f"❌ {parsed.get('error')}")
+                return
+            disc = st_data.get('disc', {})
+            disc['expires_at'] = parsed.get('expires_at')
+            disc['expires_label'] = parsed.get('label')
+            set_state(chat_id, "awaiting_disc_min", disc=disc)
+            kb = {"inline_keyboard": [
+                [{"text": t(chat_id, "disc_skip"), "callback_data": "admin_disc_skip_min"}],
+                [{"text": t(chat_id, "disc_cancel"), "callback_data": "admin_disc_cancel"}],
+            ]}
+            send_message(chat_id,
+                         f"⏰ اعتبار: {parsed.get('label')}\n\n"
+                         "🧾 *کف مبلغ خرید (اختیاری):*\n\n"
+                         "کد فقط برای پلن‌هایی که قیمتشان از این مبلغ بیشتر است کار کند؟\n"
+                         "مبلغ به تومان (مثلاً `100000`) یا رد کنید.",
+                         kb)
+
+        # ---- فقط خرید اول ----
+        elif rest in ("first_yes", "first_no"):
+            st_name, st_data = get_state(chat_id)
+            if st_name != "awaiting_disc_firstonly":
+                return
+            disc = st_data.get('disc', {})
+            disc['first_purchase_only'] = (rest == "first_yes")
+            set_state(chat_id, "awaiting_disc_title", disc=disc)
+            kb = {"inline_keyboard": [
+                [{"text": t(chat_id, "disc_skip"), "callback_data": "admin_disc_skip_title"}],
+                [{"text": t(chat_id, "disc_cancel"), "callback_data": "admin_disc_cancel"}],
+            ]}
+            send_message(chat_id,
+                         "📝 *مرحله ۱۰: عنوان/توضیح (اختیاری):*\n\n"
+                         "مثلاً: `جشنواره تابستان`",
+                         kb)
+
+        # ---- ثبت نهایی ----
+        elif rest == "confirm":
+            st_name, st_data = get_state(chat_id)
+            if st_name != "awaiting_disc_confirm":
+                return
+            disc = st_data.get('disc', {})
+            res = auth_manager.create_discount(
+                code=disc.get('code', ''),
+                discount_type=disc.get('discount_type', 'percent'),
+                percent=disc.get('percent'),
+                amount_rial=disc.get('amount_rial', 0),
+                title=disc.get('title', ''),
+                max_discount_rial=disc.get('max_discount_rial'),
+                min_order_rial=disc.get('min_order_rial'),
+                scope=disc.get('scope', 'public'),
+                allowed_chat_ids=disc.get('allowed_chat_ids', []),
+                allowed_plan_ids=disc.get('allowed_plan_ids', []),
+                first_purchase_only=disc.get('first_purchase_only', False),
+                total_limit=disc.get('total_limit'),
+                per_user_limit=disc.get('per_user_limit', 1),
+                expires_at=disc.get('expires_at'),
+                created_by=chat_id)
+            clear_state(chat_id)
+            if res.get('success'):
+                auth_manager.log_activity(chat_id, "disc_create",
+                                          f"{res.get('code')} id={res.get('discount_id')}")
+                new_code = res.get('code')
+                kb_ok = {"inline_keyboard": [[
+                    {"text": f"{t(chat_id, 'disc_copy_code')}: {new_code}",
+                     "copy_text": {"text": new_code}},
+                ]]}
+                send_message(chat_id, f"✅ کد تخفیف `{new_code}` با موفقیت ساخته شد!", kb_ok)
+                new_id = res.get('discount_id')
+                d = auth_manager.get_discount(new_id)
+                if d and d['scope'] == 'personal':
+                    kb = {"inline_keyboard": [[
+                        {"text": t(chat_id, "disc_notify_users"),
+                         "callback_data": f"admin_disc_notify_{new_id}"},
+                        {"text": t(chat_id, "disc_code_detail"),
+                         "callback_data": f"admin_disc_{new_id}"},
+                    ]]}
+                    send_message(chat_id,
+                                 f"📣 کد شخصی است ({len(d.get('allowed_users') or [])} کاربر).\n"
+                                 f"الان به کاربران مجاز اطلاع‌رسانی شود؟", kb)
+                else:
+                    handle_discount_detail(chat_id, new_id)
+            else:
+                send_message(chat_id, f"❌ ثبت نشد: {res.get('error', 'خطا')}",
+                             create_admin_menu_keyboard(chat_id))
+
+        # ---- فعال/غیرفعال ----
+        elif rest.startswith("toggle_"):
+            try:
+                did = int(rest.replace("toggle_", ""))
+            except ValueError:
+                return
+            handle_discount_toggle(chat_id, did)
+
+        # ---- حذف ----
+        elif rest.startswith("delconfirm_"):
+            try:
+                did = int(rest.replace("delconfirm_", ""))
+            except ValueError:
+                return
+            handle_discount_delete_confirm(chat_id, did)
+        elif rest.startswith("del_"):
+            try:
+                did = int(rest.replace("del_", ""))
+            except ValueError:
+                return
+            handle_discount_delete_ask(chat_id, did, edit_id=message_id)
+
+        # ---- ویرایش ----
+        elif rest.startswith("efield_"):
+            # admin_disc_efield_{field}_{id}
+            try:
+                _, field, did_s = rest.split("_", 2)
+                did = int(did_s)
+            except ValueError:
+                return
+            d = auth_manager.get_discount(did)
+            if not d:
+                return
+            back_kb = {"inline_keyboard": [[
+                {"text": "❌ انصراف", "callback_data": f"admin_disc_{did}"}]]}
+            if field == "value":
+                set_state(chat_id, "awaiting_disc_edit_value", disc_id=did)
+                if d['discount_type'] == 'percent':
+                    send_message(chat_id,
+                                 f"٪ درصد جدید (فعلی: ٪{d['percent']})؟\nعدد 1 تا 100:",
+                                 back_kb)
+                else:
+                    send_message(chat_id,
+                                 f"💰 مبلغ جدید به تومان (فعلی: {int(d['amount_rial']) // 10:,})؟",
+                                 back_kb)
+            elif field == "cap":
+                if d['discount_type'] != 'percent':
+                    send_message(chat_id, "⚠️ سقف فقط برای کد درصدی معنا دارد.")
+                    return
+                set_state(chat_id, "awaiting_disc_edit_cap", disc_id=did)
+                send_message(chat_id,
+                             "🎯 سقف تخفیف جدید به تومان؟\n`0` یعنی حذف سقف.",
+                             back_kb)
+            elif field == "min":
+                set_state(chat_id, "awaiting_disc_edit_min", disc_id=did)
+                send_message(chat_id,
+                             "🧾 کف مبلغ خرید جدید به تومان؟\n`0` یعنی حذف کف.",
+                             back_kb)
+            elif field == "total":
+                set_state(chat_id, "awaiting_disc_edit_total", disc_id=did)
+                send_message(chat_id,
+                             "🔢 سقف کل جدید؟\nعدد یا `0` برای نامحدود.",
+                             back_kb)
+            elif field == "peruser":
+                set_state(chat_id, "awaiting_disc_edit_peruser", disc_id=did)
+                send_message(chat_id, "👤 سقف هر کاربر جدید؟ (عدد، حداقل 1)", back_kb)
+            elif field == "expiry":
+                set_state(chat_id, "awaiting_disc_edit_expiry", disc_id=did)
+                kb2 = {"inline_keyboard": [
+                    [{"text": "♾️ نامحدود", "callback_data": f"admin_disc_eexpinf_{did}"}],
+                    [{"text": "❌ انصراف", "callback_data": f"admin_disc_{did}"}],
+                ]}
+                send_message(chat_id,
+                             "⏰ انقضای جدید؟\n"
+                             "• عدد = روز از الان • تاریخ شمسی/میلادی • نامحدود",
+                             kb2)
+            elif field == "title":
+                set_state(chat_id, "awaiting_disc_edit_title", disc_id=did)
+                send_message(chat_id,
+                             "📝 عنوان جدید؟\n(`-` یعنی پاک کردن عنوان)",
+                             back_kb)
+        elif rest.startswith("eexpinf_"):
+            try:
+                did = int(rest.replace("eexpinf_", ""))
+            except ValueError:
+                return
+            clear_state(chat_id)
+            auth_manager.update_discount(did, expires_at=None)
+            handle_discount_detail(chat_id, did)
+        elif rest.startswith("escope_"):
+            try:
+                did = int(rest.replace("escope_", ""))
+            except ValueError:
+                return
+            d = auth_manager.get_discount(did)
+            if not d:
+                return
+            if d['scope'] == 'public':
+                set_state(chat_id, "awaiting_disc_euserpick", disc_id=did,
+                          selected=[], page=0, query='')
+                handle_userpick_menu(chat_id)
+            else:
+                auth_manager.update_discount(did, scope='public')
+                auth_manager.log_activity(chat_id, "disc_scope", f"{did} -> public")
+                send_message(chat_id, "🌍 کد عمومی شد (لیست کاربران شخصی پاک شد).")
+                handle_discount_detail(chat_id, did)
+        elif rest.startswith("efirst_"):
+            try:
+                did = int(rest.replace("efirst_", ""))
+            except ValueError:
+                return
+            d = auth_manager.get_discount(did)
+            if d:
+                auth_manager.update_discount(did,
+                                             first_purchase_only=not d['first_purchase_only'])
+                handle_discount_edit_menu(chat_id, did, edit_id=message_id)
+        elif rest.startswith("edit_"):
+            try:
+                did = int(rest.replace("edit_", ""))
+            except ValueError:
+                return
+            handle_discount_edit_menu(chat_id, did, edit_id=message_id)
+
+        # ---- کاربران مجاز ----
+        elif rest.startswith("userdel_"):
+            try:
+                _, did_s, uid_s = rest.split("_", 2)
+                did, uid = int(did_s), int(uid_s)
+            except ValueError:
+                return
+            auth_manager.remove_discount_user(did, uid)
+            handle_discount_users(chat_id, did, edit_id=message_id)
+        elif rest.startswith("useradd_"):
+            try:
+                did = int(rest.replace("useradd_", ""))
+            except ValueError:
+                return
+            set_state(chat_id, "awaiting_disc_uaddpick", disc_id=did,
+                          selected=[], page=0, query='')
+            handle_userpick_menu(chat_id)
+        elif rest.startswith("users_"):
+            try:
+                did = int(rest.replace("users_", ""))
+            except ValueError:
+                return
+            handle_discount_users(chat_id, did, edit_id=message_id)
+
+        # ---- پلن‌های مشمول (ویرایش) ----
+        elif rest == "eplans_all":
+            st_name, st_data = get_state(chat_id)
+            if st_name != "awaiting_disc_edit_plans":
+                return
+            st_data['selected'] = []
+            set_state(chat_id, "awaiting_disc_edit_plans",
+                      disc_id=st_data.get('disc_id'), selected=[])
+            _disc_send_plans_menu(chat_id, edit_id=message_id, for_edit=True)
+        elif rest == "eplans_done":
+            st_name, st_data = get_state(chat_id)
+            if st_name != "awaiting_disc_edit_plans":
+                return
+            did = st_data.get('disc_id')
+            auth_manager.set_discount_plans(did, st_data.get('selected', []))
+            clear_state(chat_id)
+            send_message(chat_id, "✅ پلن‌های مشمول به‌روزرسانی شد.")
+            handle_discount_detail(chat_id, did)
+        elif rest == "eplans_cancel":
+            st_name, st_data = get_state(chat_id)
+            did = st_data.get('disc_id') if st_name == "awaiting_disc_edit_plans" else None
+            clear_state(chat_id)
+            if did:
+                handle_discount_detail(chat_id, did, edit_id=message_id)
+            else:
+                handle_discount_list(chat_id, edit_id=message_id)
+        elif rest.startswith("eplan_toggle_"):
+            st_name, st_data = get_state(chat_id)
+            if st_name != "awaiting_disc_edit_plans":
+                return
+            try:
+                pid = int(rest.replace("eplan_toggle_", ""))
+            except ValueError:
+                return
+            sel = [int(x) for x in st_data.get('selected', [])]
+            if pid in sel:
+                sel.remove(pid)
+            else:
+                sel.append(pid)
+            set_state(chat_id, "awaiting_disc_edit_plans",
+                      disc_id=st_data.get('disc_id'), selected=sel)
+            _disc_send_plans_menu(chat_id, edit_id=message_id, for_edit=True)
+        elif rest.startswith("plans_"):
+            try:
+                did = int(rest.replace("plans_", ""))
+            except ValueError:
+                return
+            sel = auth_manager.get_discount_plans(did)
+            set_state(chat_id, "awaiting_disc_edit_plans", disc_id=did, selected=sel)
+            _disc_send_plans_menu(chat_id)
+
+        # ---- گزارش‌ها ----
+        elif rest.startswith("usages_"):
+            try:
+                did = int(rest.replace("usages_", ""))
+            except ValueError:
+                return
+            handle_discount_usages(chat_id, did, edit_id=message_id)
+        elif rest.startswith("stats_"):
+            try:
+                did = int(rest.replace("stats_", ""))
+            except ValueError:
+                return
+            handle_discount_stats(chat_id, did, edit_id=message_id)
+
+        # ---- اطلاع‌رسانی ----
+        elif rest.startswith("notifygo_"):
+            try:
+                did = int(rest.replace("notifygo_", ""))
+            except ValueError:
+                return
+            handle_discount_notify_go(chat_id, did)
+        elif rest.startswith("notify_"):
+            try:
+                did = int(rest.replace("notify_", ""))
+            except ValueError:
+                return
+            handle_discount_notify_ask(chat_id, did, edit_id=message_id)
+
+        # ---- جزئیات کد ----
+        elif rest.isdigit():
+            handle_discount_detail(chat_id, int(rest), edit_id=message_id)
         return
 
     # ========== تست پیش‌فرض (ادمین) ==========
@@ -5198,6 +6966,439 @@ def handle_message(message, callback_data=None):
     elif chat_id in user_states:
         current_state_name, current_state_data = get_state(chat_id)
         lang = get_user_lang(chat_id)
+
+        # ===== ورود کد تخفیف هنگام خرید (کاربر تاییدشده) =====
+        if current_state_name == "awaiting_buy_code":
+            if text:
+                from auth_handlers import handle_discount_code_input
+                ok = handle_discount_code_input(chat_id, username, text, bot_token,
+                                                current_state_data.get('plan_id'),
+                                                lang=get_user_lang(chat_id))
+                if ok:
+                    clear_state(chat_id)
+            return
+
+        # ===== ویزارد کد تخفیف: ورود کد =====
+        if current_state_name == "awaiting_disc_code":
+            if not auth_manager.is_admin(chat_id):
+                clear_state(chat_id)
+                return
+            norm = AuthManager.normalize_discount_code(text or "")
+            if not norm or not AuthManager.is_valid_discount_code_format(norm):
+                send_message(chat_id, "❌ فرمت کد نامعتبر است.\n"
+                                      "3 تا 32 کاراکتر (حروف، عدد، - و _) وارد کنید.")
+                return
+            if auth_manager.get_discount_by_code(norm, with_relations=False):
+                send_message(chat_id, f"❌ این کد قبلاً ثبت شده: `{norm}`\nکد دیگری وارد کنید.")
+                return
+            disc = current_state_data.get('disc', {})
+            disc['code'] = norm
+            set_state(chat_id, "awaiting_disc_type", disc=disc)
+            _disc_send_type_menu(chat_id, norm)
+            return
+
+        # ===== ویزارد کد تخفیف: مقدار (درصد/مبلغ) + محاسبه خودکار معادل =====
+        elif current_state_name == "awaiting_disc_value":
+            if not auth_manager.is_admin(chat_id):
+                clear_state(chat_id)
+                return
+            from auth_handlers import fa_to_en_digits
+            disc = current_state_data.get('disc', {})
+            raw = fa_to_en_digits(text)
+            if disc.get('discount_type') == 'percent':
+                try:
+                    pct = int(raw)
+                    if not 1 <= pct <= 100:
+                        raise ValueError
+                except ValueError:
+                    send_message(chat_id, "❌ عدد نامعتبر! درصد بین 1 تا 100 وارد کنید.")
+                    return
+                disc['percent'] = pct
+                disc['amount_rial'] = 0
+                set_state(chat_id, "awaiting_disc_maxcap", disc=disc)
+                eq = _disc_equivalents_text({
+                    'discount_type': 'percent', 'percent': pct,
+                    'amount_rial': 0, 'max_discount_rial': None})
+                kb = {"inline_keyboard": [
+                    [{"text": t(chat_id, "disc_skip"), "callback_data": "admin_disc_skip_maxcap"}],
+                    [{"text": t(chat_id, "disc_cancel"), "callback_data": "admin_disc_cancel"}],
+                ]}
+                msg = f"✅ ثبت شد: ٪{pct}\n\n"
+                if eq:
+                    msg += eq + "\n\n"
+                msg += ("🎯 *مرحله ۴: سقف تخفیف (اختیاری)؟*\n\n"
+                        "حداکثر مبلغ تخفیف به تومان (مثلاً `200000`)؟\n"
+                        "اگر سقفی نمی‌خواهید، رد کنید.")
+                send_message(chat_id, msg, kb)
+            else:
+                try:
+                    toman = int(raw)
+                    if toman <= 0:
+                        raise ValueError
+                except ValueError:
+                    send_message(chat_id, "❌ مبلغ نامعتبر! عدد بزرگ‌تر از صفر (تومان) وارد کنید.")
+                    return
+                disc['amount_rial'] = toman * 10
+                disc['percent'] = None
+                disc['max_discount_rial'] = None
+                set_state(chat_id, "awaiting_disc_scope", disc=disc)
+                eq = _disc_equivalents_text({
+                    'discount_type': 'fixed', 'percent': None,
+                    'amount_rial': toman * 10, 'max_discount_rial': None})
+                if eq:
+                    send_message(chat_id, f"✅ ثبت شد: {toman:,} تومان\n\n" + eq)
+                _disc_send_scope_menu(chat_id)
+            return
+
+        # ===== ویزارد کد تخفیف: سقف درصدی =====
+        elif current_state_name == "awaiting_disc_maxcap":
+            if not auth_manager.is_admin(chat_id):
+                clear_state(chat_id)
+                return
+            from auth_handlers import fa_to_en_digits
+            disc = current_state_data.get('disc', {})
+            raw = fa_to_en_digits(text)
+            if raw == "0":
+                disc['max_discount_rial'] = None
+            else:
+                try:
+                    toman = int(raw)
+                    if toman <= 0:
+                        raise ValueError
+                    disc['max_discount_rial'] = toman * 10
+                except ValueError:
+                    send_message(chat_id, "❌ مبلغ نامعتبر! عدد (تومان) وارد کنید یا رد کنید.")
+                    return
+            set_state(chat_id, "awaiting_disc_scope", disc=disc)
+            _disc_send_scope_menu(chat_id)
+            return
+
+        # ===== ویزارد کد تخفیف: کاربران شخصی =====
+        # ===== پیکر کاربر: دریافت متن جستجو =====
+        elif current_state_name == "awaiting_disc_usearch":
+            if not auth_manager.is_admin(chat_id):
+                clear_state(chat_id)
+                return
+            current_state_data['query'] = (text or "").strip()
+            current_state_data['page'] = 0
+            _restore_pick_state(chat_id, current_state_data)
+            handle_userpick_menu(chat_id)
+            return
+
+        elif current_state_name == "awaiting_disc_users":
+            if not auth_manager.is_admin(chat_id):
+                clear_state(chat_id)
+                return
+            ids, bad = _parse_chat_ids(text)
+            if bad:
+                send_message(chat_id, f"❌ این‌ها آیدی معتبر نیستند: {', '.join(bad[:5])}\n"
+                                      f"فقط عدد وارد کنید.")
+                return
+            if not ids:
+                send_message(chat_id, "❌ حداقل یک آیدی معتبر وارد کنید.")
+                return
+            # هشدار برای آیدی‌های ثبت‌نشده (اما قبول می‌کنیم - وقتی عضو شوند کار می‌کند)
+            unknown = []
+            for uid in ids:
+                try:
+                    if not auth_manager.get_user_info(uid):
+                        unknown.append(str(uid))
+                except Exception:
+                    pass
+            disc = current_state_data.get('disc', {})
+            disc['allowed_chat_ids'] = ids
+            set_state(chat_id, "awaiting_disc_plans", disc=disc)
+            if unknown:
+                send_message(chat_id,
+                             f"⚠️ این آیدی‌ها هنوز در ربات ثبت نشده‌اند (اشکالی ندارد، "
+                             f"وقتی /start کنند کد برایشان کار می‌کند):\n`{', '.join(unknown[:10])}`")
+            send_message(chat_id, f"✅ {len(ids)} کاربر ثبت شد.")
+            _disc_send_plans_menu(chat_id)
+            return
+
+        # ===== ویزارد کد تخفیف: سقف کل =====
+        elif current_state_name == "awaiting_disc_total":
+            if not auth_manager.is_admin(chat_id):
+                clear_state(chat_id)
+                return
+            from auth_handlers import fa_to_en_digits
+            raw = fa_to_en_digits(text).strip().lower()
+            disc = current_state_data.get('disc', {})
+            if raw in ("0", "نامحدود", "unlimited"):
+                disc['total_limit'] = None
+            else:
+                try:
+                    v = int(raw)
+                    if v < 1:
+                        raise ValueError
+                    disc['total_limit'] = v
+                except ValueError:
+                    send_message(chat_id, "❌ عدد نامعتبر! عدد ≥ 1 یا نامحدود.")
+                    return
+            set_state(chat_id, "awaiting_disc_peruser", disc=disc)
+            kb = {"inline_keyboard": [
+                [{"text": "⏭️ پیش‌فرض (۱ بار)", "callback_data": "admin_disc_skip_peruser"}],
+                [{"text": t(chat_id, "disc_cancel"), "callback_data": "admin_disc_cancel"}],
+            ]}
+            send_message(chat_id,
+                         "👤 *مرحله ۸: سقف استفاده هر کاربر؟*\n\n"
+                         "هر کاربر چند بار بتواند از این کد استفاده کند؟\n"
+                         "مثال: `1` (پیشنهاد امنیتی: ۱ بار)",
+                         kb)
+            return
+
+        # ===== ویزارد کد تخفیف: سقف هر کاربر =====
+        elif current_state_name == "awaiting_disc_peruser":
+            if not auth_manager.is_admin(chat_id):
+                clear_state(chat_id)
+                return
+            from auth_handlers import fa_to_en_digits
+            try:
+                v = int(fa_to_en_digits(text))
+                if v < 1 or v > 1000000:
+                    raise ValueError
+            except ValueError:
+                send_message(chat_id, "❌ عدد نامعتبر! عدد ≥ 1 وارد کنید.")
+                return
+            disc = current_state_data.get('disc', {})
+            disc['per_user_limit'] = v
+            set_state(chat_id, "awaiting_disc_expiry", disc=disc)
+            kb = {"inline_keyboard": [
+                [
+                    {"text": "۷ روز", "callback_data": "admin_disc_exp_7"},
+                    {"text": "۳۰ روز", "callback_data": "admin_disc_exp_30"},
+                ],
+                [
+                    {"text": "۹۰ روز", "callback_data": "admin_disc_exp_90"},
+                    {"text": t(chat_id, "disc_unlimited"), "callback_data": "admin_disc_exp_0"},
+                ],
+                [{"text": t(chat_id, "disc_cancel"), "callback_data": "admin_disc_cancel"}],
+            ]}
+            send_message(chat_id,
+                         "⏰ *مرحله ۹: مدت اعتبار؟*\n\n"
+                         "• عدد = روز از الان (مثلاً `30`)\n"
+                         "• تاریخ شمسی (`1405/07/15`) یا میلادی (`2026-10-07`)\n"
+                         "• یا نامحدود",
+                         kb)
+            return
+
+        # ===== ویزارد کد تخفیف: انقضا =====
+        elif current_state_name == "awaiting_disc_expiry":
+            if not auth_manager.is_admin(chat_id):
+                clear_state(chat_id)
+                return
+            from auth_handlers import parse_expiry_input
+            parsed = parse_expiry_input(text or "")
+            if not parsed.get('success'):
+                send_message(chat_id, f"❌ {parsed.get('error')}")
+                return
+            disc = current_state_data.get('disc', {})
+            disc['expires_at'] = parsed.get('expires_at')
+            disc['expires_label'] = parsed.get('label')
+            set_state(chat_id, "awaiting_disc_min", disc=disc)
+            kb = {"inline_keyboard": [
+                [{"text": t(chat_id, "disc_skip"), "callback_data": "admin_disc_skip_min"}],
+                [{"text": t(chat_id, "disc_cancel"), "callback_data": "admin_disc_cancel"}],
+            ]}
+            send_message(chat_id,
+                         f"⏰ اعتبار: {parsed.get('label')}\n\n"
+                         "🧾 *کف مبلغ خرید (اختیاری):*\n\n"
+                         "کد فقط برای پلن‌هایی که قیمتشان از این مبلغ بیشتر است کار کند؟\n"
+                         "مبلغ به تومان (مثلاً `100000`) یا رد کنید.",
+                         kb)
+            return
+
+        # ===== ویزارد کد تخفیف: کف خرید =====
+        elif current_state_name == "awaiting_disc_min":
+            if not auth_manager.is_admin(chat_id):
+                clear_state(chat_id)
+                return
+            from auth_handlers import fa_to_en_digits
+            disc = current_state_data.get('disc', {})
+            raw = fa_to_en_digits(text)
+            if raw == "0":
+                disc['min_order_rial'] = None
+            else:
+                try:
+                    toman = int(raw)
+                    if toman <= 0:
+                        raise ValueError
+                    disc['min_order_rial'] = toman * 10
+                except ValueError:
+                    send_message(chat_id, "❌ مبلغ نامعتبر! عدد (تومان) وارد کنید یا رد کنید.")
+                    return
+            set_state(chat_id, "awaiting_disc_firstonly", disc=disc)
+            kb = {"inline_keyboard": [
+                [
+                    {"text": "✅ بله، فقط خرید اول", "callback_data": "admin_disc_first_yes"},
+                    {"text": "❌ نه، همه", "callback_data": "admin_disc_first_no"},
+                ],
+                [{"text": t(chat_id, "disc_cancel"), "callback_data": "admin_disc_cancel"}],
+            ]}
+            send_message(chat_id,
+                         "🛒 *فقط برای خرید اول؟*\n\n"
+                         "اگر «بله»، کاربرانی که قبلاً خرید موفق داشته‌اند "
+                         "نمی‌توانند از این کد استفاده کنند.",
+                         kb)
+            return
+
+        # ===== ویزارد کد تخفیف: عنوان =====
+        elif current_state_name == "awaiting_disc_title":
+            if not auth_manager.is_admin(chat_id):
+                clear_state(chat_id)
+                return
+            disc = current_state_data.get('disc', {})
+            disc['title'] = (text or "").strip()[:100]
+            set_state(chat_id, "awaiting_disc_confirm", disc=disc)
+            _disc_send_confirm(chat_id)
+            return
+
+        # ===== تایید نهایی: فقط دکمه =====
+        elif current_state_name == "awaiting_disc_confirm":
+            send_message(chat_id, "لطفاً از دکمه‌های «ثبت نهایی» یا «انصراف» استفاده کنید.")
+            return
+
+        # ===== ویرایش کد: مقدار =====
+        elif current_state_name == "awaiting_disc_edit_value":
+            if not auth_manager.is_admin(chat_id):
+                clear_state(chat_id)
+                return
+            from auth_handlers import fa_to_en_digits
+            did = current_state_data.get('disc_id')
+            d = auth_manager.get_discount(did)
+            if not d:
+                clear_state(chat_id)
+                return
+            try:
+                v = int(fa_to_en_digits(text))
+            except ValueError:
+                send_message(chat_id, "❌ عدد نامعتبر!")
+                return
+            if d['discount_type'] == 'percent':
+                if not 1 <= v <= 100:
+                    send_message(chat_id, "❌ درصد باید بین 1 تا 100 باشد.")
+                    return
+                res = auth_manager.update_discount(did, percent=v)
+            else:
+                if v <= 0:
+                    send_message(chat_id, "❌ مبلغ باید بزرگ‌تر از صفر باشد.")
+                    return
+                res = auth_manager.update_discount(did, amount_rial=v * 10)
+            clear_state(chat_id)
+            if res.get('success'):
+                auth_manager.log_activity(chat_id, "disc_edit", f"{did} value->{v}")
+                send_message(chat_id, "✅ مقدار تخفیف به‌روزرسانی شد.")
+            else:
+                send_message(chat_id, f"❌ {res.get('error', 'خطا')}")
+            handle_discount_detail(chat_id, did)
+            return
+
+        # ===== ویرایش کد: سقف/کف/ظرفیت‌ها =====
+        elif current_state_name in ("awaiting_disc_edit_cap", "awaiting_disc_edit_min",
+                                    "awaiting_disc_edit_total", "awaiting_disc_edit_peruser"):
+            if not auth_manager.is_admin(chat_id):
+                clear_state(chat_id)
+                return
+            from auth_handlers import fa_to_en_digits
+            did = current_state_data.get('disc_id')
+            field_map = {"awaiting_disc_edit_cap": "max_discount_rial",
+                         "awaiting_disc_edit_min": "min_order_rial",
+                         "awaiting_disc_edit_total": "total_limit",
+                         "awaiting_disc_edit_peruser": "per_user_limit"}
+            field = field_map[current_state_name]
+            raw = fa_to_en_digits(text).strip().lower()
+            if raw in ("0", "نامحدود", "unlimited", "-") and field != "per_user_limit":
+                new_val = None
+            else:
+                try:
+                    new_val = int(raw)
+                    if field == "per_user_limit":
+                        if new_val < 1:
+                            raise ValueError
+                    elif new_val <= 0:
+                        raise ValueError
+                except ValueError:
+                    send_message(chat_id, "❌ عدد نامعتبر!")
+                    return
+                if field in ("max_discount_rial", "min_order_rial"):
+                    new_val = new_val * 10  # تومان → ریال
+            res = auth_manager.update_discount(did, **{field: new_val})
+            clear_state(chat_id)
+            if res.get('success'):
+                auth_manager.log_activity(chat_id, "disc_edit", f"{did} {field}->{new_val}")
+                send_message(chat_id, "✅ به‌روزرسانی شد.")
+            else:
+                send_message(chat_id, f"❌ {res.get('error', 'خطا')}")
+            handle_discount_detail(chat_id, did)
+            return
+
+        # ===== ویرایش کد: انقضا =====
+        elif current_state_name == "awaiting_disc_edit_expiry":
+            if not auth_manager.is_admin(chat_id):
+                clear_state(chat_id)
+                return
+            from auth_handlers import parse_expiry_input
+            did = current_state_data.get('disc_id')
+            parsed = parse_expiry_input(text or "")
+            if not parsed.get('success'):
+                send_message(chat_id, f"❌ {parsed.get('error')}")
+                return
+            res = auth_manager.update_discount(did, expires_at=parsed.get('expires_at'))
+            clear_state(chat_id)
+            if res.get('success'):
+                send_message(chat_id, f"✅ انقضا تنظیم شد: {parsed.get('label')}")
+            else:
+                send_message(chat_id, f"❌ {res.get('error', 'خطا')}")
+            handle_discount_detail(chat_id, did)
+            return
+
+        # ===== ویرایش کد: عنوان =====
+        elif current_state_name == "awaiting_disc_edit_title":
+            if not auth_manager.is_admin(chat_id):
+                clear_state(chat_id)
+                return
+            did = current_state_data.get('disc_id')
+            title = (text or "").strip()[:100]
+            if title == "-":
+                title = ""
+            res = auth_manager.update_discount(did, title=title)
+            clear_state(chat_id)
+            if res.get('success'):
+                send_message(chat_id, "✅ عنوان به‌روزرسانی شد.")
+            else:
+                send_message(chat_id, f"❌ {res.get('error', 'خطا')}")
+            handle_discount_detail(chat_id, did)
+            return
+
+        # ===== افزودن کاربر مجاز =====
+        elif current_state_name in ("awaiting_disc_useradd", "awaiting_disc_eusers"):
+            if not auth_manager.is_admin(chat_id):
+                clear_state(chat_id)
+                return
+            did = current_state_data.get('disc_id')
+            ids, bad = _parse_chat_ids(text)
+            if bad:
+                send_message(chat_id, f"❌ این‌ها معتبر نیستند: {', '.join(bad[:5])}")
+                return
+            if not ids:
+                send_message(chat_id, "❌ حداقل یک آیدی معتبر وارد کنید.")
+                return
+            if current_state_name == "awaiting_disc_eusers":
+                # تبدیل به شخصی + افزودن کاربران
+                auth_manager.update_discount(did, scope='personal')
+            res = auth_manager.add_discount_users(did, ids)
+            clear_state(chat_id)
+            if res.get('success'):
+                auth_manager.log_activity(chat_id, "disc_users_add",
+                                          f"{did} +{res.get('added', 0)}")
+                send_message(chat_id, f"✅ {res.get('added', 0)} کاربر اضافه شد.")
+            else:
+                send_message(chat_id, f"❌ {res.get('error', 'خطا')}")
+            if current_state_name == "awaiting_disc_eusers":
+                handle_discount_detail(chat_id, did)
+            else:
+                handle_discount_users(chat_id, did)
+            return
 
         # ===== ویزارد ساخت پلن جدید: نام =====
         if current_state_name == "awaiting_plan_name":

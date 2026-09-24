@@ -55,16 +55,28 @@ done
 # اجرای Bale Bot
 echo -e "\n${BLUE}🤖 Bale Bot...${NC}"
 cd "$SCRIPT_DIR/all_pg_agnet/AGENT-MANAGER_BOTS_MASSENGER"
-# چک کردن auth.db - اگر خراب است فقط هشدار بده، پاک نکن مگر اینکه واقعا خراب باشد
+# چک کردن auth.db - امن: هرگز خودکار پاک نمی‌کند، فقط در صورت سلامت ادامه می‌دهد
 if [ -f "auth.db" ]; then
-    if ! python3 -c "import sqlite3; sqlite3.connect('auth.db', timeout=2).execute('SELECT 1')" 2>/dev/null; then
-        echo -e "${RED}⚠️ auth.db خراب است، بکاپ و بازسازی...${NC}"
-        cp auth.db auth.db.backup.$(date +%s) 2>/dev/null; true
-        rm -f auth.db auth.db-journal
-        echo -e "${YELLOW}⚠️ بکاپ گرفته شد، دیتابیس جدید ساخته می‌شود - کاربران باید دوباره تایید شوند${NC}"
-    else
+    # چند تلاش با فاصله: ممکن است پروسه قبلی هنوز قفل داشته باشد (سرور شلوغ)
+    DB_OK=0
+    for i in 1 2 3 4 5; do
+        if python3 -c "import sqlite3; c=sqlite3.connect('auth.db', timeout=10); c.execute('SELECT count(*) FROM users').fetchone(); c.close()" 2>/dev/null; then DB_OK=1; break; fi
+        echo -e "${YELLOW}⏳ auth.db قفل/مشغول است، تلاش مجدد ($i/5)...${NC}"
+        sleep 2
+    done
+    if [ "$DB_OK" = "1" ]; then
         echo -e "${GREEN}✅ auth.db سالم است - حفظ شد${NC}"
+    else
+        echo -e "${RED}❌ auth.db قابل خواندن نیست! استارت متوقف شد تا دیتابیس آسیب نبیند.${NC}"
+        cp auth.db "auth.db.backup.$(date +%s)" 2>/dev/null; true
+        echo -e "${YELLOW}📁 از auth.db بکاپ گرفته شد (auth.db.backup.*)${NC}"
+        echo -e "${YELLOW}🔍 اول بررسی کن: پروسه قدیمی bot.py هنوز روشن است؟ (ps aux | grep bot.py)${NC}"
+        echo -e "${YELLOW}   اگر پروسه‌ای ماند: ./stop.sh و چند ثانیه صبر، بعد دوباره ./start.sh${NC}"
+        echo -e "${RED}⛔ ربات اجرا نشد - auth.db دست‌نخورده باقی ماند.${NC}"
+        exit 1
     fi
+else
+    echo -e "${YELLOW}ℹ️ auth.db وجود ندارد (نصب تازه) - هنگام اجرا ساخته می‌شود${NC}"
 fi
 # حفظ پوشه یوزرها - پاک نمی‌کنیم
 mkdir -p users
