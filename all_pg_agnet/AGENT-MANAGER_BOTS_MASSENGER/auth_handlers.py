@@ -10,10 +10,8 @@ auth_manager = AuthManager()
 
 # ========== تنظیمات پرداخت ==========
 # توکن کیف‌پول بیل - از config.json خوانده می‌شود
-# 200,000,000 ریال = 20,000,000 تومان = 20 میلیون
-PAYMENT_AMOUNT = 200000000  # مبلغ به ریال - 20 میلیون تومان
+PAYMENT_AMOUNT = 200000000  # مبلغ پیش‌فرض به ریال (fallback اگر پلنی تنظیم نشده)
 PAYMENT_CURRENCY = "IRR"
-TRIAL_DAYS = 1  # مهلت تست 1 روزه رایگان
 
 
 def get_wallet_token():
@@ -22,10 +20,100 @@ def get_wallet_token():
     return config.get("wallet_token", "")
 
 
+def get_default_trial_days():
+    """مدت تست رایگان پیش‌فرض - توسط ادمین قابل تنظیم"""
+    try:
+        return max(0, int(load_config().get("default_trial_days", 1)))
+    except Exception:
+        return 1
+
+
+def get_active_plans():
+    """دریافت پلن‌های فعال خرید (تعرفه‌ها)"""
+    try:
+        return auth_manager.get_plans(include_disabled=False)
+    except Exception as e:
+        logger.error(f"❌ خطا در دریافت پلن‌ها: {e}")
+        return []
+
+
+def format_price_rial(price_rial):
+    """فرمت قیمت: ریال → تومان"""
+    try:
+        toman = int(price_rial) // 10
+        return f"{toman:,} تومان"
+    except Exception:
+        return str(price_rial)
+
+
+def format_duration_fa(duration_days):
+    """فرمت مدت به فارسی"""
+    if duration_days is None:
+        return "♾️ دائمی"
+    days = int(duration_days)
+    if days == 1:
+        return "۱ روزه"
+    if days == 30:
+        return "۱ ماهه"
+    if days == 90:
+        return "۳ ماهه"
+    if days == 180:
+        return "۶ ماهه"
+    if days == 365:
+        return "۱ ساله"
+    return f"{days} روزه"
+
+
+def build_tariffs_text(lang="fa"):
+    """متن لیست تعرفه‌ها"""
+    plans = get_active_plans()
+    if lang == "fa":
+        if not plans:
+            return "🏷️ *تعرفه‌ها*\n\nهنوز پلنی تنظیم نشده است.\nلطفاً با پشتیبانی تماس بگیرید."
+        msg = "🏷️ *تعرفه‌های دسترسی*\n\n"
+        msg += "یکی از پلن‌های زیر را انتخاب کنید:\n\n"
+        for i, plan in enumerate(plans, 1):
+            dur = format_duration_fa(plan['duration_days'])
+            price = format_price_rial(plan['price_rial'])
+            msg += f"{i}️⃣ *{plan['name']}* — {dur}\n"
+            msg += f"    💰 {price}\n\n"
+        msg += "💡 هر پلن بر اساس مدت دسترسی قیمت متفاوتی دارد."
+    else:
+        if not plans:
+            return "🏷️ *Tariffs*\n\nNo plans configured yet.\nPlease contact support."
+        msg = "🏷️ *Access Tariffs*\n\nSelect a plan:\n\n"
+        for i, plan in enumerate(plans, 1):
+            dur = plan['duration_days']
+            dur_s = "Lifetime" if dur is None else f"{dur} days"
+            toman = int(plan['price_rial']) // 10
+            msg += f"{i}️⃣ *{plan['name']}* — {dur_s}\n"
+            msg += f"    💰 {toman:,} TOMAN\n\n"
+        msg += "💡 Each plan is priced by its access duration."
+    return msg
+
+
+def build_tariffs_keyboard(lang="fa"):
+    """صفحه‌کلید لیست تعرفه‌ها با دکمه خرید هر پلن"""
+    plans = get_active_plans()
+    rows = []
+    for plan in plans:
+        dur = format_duration_fa(plan['duration_days']) if lang == "fa" else (
+            "Lifetime" if plan['duration_days'] is None else f"{plan['duration_days']}d"
+        )
+        price = format_price_rial(plan['price_rial']) if lang == "fa" else (
+            f"{int(plan['price_rial']) // 10:,} T"
+        )
+        rows.append([{
+            "text": f"💳 {plan['name']} | {dur} | {price}",
+            "callback_data": f"buy_plan_{plan['id']}"
+        }])
+    return {"inline_keyboard": rows}
+
+
 # ========== صفحه‌کلیدهای احراز هویت ==========
 
 def create_auth_keyboard_fa():
-    """صفحه‌کلید انتخاب روش ورود (فارسی) - با دکمه خرید"""
+    """صفحه‌کلید انتخاب روش ورود (فارسی) - با دکمه تعرفه‌ها"""
     return {
         "inline_keyboard": [
             [
@@ -35,14 +123,14 @@ def create_auth_keyboard_fa():
                 {"text": "📝 درخواست دسترسی", "callback_data": "auth_request_access"}
             ],
             [
-                {"text": "💳 خرید دسترسی", "callback_data": "auth_buy_access"}
+                {"text": "🏷️ تعرفه‌ها و خرید", "callback_data": "show_tariffs"}
             ]
         ]
     }
 
 
 def create_auth_keyboard_en():
-    """صفحه‌کلید انتخاب روش ورود (انگلیسی) - با دکمه خرید"""
+    """صفحه‌کلید انتخاب روش ورود (انگلیسی) - با دکمه تعرفه‌ها"""
     return {
         "inline_keyboard": [
             [
@@ -52,7 +140,7 @@ def create_auth_keyboard_en():
                 {"text": "📝 Request Access", "callback_data": "auth_request_access"}
             ],
             [
-                {"text": "💳 Buy Access", "callback_data": "auth_buy_access"}
+                {"text": "🏷️ Tariffs & Buy", "callback_data": "show_tariffs"}
             ]
         ]
     }
@@ -92,11 +180,30 @@ def send_message(chat_id, text, keyboard=None, bot_token=None):
     return False
 
 
-def send_invoice_to_user(chat_id, bot_token):
+def send_invoice_to_user(chat_id, bot_token, plan=None):
     """
-    ارسال درخواست پرداخت (invoice) به کاربر - با retry و پیام‌های واضح
+    ارسال درخواست پرداخت (invoice) بر اساس پلن انتخاب شده
+    اگر plan داده نشود، اولین پلن فعال یا مبلغ پیش‌فرض استفاده می‌شود
     """
     wallet_token = get_wallet_token()
+
+    # انتخاب پلن
+    if plan is None:
+        plans = get_active_plans()
+        plan = plans[0] if plans else None
+
+    if plan:
+        price_rial = int(plan['price_rial'])
+        plan_name = plan['name']
+        dur_days = plan['duration_days']
+        plan_id = plan['id']
+        dur_fa = format_duration_fa(dur_days)
+    else:
+        price_rial = PAYMENT_AMOUNT
+        plan_name = "دسترسی دائمی"
+        plan_id = 0
+        dur_days = None
+        dur_fa = "دائمی"
 
     if not wallet_token:
         logger.error("❌ wallet_token در config.json تنظیم نشده! پرداخت ممکن نیست")
@@ -121,23 +228,25 @@ def send_invoice_to_user(chat_id, bot_token):
     api = f"https://tapi.bale.ai/bot{bot_token}"
 
     import time
-    payload = f"purchase_{chat_id}_{int(time.time())}"
+    payload = f"purchase_{chat_id}_{plan_id}_{int(time.time())}"
 
+    price_toman = price_rial // 10
+    desc_duration = "دسترسی دائمی و بدون محدودیت" if dur_days is None else f"دسترسی به مدت {dur_fa}"
     data = {
         "chat_id": chat_id,
-        "title": "خرید دسترسی دائمی - 20 میلیون تومان",
+        "title": f"خرید {plan_name} - {price_toman:,} تومان",
         "description": (
-            "🎁 1 روز تست رایگان دارید!\n"
-            "با خرید این اشتراک، به تمام امکانات ربات دسترسی دائمی خواهید داشت.\n"
-            "پس از پرداخت، یک توکن اختصاصی دائمی برای شما صادر می‌شود.\n"
-            "قیمت: 20,000,000 تومان"
+            f"📦 پلن: {plan_name} ({dur_fa})\n"
+            f"✅ {desc_duration}\n"
+            f"💰 قیمت: {price_toman:,} تومان\n\n"
+            "پس از پرداخت، دسترسی شما فعال می‌شود."
         ),
         "payload": payload,
         "provider_token": wallet_token,
         "prices": [
             {
-                "label": "دسترسی دائمی - 20 میلیون تومان",
-                "amount": PAYMENT_AMOUNT
+                "label": f"{plan_name} - {dur_fa}",
+                "amount": price_rial
             }
         ]
     }
@@ -148,7 +257,7 @@ def send_invoice_to_user(chat_id, bot_token):
             result = response.json()
 
             if result.get("ok"):
-                logger.info(f"✅ فاکتور پرداخت برای {chat_id} ارسال شد (attempt {attempt+1})")
+                logger.info(f"✅ فاکتور پرداخت پلن {plan_id} برای {chat_id} ارسال شد (attempt {attempt+1})")
                 return True
             else:
                 error_desc = result.get('description', 'خطای نامشخص')
@@ -229,23 +338,22 @@ def handle_unauthenticated_user(message, bot_token):
 
     if user_info:
         if user_info['status'] == 'approved':
-            # چک تست منقضی
-            if user_info.get('is_trial') and user_info.get('trial_expired'):
-                amount_toman = PAYMENT_AMOUNT // 10
+            # چک انقضای دسترسی (تست یا محدود)
+            access_expired = (
+                (user_info.get('is_trial') and user_info.get('trial_expired'))
+                or user_info.get('access_expired')
+            )
+            if access_expired:
+                trial_days = get_default_trial_days()
                 msg = (
-                    f"⏰ *مهلت تست 1 روزه شما تمام شد!*\n\n"
-                    f"👋 {username} عزیز، تست رایگان 1 روزه شما به پایان رسید.\n\n"
-                    f"💳 برای ادامه استفاده، لطفاً اشتراک تهیه کنید:\n"
-                    f"💰 مبلغ: {amount_toman:,} تومان (20 میلیون)\n\n"
-                    f"✅ پس از پرداخت دسترسی دائمی خواهید داشت\n\n"
-                    f"یا درخواست دسترسی به ادمین بدهید:"
+                    f"⏰ *مدت دسترسی شما به پایان رسید!*\n\n"
+                    f"👋 {username} عزیز، اعتبار رایگان شما تمام شده است.\n\n"
+                    f"💳 برای ادامه استفاده، یکی از پلن‌های زیر را انتخاب کنید:"
                 )
-                keyboard = {
-                    "inline_keyboard": [
-                        [{"text": "💳 خرید دسترسی - 20 میلیون", "callback_data": "auth_buy_access"}],
-                        [{"text": "📝 درخواست دسترسی به ادمین", "callback_data": "auth_request_access"}]
-                    ]
-                }
+                keyboard = build_tariffs_keyboard("fa")
+                keyboard["inline_keyboard"].append(
+                    [{"text": "📝 درخواست دسترسی به ادمین", "callback_data": "auth_request_access"}]
+                )
                 send_message(chat_id, msg, keyboard, bot_token=bot_token)
                 return False
             # اگر تست فعال است، باقی مانده را نمایش بده در لاگ
@@ -266,48 +374,45 @@ def handle_unauthenticated_user(message, bot_token):
         elif user_info['status'] == 'rejected':
             msg = (
                 f"❌ متأسفانه درخواست دسترسی شما رد شد.\n\n"
-                f"می‌توانید از طریق خرید دسترسی، اشتراک تهیه کنید:"
+                f"می‌توانید از طریق خرید اشتراک، دسترسی تهیه کنید:"
             )
-            keyboard = {
-                "inline_keyboard": [
-                    [{"text": "💳 خرید دسترسی - 20 میلیون", "callback_data": "auth_buy_access"}]
-                ]
-            }
+            keyboard = build_tariffs_keyboard("fa")
             send_message(chat_id, msg, keyboard, bot_token=bot_token)
             return False
 
-    # کاربر جدید - خودکار تست 1 روزه رایگان بده (درخواست دسترسی حذف نشده، فقط خودکار تست می‌دهد)
-    logger.info(f"🆕 کاربر جدید {chat_id} - ثبت با تست 1 روزه رایگان")
+    # کاربر جدید - خودکار تست رایگان بده (مدت از config خوانده می‌شود)
+    trial_days = get_default_trial_days()
+    logger.info(f"🆕 کاربر جدید {chat_id} - ثبت با تست {trial_days} روزه رایگان")
     result = auth_manager.register_user(chat_id, username)
     if result.get('success') and result.get('is_trial'):
         trial_end = result.get('trial_end', '')
+        got_days = result.get('trial_days', trial_days)
         msg = (
             f"🎉 *خوش‌آمدید {username}!* \n\n"
-            f"🎁 *هدیه ویژه: 1 روز تست رایگان!* 🎁\n\n"
-            f"✅ دسترسی شما به مدت 1 روز فعال شد\n"
+            f"🎁 *هدیه ویژه: {got_days} روز تست رایگان!* 🎁\n\n"
+            f"✅ دسترسی شما به مدت {got_days} روز فعال شد\n"
             f"⏰ تا: {trial_end}\n\n"
             f"🚀 می‌توانید همین الان از ربات استفاده کنید:\n"
             f"• اتصال پیام‌رسان‌ها\n"
             f"• تنظیم ووکامرس\n"
             f"• ارسال پست خودکار\n\n"
-            f"💡 پس از پایان تست، برای ادامه فقط 20 میلیون تومان پرداخت کنید و دسترسی دائمی بگیرید!\n\n"
+            f"💡 پس از پایان تست، از بخش تعرفه‌ها اشتراک بخرید:\n\n"
             f"برای شروع /start را بزنید"
         )
         keyboard = {
             "inline_keyboard": [
                 [{"text": "🚀 شروع استفاده", "callback_data": "main_menu"}],
-                [{"text": "💳 خرید دسترسی دائمی - 20 میلیون", "callback_data": "auth_buy_access"}],
+                [{"text": "🏷️ مشاهده تعرفه‌ها", "callback_data": "show_tariffs"}],
                 [{"text": "📝 درخواست دسترسی به ادمین", "callback_data": "auth_request_access"}]
             ]
         }
         send_message(chat_id, msg, keyboard, bot_token=bot_token)
         return True
     else:
-        # fallback قدیمی - اگر ثبت با تست شکست خورد، روش قدیمی را نشان بده
+        # کاربر جدید بدون تست (مثلاً تست غیرفعال) - مستقیم تعرفه‌ها
         msg = (
             f"👋 خوش‌آمدید {username}!\n\n"
-            f"🔐 برای استفاده از ربات، لطفاً یکی از روش‌های زیر را انتخاب کنید:\n\n"
-            f"🎁 کاربران جدید 1 روز تست رایگان دارند!"
+            f"🔐 برای استفاده از ربات، یکی از روش‌های زیر را انتخاب کنید:"
         )
         keyboard = create_auth_keyboard_fa()
         send_message(chat_id, msg, keyboard, bot_token=bot_token)
@@ -372,77 +477,181 @@ def handle_auth_callback(callback_data, message, bot_token, user_states):
         }
         logger.info(f"📝 در انتظار دلیل درخواست از {chat_id}")
 
-    # ===== خرید دسترسی =====
+    # ===== خرید دسترسی (نمایش تعرفه‌ها) =====
     elif callback_data == "auth_buy_access":
         _handle_buy_access(chat_id, username, bot_token, user_states)
+
+    # ===== نمایش تعرفه‌ها =====
+    elif callback_data == "show_tariffs":
+        show_tariffs(chat_id, bot_token)
+
+    # ===== خرید یک پلن مشخص =====
+    elif callback_data.startswith("buy_plan_"):
+        try:
+            plan_id = int(callback_data.replace("buy_plan_", ""))
+            handle_purchase_confirm(chat_id, username, bot_token, plan_id=plan_id)
+        except ValueError:
+            show_tariffs(chat_id, bot_token)
 
     else:
         logger.warning(f"⚠️ callback ناشناخته: {callback_data}")
 
 
+def show_tariffs(chat_id, bot_token, lang="fa"):
+    """نمایش لیست تعرفه‌ها با دکمه خرید هر پلن"""
+    msg = build_tariffs_text(lang)
+    keyboard = build_tariffs_keyboard(lang)
+    if lang == "fa":
+        keyboard["inline_keyboard"].append(
+            [{"text": "🔙 بازگشت", "callback_data": "auth_back_to_menu"}]
+        )
+    send_message(chat_id, msg, keyboard, bot_token=bot_token)
+
+
+def notify_access_changed(user_chat_id, new_until, access_type, bot_token, changed_by_admin=True):
+    """
+    ارسال پییم به کاربر وقتی مدت دسترسی‌اش تغییر کرد
+    با دکمه تعرفه‌ها برای مشاهده لیست و خرید
+    """
+    if access_type == 'permanent':
+        access_line = "♾️ نوع دسترسی: **دائمی**"
+    elif access_type == 'trial':
+        access_line = f"🎁 نوع دسترسی: **تست رایگان**\n⏳ تا: {new_until}"
+    elif new_until:
+        access_line = f"⏱️ نوع دسترسی: **مدت‌دار**\n⏳ تا: {new_until}"
+    else:
+        access_line = "⏳ مدت دسترسی شما بروزرسانی شد"
+
+    msg = (
+        "🔔 *تغییر در مدت دسترسی*\n\n"
+        f"{access_line}\n\n"
+        "ℹ️ مدت دسترسی شما توسط مدیریت تغییر کرد.\n"
+        "برای مشاهده تعرفه‌ها و خرید اشتراک:"
+    )
+    keyboard = {
+        "inline_keyboard": [
+            [{"text": "🏷️ تعرفه‌ها", "callback_data": "show_tariffs"}],
+            [{"text": "🏠 منوی اصلی", "callback_data": "main_menu"}]
+        ]
+    }
+    send_message(user_chat_id, msg, keyboard, bot_token=bot_token)
+
+
+def notify_new_plan_available(user_chat_id, plan, bot_token, lang="fa"):
+    """ارسال پیام به کاربر وقتی روش خرید جدیدی اضافه شد"""
+    if lang == "fa":
+        dur = format_duration_fa(plan['duration_days'])
+        price = format_price_rial(plan['price_rial'])
+        msg = (
+            "🆕 *روش خرید جدید اضافه شد!*\n\n"
+            f"📦 پلن: **{plan['name']}**\n"
+            f"⏱️ مدت: {dur}\n"
+            f"💰 قیمت: {price}\n\n"
+            "برای مشاهده کامل تعرفه‌ها و خرید:"
+        )
+        kb_text = "🏷️ مشاهده تعرفه‌ها"
+    else:
+        dur = "Lifetime" if plan['duration_days'] is None else f"{plan['duration_days']} days"
+        toman = int(plan['price_rial']) // 10
+        msg = (
+            "🆕 *New purchase plan available!*\n\n"
+            f"📦 Plan: **{plan['name']}**\n"
+            f"⏱️ Duration: {dur}\n"
+            f"💰 Price: {toman:,} TOMAN\n\n"
+            "View all tariffs and buy:"
+        )
+        kb_text = "🏷️ View Tariffs"
+
+    keyboard = {
+        "inline_keyboard": [
+            [{"text": kb_text, "callback_data": "show_tariffs"}],
+            [{"text": "🏠 Main Menu" if lang != "fa" else "🏠 منوی اصلی", "callback_data": "main_menu"}]
+        ]
+    }
+    send_message(user_chat_id, msg, keyboard, bot_token=bot_token)
+
+
+def broadcast_new_plan(plan, bot_token, lang="fa"):
+    """اطلاع‌رسانی گروهی پلن جدید به همه کاربران تایید شده"""
+    try:
+        users = auth_manager.get_approved_users()
+        sent = 0
+        failed = 0
+        for user in users:
+            uid = user['chat_id']
+            if auth_manager.is_admin(uid):
+                continue
+            try:
+                user_lang = "fa"  # پیش‌فرض فارسی؛ می‌توان از config خواند
+                if notify_new_plan_available(uid, plan, bot_token, lang=user_lang):
+                    sent += 1
+                else:
+                    failed += 1
+            except Exception:
+                failed += 1
+        logger.info(f"📢 اطلاع‌رسانی پلن '{plan['name']}' به {sent} کاربر ارسال شد ({failed} ناموفق)")
+        return sent, failed
+    except Exception as e:
+        logger.error(f"❌ خطا در اطلاع‌رسانی گروهی: {e}")
+        return 0, 0
+
+
 def _handle_buy_access(chat_id, username, bot_token, user_states):
     """
-    مدیریت فرایند خرید دسترسی
-
-    1. توضیح محصول به کاربر
-    2. ارسال فاکتور پرداخت
+    مدیریت فرایند خرید - نمایش لیست تعرفه‌ها (پلن‌های متعدد)
+    کاربر یکی را انتخاب می‌کند و فاکتور همان پلن ارسال می‌شود
     """
     logger.info(f"💳 شروع فرایند خرید برای {chat_id}")
 
-    # بررسی: آیا قبلاً توکن خرید دارد؟
-    existing_token = auth_manager.get_purchase_token_by_chat_id(chat_id)
-    if existing_token:
+    plans = get_active_plans()
+    if not plans:
         msg = (
-            "✅ *شما قبلاً اشتراک خریداری کرده‌اید!*\n\n"
-            f"🔑 توکن شما:\n`{existing_token['token']}`\n\n"
-            "این توکن دائمی است و همیشه می‌توانید از آن استفاده کنید.\n"
-            "برای ورود، از گزینه «ورود با توکن» استفاده کنید."
+            "🏷️ *تعرفه‌ها*\n\n"
+            "هنوز پلن خریدی تنظیم نشده است.\n"
+            "لطفاً با پشتیبانی تماس بگیرید."
         )
         keyboard = {
             "inline_keyboard": [
-                [{"text": "🔐 ورود با توکن", "callback_data": "auth_with_token"}]
+                [{"text": "📝 درخواست دسترسی به ادمین", "callback_data": "auth_request_access"}],
+                [{"text": "🔙 بازگشت", "callback_data": "auth_back_to_menu"}]
             ]
         }
         send_message(chat_id, msg, keyboard, bot_token=bot_token)
         return
 
-    # توضیح محصول - 20 میلیون
-    amount_toman = PAYMENT_AMOUNT // 10
-    msg = (
-        f"💳 *خرید دسترسی به ربات - 20 میلیون تومان*\n\n"
-        f"💰 مبلغ: {amount_toman:,} تومان\n"
-        f"💵 معادل 20 میلیون تومان\n\n"
-        f"🎁 در حال حاضر 1 روز تست رایگان دارید!\n"
-        f"✅ پس از پرداخت:\n"
-        f"  • یک توکن اختصاصی برای شما صادر می‌شود\n"
-        f"  • توکن دائمی است و بدون انقضا\n"
-        f"  • دسترسی نامحدود به تمام امکانات\n"
-        f"  • پشتیبانی کامل\n\n"
-        f"🔒 پرداخت از طریق کیف‌پول بیل انجام می‌شود."
+    msg = build_tariffs_text("fa") + "\n\n🔒 پرداخت از طریق کیف‌پول بیل انجام می‌شود."
+    keyboard = build_tariffs_keyboard("fa")
+    keyboard["inline_keyboard"].append(
+        [{"text": "🔙 بازگشت", "callback_data": "auth_back_to_menu"}]
     )
-
-    keyboard = {
-        "inline_keyboard": [
-            [{"text": "💳 پرداخت و دریافت توکن", "callback_data": "auth_confirm_purchase"}],
-            [{"text": "🔙 بازگشت", "callback_data": "auth_back_to_menu"}]
-        ]
-    }
     send_message(chat_id, msg, keyboard, bot_token=bot_token)
 
     user_states[chat_id] = {
-        'state': 'awaiting_purchase_confirm',
+        'state': 'choosing_plan',
         'username': username
     }
 
 
-def handle_purchase_confirm(chat_id, username, bot_token):
-    """ارسال فاکتور پرداخت پس از تایید کاربر"""
-    logger.info(f"💳 ارسال فاکتور برای {chat_id}")
+def handle_purchase_confirm(chat_id, username, bot_token, plan_id=None):
+    """ارسال فاکتور پرداخت پس از انتخاب پلن"""
+    logger.info(f"💳 ارسال فاکتور برای {chat_id} (plan={plan_id})")
+
+    plan = None
+    if plan_id is not None:
+        plan = auth_manager.get_plan(plan_id)
+        if plan and not plan.get('enabled'):
+            send_message(
+                chat_id,
+                "❌ این پلن در حال حاضر غیرفعال است.\nلطفاً پلن دیگری را انتخاب کنید.",
+                build_tariffs_keyboard("fa"),
+                bot_token=bot_token
+            )
+            return
 
     preparing_msg = "⏳ در حال آماده‌سازی درخواست پرداخت..."
     send_message(chat_id, preparing_msg, bot_token=bot_token)
 
-    success = send_invoice_to_user(chat_id, bot_token)
+    success = send_invoice_to_user(chat_id, bot_token, plan=plan)
 
     if not success:
         logger.error(f"❌ ارسال فاکتور برای {chat_id} ناموفق بود")
@@ -467,17 +676,29 @@ def handle_successful_payment(chat_id, username, payment_info, bot_token):
     payment_id = payment_info.get('telegram_payment_charge_id', '')
     amount = payment_info.get('total_amount', 0)
     currency = payment_info.get('currency', 'IRR')
+    payload = payment_info.get('invoice_payload', '') or payment_info.get('payload', '')
+
+    # استخراج plan_id از payload: purchase_{chat_id}_{plan_id}_{ts}
+    plan_id = None
+    try:
+        parts = str(payload).split('_')
+        if len(parts) >= 4 and parts[0] == 'purchase':
+            plan_id = int(parts[2])
+    except Exception:
+        plan_id = None
+
+    plan = auth_manager.get_plan(plan_id) if plan_id else None
 
     logger.info(
         f"💳 پرداخت موفق از {chat_id}: "
-        f"amount={amount}, payment_id={payment_id}"
+        f"amount={amount}, payment_id={payment_id}, plan={plan_id}"
     )
 
     try:
         # 1. ثبت پرداخت در دیتابیس
         auth_manager.complete_payment(chat_id, payment_id, amount, currency)
 
-        # 2. ایجاد توکن خرید دائمی
+        # 2. ایجاد توکن خرید (برای ورود با توکن - حفظ سازگاری با قبل)
         purchase_token = auth_manager.create_purchase_token(
             chat_id=chat_id,
             username=username,
@@ -489,26 +710,56 @@ def handle_successful_payment(chat_id, username, payment_info, bot_token):
         # 3. تایید کاربر در سیستم
         auth_manager.approve_user_by_purchase(chat_id, username)
 
-        # 4. ثبت فعالیت
+        # 4. ✅ اعمال مدت دسترسی بر اساس پلن خریداری شده
+        # اگر پلنی مشخص نشد (پرداخت قدیمی/نامشخص) → دائمی (رفتار قبلی سیستم)
+        if plan is None:
+            plan = {'name': 'دسترسی دائمی', 'duration_days': None}
+
+        if plan['duration_days'] is None:
+            # پلن دائمی
+            access_result = auth_manager.set_user_access(
+                chat_id, 'permanent',
+                granted_by=None,
+                note=f"خرید پلن {plan['name']} (پرداخت {payment_id})"
+            )
+        else:
+            # پلن مدت‌دار - از انتهای اعتبار فعلی ادامه پیدا می‌کند
+            access_result = auth_manager.set_user_access(
+                chat_id, 'timed',
+                granted_by=None,
+                grant_days=plan['duration_days'],
+                note=f"خرید پلن {plan['name']} ({plan['duration_days']} روز) - پرداخت {payment_id}"
+            )
+
+        # 5. ثبت فعالیت
         auth_manager.log_activity(
             chat_id,
             'purchase',
-            f'پرداخت موفق: {amount} {currency}, payment_id={payment_id}'
+            f'پرداخت موفق: {amount} {currency}, payment_id={payment_id}, plan={plan_id}'
         )
 
-        # 5. ارسال توکن به کاربر
+        # 6. ارسال پیکربندی نهایی به کاربر
         amount_toman = amount // 10
+        access_line = ""
+        if access_result and access_result.get('success'):
+            if access_result.get('access_type') == 'permanent':
+                access_line = "♾️ دسترسی: **دائمی**\n"
+            elif access_result.get('access_until'):
+                access_line = f"⏳ دسترسی تا: **{access_result['access_until']}**\n"
+
+        plan_name = plan['name'] if plan else "دسترسی"
         msg = (
             f"🎉 *پرداخت با موفقیت انجام شد!*\n\n"
+            f"📦 پلن: {plan_name}\n"
             f"💰 مبلغ پرداختی: {amount_toman:,} تومان\n"
-            f"🆔 شناسه پرداخت: `{payment_id}`\n\n"
+            f"🆔 شناسه پرداخت: `{payment_id}`\n"
+            f"{access_line}\n"
             f"━━━━━━━━━━━━━━━━\n"
             f"🔑 *توکن اختصاصی شما:*\n\n"
             f"`{purchase_token}`\n\n"
             f"━━━━━━━━━━━━━━━━\n"
             f"⚠️ *نکات مهم:*\n"
             f"  • این توکن را در جای امنی ذخیره کنید\n"
-            f"  • توکن دائمی است و بدون انقضا\n"
             f"  • هر زمان که ربات از شما توکن خواست، این توکن را وارد کنید\n"
             f"  • این توکن را به کسی ندهید\n\n"
             f"برای ورود به ربات، از گزینه «ورود با توکن» استفاده کنید یا همین الان /start رو بزنید."
@@ -516,14 +767,15 @@ def handle_successful_payment(chat_id, username, payment_info, bot_token):
 
         keyboard = {
             "inline_keyboard": [
-                [{"text": "🔐 ورود به ربات", "callback_data": "auth_with_token"}]
+                [{"text": "🔐 ورود به ربات", "callback_data": "auth_with_token"}],
+                [{"text": "🏷️ مشاهده تعرفه‌ها", "callback_data": "show_tariffs"}]
             ]
         }
         send_message(chat_id, msg, keyboard, bot_token=bot_token)
 
-        logger.info(f"✅ توکن خرید برای {chat_id} ارسال شد")
+        logger.info(f"✅ دسترسی خریداری شده برای {chat_id} اعمال شد (plan={plan_id})")
 
-        # 6. اطلاع‌رسانی به ادمین
+        # 7. اطلاع‌رسانی به ادمین
         _notify_admin_purchase(chat_id, username, amount, currency,
                                 payment_id, purchase_token, bot_token)
 

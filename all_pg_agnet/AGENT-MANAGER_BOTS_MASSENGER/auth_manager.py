@@ -4,7 +4,7 @@ import secrets
 import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional, Dict, List, Tuple
+from typing import Optional, Dict, List, Tuple, Any
 import hashlib
 from logger import logger
 
@@ -136,19 +136,85 @@ class AuthManager:
                 )
             ''')
 
+            # ========== جدول پلن‌های خرید (تعرفه‌ها) ==========
+            # فقط افزودن جدول جدید - هیچ دسترسی به جداول قدیمی ندارد
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS plans (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    duration_days INTEGER,
+                    price_rial INTEGER NOT NULL DEFAULT 0,
+                    enabled INTEGER DEFAULT 1,
+                    sort_order INTEGER DEFAULT 0,
+                    created_at TEXT,
+                    updated_at TEXT
+                )
+            ''')
+
+            # ========== جدول تاریخچه تغییرات دسترسی (audit) ==========
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS access_changes (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    chat_id INTEGER NOT NULL,
+                    changed_by INTEGER,
+                    old_access TEXT,
+                    new_access TEXT,
+                    reason TEXT,
+                    created_at TEXT NOT NULL
+                )
+            ''')
+
             # ========== Migrations ==========
+            # ⚠️ فقط ALTER ADD COLUMN - هرگز DROP/DELETE نکن
             migrations = [
                 'ALTER TABLE purchase_tokens ADD COLUMN username TEXT',
                 'ALTER TABLE payments ADD COLUMN username TEXT',
                 'ALTER TABLE users ADD COLUMN is_trial INTEGER DEFAULT 0',
                 'ALTER TABLE users ADD COLUMN trial_start TEXT',
                 'ALTER TABLE users ADD COLUMN trial_end TEXT',
+                # ستون‌های جدید مدیریت مدت دسترسی - بدون DEFAULT
+                # (چون DEFAULT در ALTER باعث پرشدن فوری ردیف‌های قدیمی و بی‌اثر شدن بک‌فیل می‌شود)
+                'ALTER TABLE users ADD COLUMN access_type TEXT',
+                'ALTER TABLE users ADD COLUMN access_until TEXT',
+                'ALTER TABLE users ADD COLUMN last_grant_days INTEGER DEFAULT 0',
+                'ALTER TABLE users ADD COLUMN last_grant_at TEXT',
+                'ALTER TABLE users ADD COLUMN granted_by INTEGER',
+                'ALTER TABLE users ADD COLUMN access_note TEXT',
             ]
             for migration in migrations:
                 try:
                     cursor.execute(migration)
                 except sqlite3.OperationalError:
                     pass
+
+            # بک‌فیل ایمن: کاربران قدیمی approved بدون access_type → دائمی (حفظ رفتار قبلی)
+            try:
+                cursor.execute('''
+                    UPDATE users
+                    SET access_type = CASE
+                        WHEN is_trial = 1 AND trial_end IS NOT NULL THEN 'trial'
+                        ELSE 'permanent'
+                    END,
+                    access_until = CASE
+                        WHEN is_trial = 1 AND trial_end IS NOT NULL THEN trial_end
+                        ELSE NULL
+                    END
+                    WHERE access_type IS NULL
+                ''')
+            except sqlite3.OperationalError:
+                pass
+
+            # پلن پیش‌فرض "دائمی" - فقط اگر هیچ پلنی نیست (برای بانک‌های خالی)
+            try:
+                cursor.execute('SELECT COUNT(*) FROM plans')
+                if cursor.fetchone()[0] == 0:
+                    now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    cursor.execute('''
+                        INSERT INTO plans (name, duration_days, price_rial, enabled, sort_order, created_at, updated_at)
+                        VALUES ('دسترسی دائمی', NULL, 200000000, 1, 1, ?, ?)
+                    ''', (now_str, now_str))
+            except sqlite3.OperationalError:
+                pass
 
             conn.commit()
             logger.debug("✅ جداول پایگاه داده ایجاد شدند")
@@ -606,8 +672,31 @@ class AuthManager:
 
     # ========== مدیریت کاربران ==========
 
+    def get_default_trial_days(self) -> int:
+        """دریافت مدت تست رایگان پیش‌فرض از config (توسط ادمین قابل تنظیم)"""
+        try:
+            from config import load_config
+            days = load_config().get('default_trial_days', 1)
+            days = int(days)
+            return max(0, days)
+        except Exception:
+            return 1
+
+    def set_default_trial_days(self, days: int) -> bool:
+        """تنظیم مدت تست رایگان پیش‌فرض برای کاربران جدید"""
+        try:
+            from config import load_config, save_config
+            cfg = load_config()
+            cfg['default_trial_days'] = int(days)
+            save_config(cfg)
+            logger.info(f"✅ مدت تست پیش‌فرض روی {days} روز تنظیم شد")
+            return True
+        except Exception as e:
+            logger.error(f"❌ خطا در تنظیم مدت تست پیش‌فرض: {e}")
+            return False
+
     def register_user(self, chat_id: int, username: str) -> Dict:
-        """ثبت کاربر جدید - با تست 1 روزه رایگان"""
+        """ثبت کاربر جدید - با تست رایگان (مدت آن از config خوانده می‌شود)"""
         conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
@@ -622,26 +711,42 @@ class AuthManager:
             created_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
             is_admin = self.is_admin(chat_id)
+            trial_days = self.get_default_trial_days()
             if is_admin:
                 status = 'approved'
                 approved_at = created_at
-                is_trial = 0
+                is_admin_trial = 0
                 trial_start = None
                 trial_end = None
+                access_type = 'permanent'
+                access_until = None
+            elif trial_days <= 0:
+                # بدون تست - کاربر باید خرید کند یا ادمین تایید کند
+                status = 'pending'
+                approved_at = None
+                is_admin_trial = 0
+                trial_start = None
+                trial_end = None
+                access_type = None
+                access_until = None
             else:
-                # کاربر جدید - 1 روز تست رایگان
+                # کاربر جدید - تست رایگان
                 status = 'approved'
                 approved_at = created_at
-                is_trial = 1
+                is_admin_trial = 1
                 trial_start = created_at
-                trial_end = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S')
+                trial_end = (datetime.now() + timedelta(days=trial_days)).strftime('%Y-%m-%d %H:%M:%S')
+                access_type = 'trial'
+                access_until = trial_end
 
             cursor.execute('''
                 INSERT INTO users
-                (chat_id, username, token, status, created_at, approved_at, is_admin, is_trial, trial_start, trial_end)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (chat_id, username, token, status, created_at, approved_at, is_admin, is_trial, trial_start, trial_end,
+                 access_type, access_until, last_grant_days, last_grant_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (chat_id, username, hashed, status, created_at,
-                  approved_at, 1 if is_admin else 0, is_trial, trial_start, trial_end))
+                  approved_at, 1 if is_admin else 0, is_admin_trial, trial_start, trial_end,
+                  access_type, access_until, trial_days if is_admin_trial else 0, created_at if is_admin_trial else None))
 
             conn.commit()
 
@@ -649,12 +754,14 @@ class AuthManager:
             user_dir.mkdir(exist_ok=True)
             self._create_user_environment(chat_id)
 
-            if is_trial:
-                logger.info(f"✅ کاربر {chat_id} با تست 1 روزه ثبت شد تا {trial_end}")
+            if is_admin_trial:
+                logger.info(f"✅ کاربر {chat_id} با تست {trial_days} روزه ثبت شد تا {trial_end}")
             else:
                 logger.info(f"✅ کاربر {chat_id} ثبت‌نام شد - وضعیت: {status}")
 
-            return {'success': True, 'chat_id': chat_id, 'status': status, 'is_trial': bool(is_trial), 'trial_end': trial_end}
+            return {'success': True, 'chat_id': chat_id, 'status': status,
+                    'is_trial': bool(is_admin_trial), 'trial_end': trial_end,
+                    'trial_days': trial_days}
 
         except Exception as e:
             logger.error(f"❌ خطا در ثبت‌نام کاربر: {e}")
@@ -721,7 +828,8 @@ class AuthManager:
             conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
             cursor = conn.cursor()
             cursor.execute('''
-                SELECT chat_id, username, status, created_at, approved_at, is_admin, is_trial, trial_start, trial_end
+                SELECT chat_id, username, status, created_at, approved_at, is_admin, is_trial, trial_start, trial_end,
+                       access_type, access_until, last_grant_days, last_grant_at, granted_by, access_note
                 FROM users
                 WHERE chat_id = ?
             ''', (chat_id,))
@@ -739,7 +847,20 @@ class AuthManager:
                 'is_trial': bool(result[6]) if len(result) > 6 and result[6] is not None else False,
                 'trial_start': result[7] if len(result) > 7 else None,
                 'trial_end': result[8] if len(result) > 8 else None,
+                'access_type': result[9] if len(result) > 9 else 'permanent',
+                'access_until': result[10] if len(result) > 10 else None,
+                'last_grant_days': result[11] if len(result) > 11 else 0,
+                'last_grant_at': result[12] if len(result) > 12 else None,
+                'granted_by': result[13] if len(result) > 13 else None,
+                'access_note': result[14] if len(result) > 14 else None,
             }
+            # سازگاری: اگر access_type خالی بود از روی تست/قدیمی حدس بزن
+            if not info.get('access_type'):
+                if info.get('is_trial') and info.get('trial_end'):
+                    info['access_type'] = 'trial'
+                    info['access_until'] = info['trial_end']
+                else:
+                    info['access_type'] = 'permanent'
             # چک انقضای تست
             if info.get('is_trial') and info.get('trial_end'):
                 try:
@@ -756,6 +877,23 @@ class AuthManager:
                     info['trial_expired'] = False
             else:
                 info['trial_expired'] = False
+
+            # چک انقضای مدت دسترسی (برای access_until محدود)
+            info['access_expired'] = False
+            info['access_remaining_hours'] = None
+            atype = info.get('access_type')
+            if atype in ('trial', 'timed') and info.get('access_until'):
+                try:
+                    until_dt = datetime.strptime(info['access_until'], '%Y-%m-%d %H:%M:%S')
+                    if datetime.now() > until_dt:
+                        info['access_expired'] = True
+                    else:
+                        info['access_remaining_hours'] = (until_dt - datetime.now()).total_seconds() / 3600
+                except Exception:
+                    pass
+            # اگر trial منقضی شده، access هم منقضی محسوب شود (سازگاری)
+            if info.get('trial_expired'):
+                info['access_expired'] = True
             return info
         except sqlite3.OperationalError as e:
             if "unable to open database file" in str(e):
@@ -826,31 +964,42 @@ class AuthManager:
             conn.close()
 
     def get_all_users(self, status: Optional[str] = None) -> List[Dict]:
-        """دریافت لیست کاربران"""
+        """دریافت لیست کاربران - با ستون‌های جدید دسترسی"""
         conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
         cursor = conn.cursor()
 
         try:
+            base_select = '''
+                SELECT chat_id, username, status, created_at, approved_at, is_admin,
+                       is_trial, trial_end, access_type, access_until
+                FROM users
+            '''
             if status:
-                cursor.execute('''
-                    SELECT chat_id, username, status, created_at, approved_at, is_admin
-                    FROM users WHERE status = ? ORDER BY created_at DESC
-                ''', (status,))
+                cursor.execute(base_select + ' WHERE status = ? ORDER BY created_at DESC', (status,))
             else:
-                cursor.execute('''
-                    SELECT chat_id, username, status, created_at, approved_at, is_admin
-                    FROM users ORDER BY created_at DESC
-                ''')
+                cursor.execute(base_select + ' ORDER BY created_at DESC')
 
             users = []
             for row in cursor.fetchall():
+                atype = row[8] if len(row) > 8 else None
+                auntil = row[9] if len(row) > 9 else None
+                is_trial = bool(row[6]) if len(row) > 6 and row[6] is not None else False
+                if not atype:
+                    if is_trial and (auntil or row[7]):
+                        atype = 'trial'
+                        auntil = auntil or row[7]
+                    else:
+                        atype = 'permanent'
                 users.append({
                     'chat_id': row[0],
                     'username': row[1],
                     'status': row[2],
                     'created_at': row[3],
                     'approved_at': row[4],
-                    'is_admin': bool(row[5])
+                    'is_admin': bool(row[5]),
+                    'is_trial': is_trial,
+                    'access_type': atype,
+                    'access_until': auntil,
                 })
 
             logger.debug(f"✅ {len(users)} کاربر دریافت شد")
@@ -915,6 +1064,349 @@ class AuthManager:
         except Exception as e:
             logger.error(f"❌ خطا در دریافت کاربران تایید شده: {e}")
             return []
+
+    # ========== پلن‌های خرید (تعرفه‌ها) ==========
+    # ⚠️ فقط INSERT/UPDATE روی جدول plans - هیچ دسترسی به کاربران ندارد
+
+    def get_plans(self, include_disabled: bool = True) -> List[Dict]:
+        """دریافت لیست پلن‌های خرید"""
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+        cursor = conn.cursor()
+        try:
+            query = '''
+                SELECT id, name, duration_days, price_rial, enabled, sort_order, created_at, updated_at
+                FROM plans
+            '''
+            if not include_disabled:
+                query += ' WHERE enabled = 1'
+            query += ' ORDER BY sort_order ASC, id ASC'
+            cursor.execute(query)
+            plans = []
+            for row in cursor.fetchall():
+                plans.append({
+                    'id': row[0],
+                    'name': row[1],
+                    'duration_days': row[2],  # None = دائمی
+                    'price_rial': row[3],
+                    'enabled': bool(row[4]),
+                    'sort_order': row[5],
+                    'created_at': row[6],
+                    'updated_at': row[7],
+                })
+            return plans
+        finally:
+            conn.close()
+
+    def get_plan(self, plan_id: int) -> Optional[Dict]:
+        """دریافت یک پلن"""
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                SELECT id, name, duration_days, price_rial, enabled, sort_order, created_at, updated_at
+                FROM plans WHERE id = ?
+            ''', (plan_id,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+            return {
+                'id': row[0],
+                'name': row[1],
+                'duration_days': row[2],
+                'price_rial': row[3],
+                'enabled': bool(row[4]),
+                'sort_order': row[5],
+                'created_at': row[6],
+                'updated_at': row[7],
+            }
+        finally:
+            conn.close()
+
+    def create_plan(self, name: str, duration_days: Optional[int],
+                    price_rial: int, sort_order: int = 0) -> Dict:
+        """ایجاد پلن خرید جدید"""
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+        cursor = conn.cursor()
+        try:
+            now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            cursor.execute('''
+                INSERT INTO plans (name, duration_days, price_rial, enabled, sort_order, created_at, updated_at)
+                VALUES (?, ?, ?, 1, ?, ?, ?)
+            ''', (name, duration_days, price_rial, sort_order, now_str, now_str))
+            plan_id = cursor.lastrowid
+            conn.commit()
+            logger.info(f"✅ پلن جدید ایجاد شد: {name} (id={plan_id})")
+            return {'success': True, 'plan_id': plan_id}
+        except Exception as e:
+            logger.error(f"❌ خطا در ایجاد پلن: {e}")
+            return {'success': False, 'error': str(e)}
+        finally:
+            conn.close()
+
+    def update_plan(self, plan_id: int, name: str = None,
+                    duration_days: Any = None, price_rial: int = None,
+                    enabled: int = None, sort_order: int = None) -> Dict:
+        """به‌روزرسانی پلن - فقط فیلدهای داده شده"""
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+        cursor = conn.cursor()
+        try:
+            updates = []
+            params = []
+            if name is not None:
+                updates.append('name = ?')
+                params.append(name)
+            if duration_days is not None:
+                updates.append('duration_days = ?')
+                params.append(duration_days)
+            if price_rial is not None:
+                updates.append('price_rial = ?')
+                params.append(price_rial)
+            if enabled is not None:
+                updates.append('enabled = ?')
+                params.append(enabled)
+            if sort_order is not None:
+                updates.append('sort_order = ?')
+                params.append(sort_order)
+            if not updates:
+                return {'success': False, 'error': 'چیزی برای به‌روزرسانی نیست'}
+            updates.append('updated_at = ?')
+            params.append(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+            params.append(plan_id)
+            cursor.execute(f'UPDATE plans SET {", ".join(updates)} WHERE id = ?', params)
+            if cursor.rowcount == 0:
+                return {'success': False, 'error': 'پلن یافت نشد'}
+            conn.commit()
+            logger.info(f"✅ پلن {plan_id} به‌روزرسانی شد")
+            return {'success': True}
+        except Exception as e:
+            logger.error(f"❌ خطا در به‌روزرسانی پلن: {e}")
+            return {'success': False, 'error': str(e)}
+        finally:
+            conn.close()
+
+    def delete_plan(self, plan_id: int) -> Dict:
+        """حذف پلن - فقط پلن حذف می‌شود، کاربران دست‌نخورده می‌مانند"""
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('DELETE FROM plans WHERE id = ?', (plan_id,))
+            if cursor.rowcount == 0:
+                return {'success': False, 'error': 'پلن یافت نشد'}
+            conn.commit()
+            logger.info(f"✅ پلن {plan_id} حذف شد")
+            return {'success': True}
+        except Exception as e:
+            logger.error(f"❌ خطا در حذف پلن: {e}")
+            return {'success': False, 'error': str(e)}
+        finally:
+            conn.close()
+
+    # ========== مدیریت مدت دسترسی کاربران ==========
+
+    def set_user_access(self, chat_id: int, access_type: str,
+                        access_until: Optional[str] = None,
+                        granted_by: int = None, grant_days: int = 0,
+                        note: str = None) -> Dict:
+        """
+        تنظیم مدت دسترسی کاربر - فقط UPDATE ستون‌های جدید، حذف رکورد ندارد
+
+        access_type:
+          - 'permanent': دسترسی دائمی (access_until = NULL)
+          - 'timed': دسترسی محدود تا تاریخ (access_until)
+          - 'trial': تست رایگان
+        """
+        valid_types = ('permanent', 'timed', 'trial')
+        if access_type not in valid_types:
+            return {'success': False, 'error': f'نوع نامعتبر: {access_type}'}
+
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('SELECT chat_id, status, access_type, access_until FROM users WHERE chat_id = ?', (chat_id,))
+            row = cursor.fetchone()
+            if not row:
+                return {'success': False, 'error': 'کاربر یافت نشد'}
+
+            old_access = f"{row[2] or 'permanent'}{' تا ' + row[3] if row[3] else ''}"
+            now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+            # اگر access_until پاس نشده و نوع محدود است، از روی days محاسبه کن
+            if access_type == 'timed' and access_until is None and grant_days:
+                # از الان یا از انتهای اعتبار فعلی (هر کدام دیرتر است)
+                base = datetime.now()
+                if row[3]:
+                    try:
+                        current_until = datetime.strptime(row[3], '%Y-%m-%d %H:%M:%S')
+                        if current_until > base:
+                            base = current_until
+                    except Exception:
+                        pass
+                access_until = (base + timedelta(days=grant_days)).strftime('%Y-%m-%d %H:%M:%S')
+
+            if access_type == 'permanent':
+                access_until = None
+
+            # اطمینان از approved بودن (به جز وقتی رد شده)
+            new_status = row[1]
+            if new_status in ('pending', 'rejected'):
+                new_status = 'approved'
+
+            cursor.execute('''
+                UPDATE users
+                SET status = ?,
+                    access_type = ?,
+                    access_until = ?,
+                    last_grant_days = ?,
+                    last_grant_at = ?,
+                    granted_by = ?,
+                    access_note = ?,
+                    approved_at = COALESCE(approved_at, ?)
+                WHERE chat_id = ?
+            ''', (new_status, access_type, access_until, grant_days,
+                  now_str, granted_by, note, now_str, chat_id))
+
+            # اگر رد شده بود یا pending بود و حالا approved، trial رو پاک نکن دستی - فقط برای کاربر جدید
+            if access_type == 'trial':
+                cursor.execute('''
+                    UPDATE users SET is_trial = 1, trial_start = ?, trial_end = ?
+                    WHERE chat_id = ?
+                ''', (now_str, access_until, chat_id))
+            else:
+                cursor.execute('''
+                    UPDATE users SET is_trial = 0
+                    WHERE chat_id = ? AND is_trial = 1
+                ''', (chat_id,))
+
+            new_access = f"{access_type}{' تا ' + access_until if access_until else ''}"
+            cursor.execute('''
+                INSERT INTO access_changes (chat_id, changed_by, old_access, new_access, reason, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (chat_id, granted_by, old_access, new_access, note or '', now_str))
+
+            conn.commit()
+            logger.info(f"✅ دسترسی کاربر {chat_id} تنظیم شد: {new_access} (توسط {granted_by})")
+            return {
+                'success': True,
+                'chat_id': chat_id,
+                'access_type': access_type,
+                'access_until': access_until,
+                'old_access': old_access,
+            }
+        except Exception as e:
+            logger.error(f"❌ خطا در تنظیم دسترسی: {e}")
+            return {'success': False, 'error': str(e)}
+        finally:
+            conn.close()
+
+    def grant_free_access(self, chat_id: int, days: int, granted_by: int,
+                          note: str = None) -> Dict:
+        """
+        اعطای دسترسی رایگان به مدت X روز
+        اگر کاربر اعتبار دارد، از انتهای اعتبار فعلی ادامه می‌یابد
+        """
+        if days <= 0:
+            return {'success': False, 'error': 'مدت باید بزرگ‌تر از صفر باشد'}
+        return self.set_user_access(
+            chat_id, 'timed', granted_by=granted_by,
+            grant_days=days, note=note or f'هدیه رایگان {days} روزه'
+        )
+
+    def get_access_summary(self, chat_id: int) -> Optional[Dict]:
+        """خلاصه وضعیت دسترسی کاربر برای نمایش در پنل"""
+        info = self.get_user_info(chat_id)
+        if not info:
+            return None
+        atype = info.get('access_type', 'permanent')
+        if atype == 'permanent':
+            label = '♾️ دائمی'
+            remaining = None
+            expired = False
+        elif atype == 'trial':
+            label = '🎁 تست رایگان'
+            remaining = info.get('access_remaining_hours')
+            expired = info.get('access_expired', False)
+        elif atype == 'timed':
+            label = '⏱️ محدود'
+            remaining = info.get('access_remaining_hours')
+            expired = info.get('access_expired', False)
+        else:
+            label = atype
+            remaining = info.get('access_remaining_hours')
+            expired = info.get('access_expired', False)
+
+        # سازگاری: اگر is_trial هست ولی access_type نیست
+        if info.get('is_trial') and atype not in ('trial', 'timed'):
+            label = '🎁 تست رایگان'
+            remaining = info.get('access_remaining_hours') or info.get('trial_remaining_hours')
+            expired = info.get('trial_expired', False)
+
+        return {
+            'chat_id': chat_id,
+            'status': info.get('status'),
+            'is_admin': info.get('is_admin'),
+            'access_type': atype,
+            'access_until': info.get('access_until') or info.get('trial_end'),
+            'label': label,
+            'remaining_hours': remaining,
+            'expired': expired or info.get('access_expired', False) or info.get('trial_expired', False),
+            'info': info,
+        }
+
+    def get_access_change_log(self, chat_id: int = None, limit: int = 20) -> List[Dict]:
+        """تاریخچه تغییرات دسترسی"""
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+        cursor = conn.cursor()
+        try:
+            if chat_id:
+                cursor.execute('''
+                    SELECT chat_id, changed_by, old_access, new_access, reason, created_at
+                    FROM access_changes WHERE chat_id = ?
+                    ORDER BY id DESC LIMIT ?
+                ''', (chat_id, limit))
+            else:
+                cursor.execute('''
+                    SELECT chat_id, changed_by, old_access, new_access, reason, created_at
+                    FROM access_changes
+                    ORDER BY id DESC LIMIT ?
+                ''', (limit,))
+            rows = cursor.fetchall()
+            return [{
+                'chat_id': r[0], 'changed_by': r[1], 'old_access': r[2],
+                'new_access': r[3], 'reason': r[4], 'created_at': r[5]
+            } for r in rows]
+        finally:
+            conn.close()
+
+    def get_users_stats(self) -> Dict:
+        """آمار کلی کاربران برای داشبورد ادمین"""
+        conn = sqlite3.connect(self.auth_db_path, timeout=10, check_same_thread=False)
+        cursor = conn.cursor()
+        try:
+            stats = {}
+            cursor.execute('SELECT COUNT(*) FROM users')
+            stats['total'] = cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) FROM users WHERE status = 'approved'")
+            stats['approved'] = cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) FROM users WHERE status = 'pending'")
+            stats['pending'] = cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) FROM users WHERE status = 'rejected'")
+            stats['rejected'] = cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) FROM users WHERE is_admin = 1")
+            stats['admins'] = cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) FROM users WHERE access_type = 'permanent'")
+            stats['permanent'] = cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) FROM users WHERE access_type IN ('timed', 'trial')")
+            stats['timed'] = cursor.fetchone()[0]
+            cursor.execute('''
+                SELECT COUNT(*) FROM users
+                WHERE access_type IN ('timed', 'trial')
+                AND access_until IS NOT NULL
+                AND access_until < ?
+            ''', (datetime.now().strftime('%Y-%m-%d %H:%M:%S'),))
+            stats['expired'] = cursor.fetchone()[0]
+            return stats
+        finally:
+            conn.close()
 
     # ========== مدیریت ادمین‌ها ==========
 

@@ -147,6 +147,82 @@ LANGUAGES = {
         "awaiting_token": "🔑 لطفاً توکن خود را وارد کنید:",
         "enabled": "✅ فعال",
         "disabled": "⚪ غیرفعال",
+
+        # ===== تعرفه‌ها (برای همه کاربران) =====
+        "tariffs": "🏷️ تعرفه‌ها",
+        "tariffs_title": "🏷️ *تعرفه‌های دسترسی*\n\nیکی از پلن‌های زیر را انتخاب کنید:",
+        "buy_this_plan": "💳 خرید این پلن",
+
+        # ===== مدیریت حرفه‌ای کاربران =====
+        "users_list_title": "👥 *مدیریت کاربران*\n\nروی هر کاربر برای مشاهده جزئیات بزنید:",
+        "user_detail_title": "👤 *پروفایل کاربر*",
+        "user_access_section": "═══ *مدت دسترسی* ═══",
+        "access_permanent": "♾️ دائمی",
+        "access_timed": "⏱️ محدود",
+        "access_trial": "🎁 تست رایگان",
+        "access_expired": "🔴 منقضی شده",
+        "access_active": "🟢 فعال",
+        "access_until": "📅 معتبر تا",
+        "access_remaining": "⏳ باقی‌مانده",
+        "grant_free_access": "🎁 هدیه دسترسی رایگان",
+        "extend_access": "⏱️ تمدید مدت دسترسی",
+        "make_permanent": "♾️ دائمی کردن",
+        "view_payments": "🧾 پرداخت‌های کاربر",
+        "view_user_logs": "📊 فعالیت اخیر",
+        "choose_free_duration": "🎁 مدت دسترسی رایگان را انتخاب کنید:",
+        "choose_extend_duration": "⏱️ چند روز تمدید شود؟",
+        "custom_days_prompt": "✍️ تعداد روز را وارد کنید (عدد):",
+        "free_days_1": "۱ روز",
+        "free_days_3": "۳ روز",
+        "free_days_7": "۷ روز",
+        "free_days_14": "۱۴ روز",
+        "free_days_30": "۳۰ روز",
+        "days_7": "۷ روز",
+        "days_30": "۳۰ روز",
+        "days_90": "۹۰ روز",
+        "days_180": "۱۸۰ روز",
+        "custom": "✍️ دلخواه",
+        "access_granted_success": "✅ دسترسی رایگان اعطا شد",
+        "access_extended_success": "✅ مدت دسترسی تمدید شد",
+        "made_permanent_success": "✅ دسترسی دائمی شد",
+        "user_notified": "🔔 به کاربر اطلاع‌رسانی شد",
+        "invalid_days": "❌ عدد نامعتبر",
+        "page_of": "صفحه {page} از {total}",
+        "prev_page": "◀️ قبلی",
+        "next_page": "بعدی ▶️",
+
+        # ===== مدیریت تعرفه‌ها (قیمت‌گذاری) =====
+        "manage_tariffs": "🏷️ تعرفه‌ها و قیمت‌گذاری",
+        "tariffs_admin_title": "🏷️ *مدیریت تعرفه‌ها*\n\nروی هر پلن برای ویرایش بزنید:",
+        "add_new_plan": "➕ افزودن پلن جدید",
+        "edit_plan": "✏️ ویرایش پلن",
+        "plan_name_prompt": "📝 نام پلن را وارد کنید:\nمثال: یک‌ماهه، سه‌ماهه، دائمی",
+        "plan_days_prompt": "⏱️ مدت دسترسی به روز:\n• عدد وارد کنید (مثلاً 30)\n• یا `permanent` برای دائمی",
+        "plan_price_prompt": "💰 قیمت را به **تومان** وارد کنید:\nمثال: 500000",
+        "plan_created_success": "✅ پلن جدید ایجاد شد",
+        "plan_updated_success": "✅ پلن بروزرسانی شد",
+        "plan_deleted": "🗑️ پلن حذف شد",
+        "set_price": "💰 تنظیم قیمت",
+        "set_duration": "⏱️ تنظیم مدت",
+        "toggle_plan": "🔄 فعال/غیرفعال",
+        "delete_plan": "🗑️ حذف پلن",
+        "broadcast_new_plan": "📣 اطلاع‌رسانی به همه کاربران",
+        "broadcast_done": "📣 اطلاع‌رسانی انجام شد",
+        "price_set_success": "✅ قیمت تنظیم شد",
+        "duration_set_success": "✅ مدت تنظیم شد",
+        "enter_price_new": "💰 قیمت جدید (تومان) را وارد کنید:",
+        "enter_duration_new": "⏱️ مدت جدید به روز (یا permanent):",
+        "confirm_delete_plan": "❓ مطمئنید پلن حذف شود؟",
+        "yes_delete": "✅ بله حذف شود",
+        "no_keep": "❌ انصراف",
+        "plan_price_label": "💰 قیمت",
+        "plan_duration_label": "⏱️ مدت",
+        "plan_status_label": "📊 وضعیت",
+        "default_trial_days": "⏱️ تست پیش‌فرض کاربران جدید",
+        "trial_days_prompt": "⏱️ مدت تست رایگان پیش‌فرض (روز):\nعدد وارد کنید (0 برای غیرفعال)",
+        "trial_days_success": "✅ مدت تست پیش‌فرض ذخیره شد",
+        "users_count": "کاربران",
+        "stats_line": "📊 آمار: {total} کاربر | {permanent} دائمی | {timed} محدود | {expired} منقضی",
     },
     "en": {
         # ===== پیام‌های خوش‌آمدگویی =====
@@ -265,6 +341,82 @@ LANGUAGES = {
         "awaiting_token": "🔑 Please enter your token:",
         "enabled": "✅ Enabled",
         "disabled": "⚪ Disabled",
+
+        # ===== Tariffs (all users) =====
+        "tariffs": "🏷️ Tariffs",
+        "tariffs_title": "🏷️ *Access Tariffs*\n\nSelect a plan:",
+        "buy_this_plan": "💳 Buy this plan",
+
+        # ===== Professional user management =====
+        "users_list_title": "👥 *User Management*\n\nTap a user for details:",
+        "user_detail_title": "👤 *User Profile*",
+        "user_access_section": "═══ *Access Duration* ═══",
+        "access_permanent": "♾️ Lifetime",
+        "access_timed": "⏱️ Limited",
+        "access_trial": "🎁 Free Trial",
+        "access_expired": "🔴 Expired",
+        "access_active": "🟢 Active",
+        "access_until": "📅 Valid until",
+        "access_remaining": "⏳ Remaining",
+        "grant_free_access": "🎁 Grant free access",
+        "extend_access": "⏱️ Extend access",
+        "make_permanent": "♾️ Make permanent",
+        "view_payments": "🧾 User payments",
+        "view_user_logs": "📊 Recent activity",
+        "choose_free_duration": "🎁 Choose free access duration:",
+        "choose_extend_duration": "⏱️ Extend by how many days?",
+        "custom_days_prompt": "✍️ Enter number of days:",
+        "free_days_1": "1 day",
+        "free_days_3": "3 days",
+        "free_days_7": "7 days",
+        "free_days_14": "14 days",
+        "free_days_30": "30 days",
+        "days_7": "7 days",
+        "days_30": "30 days",
+        "days_90": "90 days",
+        "days_180": "180 days",
+        "custom": "✍️ Custom",
+        "access_granted_success": "✅ Free access granted",
+        "access_extended_success": "✅ Access extended",
+        "made_permanent_success": "✅ Access set to lifetime",
+        "user_notified": "🔔 User notified",
+        "invalid_days": "❌ Invalid number",
+        "page_of": "Page {page} of {total}",
+        "prev_page": "◀️ Prev",
+        "next_page": "Next ▶️",
+
+        # ===== Tariff management (pricing) =====
+        "manage_tariffs": "🏷️ Tariffs & Pricing",
+        "tariffs_admin_title": "🏷️ *Tariff Management*\n\nTap a plan to edit:",
+        "add_new_plan": "➕ Add new plan",
+        "edit_plan": "✏️ Edit plan",
+        "plan_name_prompt": "📝 Enter plan name:\ne.g. Monthly, Quarterly, Lifetime",
+        "plan_days_prompt": "⏱️ Access duration in days:\n• Enter a number (e.g. 30)\n• Or `permanent` for lifetime",
+        "plan_price_prompt": "💰 Enter price in **TOMAN**:\ne.g. 500000",
+        "plan_created_success": "✅ New plan created",
+        "plan_updated_success": "✅ Plan updated",
+        "plan_deleted": "🗑️ Plan deleted",
+        "set_price": "💰 Set price",
+        "set_duration": "⏱️ Set duration",
+        "toggle_plan": "🔄 Enable/Disable",
+        "delete_plan": "🗑️ Delete plan",
+        "broadcast_new_plan": "📣 Notify all users",
+        "broadcast_done": "📣 Notification sent",
+        "price_set_success": "✅ Price set",
+        "duration_set_success": "✅ Duration set",
+        "enter_price_new": "💰 Enter new price (TOMAN):",
+        "enter_duration_new": "⏱️ New duration in days (or permanent):",
+        "confirm_delete_plan": "❓ Delete this plan?",
+        "yes_delete": "✅ Yes, delete",
+        "no_keep": "❌ Cancel",
+        "plan_price_label": "💰 Price",
+        "plan_duration_label": "⏱️ Duration",
+        "plan_status_label": "📊 Status",
+        "default_trial_days": "⏱️ Default trial for new users",
+        "trial_days_prompt": "⏱️ Default free trial duration (days):\nEnter a number (0 to disable)",
+        "trial_days_success": "✅ Default trial duration saved",
+        "users_count": "users",
+        "stats_line": "📊 Stats: {total} users | {permanent} lifetime | {timed} limited | {expired} expired",
     }
 }
 
@@ -824,12 +976,13 @@ def create_language_keyboard():
 # ========== صفحه‌کلیدها - منوی اصلی ==========
 
 def create_main_keyboard(chat_id):
-    """صفحه‌کلید منوی اصلی"""
+    """صفحه‌کلید منوی اصلی - دکمه‌های اصلی روی کیبورد (تحت کیبورد)"""
     keyboard_buttons = [
         [{"text": t(chat_id, "settings")}],
         [{"text": t(chat_id, "woocommerce_posts")}],
         [{"text": t(chat_id, "posting_management")}],
         [{"text": t(chat_id, "contents")}],
+        [{"text": t(chat_id, "tariffs")}],
     ]
 
     if auth_manager.is_admin(chat_id):
@@ -966,11 +1119,15 @@ def create_days_keyboard(chat_id, user_config):
 # ========== صفحه‌کلیدها - منوی ادمین ==========
 
 def create_admin_menu_keyboard(chat_id):
-    """صفحه‌کلید منوی ادمین"""
+    """صفحه‌کلید منوی ادمین - دکمه‌های اصلی روی کیبورد (solid)"""
     is_super = auth_manager.is_super_admin(chat_id)
 
+    # ردیف اول: دو دکمه اصلی کنار هم
     keyboard_buttons = [
-        [{"text": t(chat_id, "manage_users")}],
+        [
+            {"text": t(chat_id, "manage_users")},
+            {"text": t(chat_id, "manage_tariffs")},
+        ],
         [{"text": t(chat_id, "view_access_requests")}],
     ]
 
@@ -978,7 +1135,10 @@ def create_admin_menu_keyboard(chat_id):
         keyboard_buttons.append([{"text": t(chat_id, "manage_admins")}])
 
     keyboard_buttons.extend([
-        [{"text": t(chat_id, "activity_logs")}],
+        [
+            {"text": t(chat_id, "activity_logs")},
+            {"text": t(chat_id, "default_trial_days")},
+        ],
         [{"text": t(chat_id, "back_to_main")}]
     ])
 
@@ -1644,7 +1804,7 @@ def create_edit_post_keyboard(chat_id, post_id):
 # ========== هندلرهای مدیریت ادمین ==========
 
 def handle_admin_menu(chat_id, message_id=None):
-    """نمایش منوی ادمین"""
+    """نمایش منوی ادمین - پنل حرفه‌ای با آمار"""
     if not auth_manager.is_admin(chat_id):
         send_message(chat_id, t(chat_id, "unauthorized_access"), create_main_keyboard(chat_id))
         return
@@ -1652,50 +1812,429 @@ def handle_admin_menu(chat_id, message_id=None):
     keyboard = create_admin_menu_keyboard(chat_id)
 
     lang = get_user_lang(chat_id)
+    stats_line = ""
+    try:
+        stats = auth_manager.get_users_stats()
+        stats_line = "\n" + t(chat_id, "stats_line").format(**stats)
+    except Exception:
+        pass
+
     if lang == "fa":
-        msg = "👮 *منوی ادمین*\n\nیک گزینه را انتخاب کنید:"
+        msg = (
+            "👮 *پنل مدیریت*\n"
+            "━━━━━━━━━━━━━━━━\n"
+            f"{stats_line}\n"
+            "━━━━━━━━━━━━━━━━\n\n"
+            "یک گزینه را انتخاب کنید:\n\n"
+            "👥 *مدیریت کاربران* — مشاهده پروفایل، هدیه و تمدید مدت دسترسی\n"
+            "🏷️ *تعرفه‌ها* — تنظیم قیمت و مدت پلن‌های خرید\n"
+            "📋 *درخواست‌ها* — بررسی درخواست‌های معلق\n"
+            "⏱️ *تست پیش‌فرض* — مدت تست رایگان کاربران جدید"
+        )
     else:
-        msg = "👮 *Admin Menu*\n\nChoose an option:"
+        msg = (
+            "👮 *Admin Panel*\n"
+            "━━━━━━━━━━━━━━━━\n"
+            f"{stats_line}\n"
+            "━━━━━━━━━━━━━━━━\n\n"
+            "Choose an option:"
+        )
 
     send_message(chat_id, msg, keyboard)
 
 
-def handle_manage_users(chat_id):
-    """مدیریت کاربران"""
+USERS_PER_PAGE = 8
+
+
+def _access_badge(user, lang="fa"):
+    """نشان وضعیت دسترسی یک کاربر برای لیست"""
+    atype = user.get('access_type') or 'permanent'
+    until = user.get('access_until')
+    if atype == 'permanent':
+        return "♾️" if lang == "fa" else "♾️"
+    if until:
+        try:
+            until_dt = datetime.strptime(until, '%Y-%m-%d %H:%M:%S')
+            if datetime.now() > until_dt:
+                return "🔴"
+        except Exception:
+            pass
+    if atype == 'trial':
+        return "🎁"
+    return "🟢"
+
+
+def handle_manage_users(chat_id, page=0, edit_id=None):
+    """مدیریت کاربران - لیست صفحه‌بندی شده با دکمه‌های inline (شیشه‌ای)"""
     if not auth_manager.is_admin(chat_id):
         send_message(chat_id, t(chat_id, "unauthorized_access"), create_main_keyboard(chat_id))
         return
 
     users = auth_manager.get_all_users()
+    lang = get_user_lang(chat_id)
 
     if not users:
-        msg = (
-            "👥 *کاربرانی وجود ندارد*"
-            if get_user_lang(chat_id) == "fa"
-            else "👥 *No users found*"
-        )
+        msg = "👥 *کاربرانی وجود ندارد*" if lang == "fa" else "👥 *No users found*"
         send_message(chat_id, msg, create_admin_menu_keyboard(chat_id))
         return
 
-    lang = get_user_lang(chat_id)
-    msg = "👥 *لیست کاربران:*\n\n" if lang == "fa" else "👥 *User List:*\n\n"
+    total_pages = max(1, (len(users) + USERS_PER_PAGE - 1) // USERS_PER_PAGE)
+    page = max(0, min(page, total_pages - 1))
+    start = page * USERS_PER_PAGE
+    page_users = users[start:start + USERS_PER_PAGE]
 
-    for user in users:
-        user_chat_id = user['chat_id']
+    if lang == "fa":
+        msg = t(chat_id, "users_list_title") + "\n"
+        try:
+            stats = auth_manager.get_users_stats()
+            msg += "\n" + t(chat_id, "stats_line").format(**stats) + "\n"
+        except Exception:
+            pass
+        msg += "\n"
+    else:
+        msg = t(chat_id, "users_list_title") + "\n\n"
+
+    # دکمه‌های inline (شیشه‌ای) برای هر کاربر
+    inline_rows = []
+    for user in page_users:
+        u_chat_id = user['chat_id']
         username = user['username'] or "Unknown"
-        status = user['status']
+        badge = _access_badge(user, lang)
+        role_icon = "👨‍💼" if user['is_admin'] else "👤"
+        label = f"{badge} {role_icon} {username} ({u_chat_id})"
+        if len(label) > 60:
+            label = label[:57] + "..."
+        inline_rows.append([{"text": label, "callback_data": f"admin_user_{u_chat_id}"}])
 
-        if lang == "fa":
-            role = "👨‍💼 ادمین" if user['is_admin'] else "👤 کاربر عادی"
+    # صفحه‌بندی
+    nav_row = []
+    if page > 0:
+        nav_row.append({"text": t(chat_id, "prev_page"), "callback_data": f"admin_users_page_{page - 1}"})
+    nav_row.append({"text": t(chat_id, "page_of").format(page=page + 1, total=total_pages), "callback_data": "ignore"})
+    if page < total_pages - 1:
+        nav_row.append({"text": t(chat_id, "next_page"), "callback_data": f"admin_users_page_{page + 1}"})
+    inline_rows.append(nav_row)
+
+    # بازگشت inline به منوی ادمین
+    inline_rows.append([{"text": t(chat_id, "back_to_admin_menu"), "callback_data": "admin_menu_back"}])
+
+    keyboard = {"inline_keyboard": inline_rows}
+
+    if edit_id:
+        edit_message(chat_id, edit_id, msg, keyboard)
+    else:
+        send_message(chat_id, msg, keyboard)
+
+
+def handle_user_detail(chat_id, target_chat_id, edit_id=None):
+    """نمایش جزئیات یک کاربر - بخش‌های مختلف اطلاعات + مدت دسترسی"""
+    if not auth_manager.is_admin(chat_id):
+        send_message(chat_id, t(chat_id, "unauthorized_access"), create_main_keyboard(chat_id))
+        return
+
+    lang = get_user_lang(chat_id)
+    summary = auth_manager.get_access_summary(target_chat_id)
+    info = summary['info'] if summary else auth_manager.get_user_info(target_chat_id)
+
+    if not info:
+        msg = t(chat_id, "user_not_found")
+        if edit_id:
+            edit_message(chat_id, edit_id, msg, {"inline_keyboard": [[{"text": t(chat_id, "back_to_admin_menu"), "callback_data": "admin_users_back"}]]})
         else:
-            role = "👨‍💼 Admin" if user['is_admin'] else "👤 Regular User"
+            send_message(chat_id, msg, create_admin_menu_keyboard(chat_id))
+        return
 
-        msg += f"{role} | {username}\n"
-        msg += f"  🆔 {user_chat_id}\n"
-        msg += f"  📊 {status}\n"
-        msg += f"  📅 {user['created_at']}\n\n"
+    username = info.get('username') or "Unknown"
+    if info.get('is_admin'):
+        role = "👨‍💼 ادمین" if lang == "fa" else "👨‍💼 Admin"
+    else:
+        role = "👤 کاربر عادی" if lang == "fa" else "👤 User"
+    status = info.get('status', '?')
 
-    send_message(chat_id, msg, create_admin_menu_keyboard(chat_id))
+    if lang == "fa":
+        msg = f"👤 *پروفایل کاربر*\n\n"
+        msg += "═══ *اطلاعات پایه* ═══\n"
+        msg += f"📛 نام: `{username}`\n"
+        msg += f"🆔 آیدی: `{target_chat_id}`\n"
+        msg += f"🔖 نقش: {role}\n"
+        msg += f"📊 وضعیت: `{status}`\n"
+        msg += f"📅 ثبت‌نام: {info.get('created_at', '-')}\n"
+        if info.get('approved_at'):
+            msg += f"✅ تایید: {info['approved_at']}\n"
+
+        msg += "\n" + t(chat_id, "user_access_section") + "\n"
+        if summary:
+            # نمایش برچسب دسترسی
+            atype = summary.get('access_type')
+            if atype == 'permanent':
+                badge = "♾️ *دائمی*"
+            elif summary.get('expired'):
+                badge = "🔴 *منقضی شده*"
+            elif atype == 'trial':
+                badge = "🎁 *تست رایگان*"
+            else:
+                badge = "🟢 *فعال (محدود)*"
+            msg += f"نوع: {badge}\n"
+            if summary.get('access_until'):
+                msg += f"📅 معتبر تا: `{summary['access_until']}`\n"
+            if summary.get('remaining_hours') is not None and not summary.get('expired'):
+                hours = summary['remaining_hours']
+                if hours >= 48:
+                    msg += f"⏳ باقی‌مانده: {hours / 24:.1f} روز\n"
+                else:
+                    msg += f"⏳ باقی‌مانده: {hours:.1f} ساعت\n"
+            elif summary.get('expired'):
+                msg += "⚠️ دسترسی منقضی شده - کاربر نمی‌تواند از ربات استفاده کند\n"
+        else:
+            msg += "نامشخص\n"
+
+        if info.get('access_note'):
+            msg += f"📝 یادداشت: {info['access_note']}\n"
+        if info.get('last_grant_at'):
+            msg += f"🎁 آخرین هدیه: {info['last_grant_at']} ({info.get('last_grant_days', 0)} روز)\n"
+    else:
+        msg = f"👤 *User Profile*\n\n"
+        msg += "═══ *Basic Info* ═══\n"
+        msg += f"📛 Name: `{username}`\n"
+        msg += f"🆔 ID: `{target_chat_id}`\n"
+        msg += f"🔖 Role: {role}\n"
+        msg += f"📊 Status: `{status}`\n"
+        msg += f"📅 Joined: {info.get('created_at', '-')}\n"
+        msg += "\n" + t(chat_id, "user_access_section") + "\n"
+        if summary:
+            atype = summary.get('access_type')
+            if atype == 'permanent':
+                badge = "♾️ *Lifetime*"
+            elif summary.get('expired'):
+                badge = "🔴 *Expired*"
+            elif atype == 'trial':
+                badge = "🎁 *Free trial*"
+            else:
+                badge = "🟢 *Active (limited)*"
+            msg += f"Type: {badge}\n"
+            if summary.get('access_until'):
+                msg += f"📅 Valid until: `{summary['access_until']}`\n"
+            if summary.get('remaining_hours') is not None and not summary.get('expired'):
+                hours = summary['remaining_hours']
+                if hours >= 48:
+                    msg += f"⏳ Remaining: {hours / 24:.1f} days\n"
+                else:
+                    msg += f"⏳ Remaining: {hours:.1f} hours\n"
+            elif summary.get('expired'):
+                msg += "⚠️ Access expired\n"
+
+    # دکمه‌های فرعی inline (شیشه‌ای)
+    is_permanent = summary and summary.get('access_type') == 'permanent' and not summary.get('expired')
+    action_rows = []
+
+    if not is_permanent:
+        action_rows.append([
+            {"text": t(chat_id, "grant_free_access"), "callback_data": f"admin_grant_{target_chat_id}"},
+            {"text": t(chat_id, "extend_access"), "callback_data": f"admin_extend_{target_chat_id}"},
+        ])
+        action_rows.append([
+            {"text": t(chat_id, "make_permanent"), "callback_data": f"admin_perm_{target_chat_id}"},
+        ])
+    else:
+        # برای دائمی‌ها فقط هدیه/تغییر مدت نامعتبر نیست - امکان محدود کردن نداریم، فقط پرداخت‌ها
+        pass
+
+    action_rows.append([
+        {"text": t(chat_id, "view_payments"), "callback_data": f"admin_payments_{target_chat_id}"},
+        {"text": t(chat_id, "view_user_logs"), "callback_data": f"admin_ulogs_{target_chat_id}"},
+    ])
+    action_rows.append([
+        {"text": t(chat_id, "back_to_admin_menu"), "callback_data": "admin_users_back"},
+    ])
+
+    keyboard = {"inline_keyboard": action_rows}
+
+    if edit_id:
+        edit_message(chat_id, edit_id, msg, keyboard)
+    else:
+        send_message(chat_id, msg, keyboard)
+
+
+def handle_grant_free_menu(chat_id, target_chat_id, edit_id=None):
+    """منوی انتخاب مدت دسترسی رایگان برای یک کاربر"""
+    if not auth_manager.is_admin(chat_id):
+        return
+    lang = get_user_lang(chat_id)
+    msg = t(chat_id, "choose_free_duration") + f"\n\n🆔 `{target_chat_id}`"
+    options = [
+        ("free_days_1", 1), ("free_days_3", 3), ("free_days_7", 7),
+        ("free_days_14", 14), ("free_days_30", 30),
+    ]
+    inline_rows = []
+    row = []
+    for key, days in options:
+        row.append({"text": t(chat_id, key), "callback_data": f"admin_grant_set_{target_chat_id}_{days}"})
+        if len(row) == 3:
+            inline_rows.append(row)
+            row = []
+    if row:
+        inline_rows.append(row)
+    inline_rows.append([
+        {"text": t(chat_id, "custom"), "callback_data": f"admin_grant_custom_{target_chat_id}"}
+    ])
+    inline_rows.append([
+        {"text": t(chat_id, "back_to_admin_menu"), "callback_data": f"admin_user_{target_chat_id}"}
+    ])
+    keyboard = {"inline_keyboard": inline_rows}
+    if edit_id:
+        edit_message(chat_id, edit_id, msg, keyboard)
+    else:
+        send_message(chat_id, msg, keyboard)
+
+
+def handle_extend_menu(chat_id, target_chat_id, edit_id=None):
+    """منوی انتخاب مدت تمدید"""
+    if not auth_manager.is_admin(chat_id):
+        return
+    msg = t(chat_id, "choose_extend_duration") + f"\n\n🆔 `{target_chat_id}`"
+    options = [("days_7", 7), ("days_30", 30), ("days_90", 90), ("days_180", 180)]
+    inline_rows = []
+    row = []
+    for key, days in options:
+        row.append({"text": t(chat_id, key), "callback_data": f"admin_extend_set_{target_chat_id}_{days}"})
+        if len(row) == 2:
+            inline_rows.append(row)
+            row = []
+    if row:
+        inline_rows.append(row)
+    inline_rows.append([
+        {"text": t(chat_id, "custom"), "callback_data": f"admin_extend_custom_{target_chat_id}"}
+    ])
+    inline_rows.append([
+        {"text": t(chat_id, "back_to_admin_menu"), "callback_data": f"admin_user_{target_chat_id}"}
+    ])
+    keyboard = {"inline_keyboard": inline_rows}
+    if edit_id:
+        edit_message(chat_id, edit_id, msg, keyboard)
+    else:
+        send_message(chat_id, msg, keyboard)
+
+
+def _apply_access_change(admin_chat_id, target_chat_id, result, success_msg_key):
+    """اعمال نتیجه تغییر دسترسی + اطلاع‌رسانی به کاربر"""
+    lang = get_user_lang(admin_chat_id)
+    if not result.get('success'):
+        err = result.get('error', 'خطای نامشخص')
+        send_message(admin_chat_id, f"❌ {err}", create_admin_menu_keyboard(admin_chat_id))
+        return
+
+    send_message(
+        admin_chat_id,
+        f"{t(admin_chat_id, success_msg_key)}\n🆔 `{target_chat_id}`\n{t(admin_chat_id, 'user_notified')}",
+        {"inline_keyboard": [[{"text": t(admin_chat_id, "back_to_admin_menu"), "callback_data": f"admin_user_{target_chat_id}"}]]}
+    )
+
+    # 🔔 اطلاع‌رسانی به خود کاربر با دکمه تعرفه‌ها
+    try:
+        from auth_handlers import notify_access_changed
+        notify_access_changed(
+            target_chat_id,
+            result.get('access_until'),
+            result.get('access_type', 'timed'),
+            config['messengers']['bale']['bot_token']
+        )
+    except Exception as e:
+        logger.error(f"❌ خطا در اطلاع‌رسانی کاربر {target_chat_id}: {e}")
+
+
+def handle_grant_free_set(admin_chat_id, target_chat_id, days):
+    """اعطای دسترسی رایگان X روز"""
+    # محافظ: کاربر دائمی نباید بدون تایید به محدود تبدیل شود
+    summary = auth_manager.get_access_summary(target_chat_id)
+    if summary and summary.get('access_type') == 'permanent' and not summary.get('expired'):
+        send_message(
+            admin_chat_id,
+            "♾️ این کاربر دسترسی دائمی دارد!\nهدیه محدود، دسترسی دائمی او را تغییر می‌دهد.\n\nبرای تغییر، ابتدا از «تمدید مدت» استفاده نکنید — یا اگر می‌خواهید محدودش کنید، تایید کنید:",
+            {"inline_keyboard": [[
+                {"text": "✅ بله، محدود شود", "callback_data": f"admin_grant_force_{target_chat_id}_{days}"},
+                {"text": t(admin_chat_id, "no_keep"), "callback_data": f"admin_user_{target_chat_id}"},
+            ]]}
+        )
+        return
+    result = auth_manager.grant_free_access(target_chat_id, days, admin_chat_id)
+    _apply_access_change(admin_chat_id, target_chat_id, result, "access_granted_success")
+    auth_manager.log_activity(admin_chat_id, "admin_grant", f"{days}d -> {target_chat_id}")
+
+
+def handle_grant_force(admin_chat_id, target_chat_id, days):
+    """اعطای محدود روی کاربر دائمی با تایید قبلی"""
+    result = auth_manager.grant_free_access(target_chat_id, days, admin_chat_id, note=f"هدیه {days} روز (جایگزین دائمی)")
+    _apply_access_change(admin_chat_id, target_chat_id, result, "access_granted_success")
+    auth_manager.log_activity(admin_chat_id, "admin_grant_force", f"{days}d -> {target_chat_id}")
+
+
+def handle_extend_set(admin_chat_id, target_chat_id, days):
+    """تمدید مدت دسترسی X روز"""
+    result = auth_manager.set_user_access(
+        target_chat_id, 'timed',
+        granted_by=admin_chat_id, grant_days=days,
+        note=f"تمدید {days} روز توسط ادمین"
+    )
+    _apply_access_change(admin_chat_id, target_chat_id, result, "access_extended_success")
+    auth_manager.log_activity(admin_chat_id, "admin_extend", f"{days}d -> {target_chat_id}")
+
+
+def handle_make_permanent(admin_chat_id, target_chat_id):
+    """دائمی کردن دسترسی"""
+    result = auth_manager.set_user_access(
+        target_chat_id, 'permanent',
+        granted_by=admin_chat_id,
+        note="دائمی شده توسط ادمین"
+    )
+    _apply_access_change(admin_chat_id, target_chat_id, result, "made_permanent_success")
+    auth_manager.log_activity(admin_chat_id, "admin_perm", f"-> {target_chat_id}")
+
+
+def handle_user_payments(admin_chat_id, target_chat_id, edit_id=None):
+    """نمایش پرداخت‌های کاربر"""
+    payments = auth_manager.get_user_payments(target_chat_id)
+    lang = get_user_lang(admin_chat_id)
+    if not payments:
+        msg = "🧾 پرداختی ثبت نشده" if lang == "fa" else "🧾 No payments"
+    else:
+        msg = f"🧾 *پرداخت‌های کاربر `{target_chat_id}`*\n\n" if lang == "fa" else f"🧾 *Payments for `{target_chat_id}`*\n\n"
+        for p in payments[:15]:
+            toman = (p['amount'] or 0) // 10
+            status_icon = "✅" if p['status'] == 'completed' else "⏳" if p['status'] == 'pending' else "❌"
+            msg += f"{status_icon} {toman:,} تومان | {p['status']}\n"
+            msg += f"   🆔 {p.get('payment_id') or '-'}\n"
+            msg += f"   📅 {p.get('created_at') or '-'}\n\n"
+
+    keyboard = {"inline_keyboard": [[
+        {"text": t(admin_chat_id, "back_to_admin_menu"), "callback_data": f"admin_user_{target_chat_id}"}
+    ]]}
+    if edit_id:
+        edit_message(admin_chat_id, edit_id, msg, keyboard)
+    else:
+        send_message(admin_chat_id, msg, keyboard)
+
+
+def handle_user_logs(admin_chat_id, target_chat_id, edit_id=None):
+    """نمایش فعالیت‌های اخیر کاربر"""
+    logs = auth_manager.get_activity_log(chat_id=target_chat_id, limit=15)
+    lang = get_user_lang(admin_chat_id)
+    if not logs:
+        msg = "📊 فعالیتی ثبت نشده" if lang == "fa" else "📊 No activity"
+    else:
+        msg = f"📊 *فعالیت‌های `{target_chat_id}`*\n\n" if lang == "fa" else f"📊 *Activity for `{target_chat_id}`*\n\n"
+        for log in logs:
+            msg += f"• {log['action']}"
+            if log.get('details'):
+                msg += f" | {log['details']}"
+            msg += f"\n  ⏰ {log['timestamp']}\n"
+
+    keyboard = {"inline_keyboard": [[
+        {"text": t(admin_chat_id, "back_to_admin_menu"), "callback_data": f"admin_user_{target_chat_id}"}
+    ]]}
+    if edit_id:
+        edit_message(admin_chat_id, edit_id, msg, keyboard)
+    else:
+        send_message(admin_chat_id, msg, keyboard)
 
 
 def handle_manage_admins(chat_id):
@@ -1866,6 +2405,161 @@ def handle_activity_logs(chat_id):
     send_message(chat_id, msg, create_admin_menu_keyboard(chat_id))
 
 
+# ========== مدیریت تعرفه‌ها (قیمت‌گذاری در ربات) ==========
+
+def handle_manage_tariffs(chat_id, edit_id=None):
+    """منوی مدیریت تعرفه‌ها - لیست پلن‌ها با دکمه‌های inline"""
+    if not auth_manager.is_admin(chat_id):
+        send_message(chat_id, t(chat_id, "unauthorized_access"), create_main_keyboard(chat_id))
+        return
+
+    from auth_handlers import format_price_rial, format_duration_fa
+
+    plans = auth_manager.get_plans(include_disabled=True)
+    lang = get_user_lang(chat_id)
+
+    if lang == "fa":
+        msg = "🏷️ *مدیریت تعرفه‌ها*\n\nروی هر پلن برای ویرایش بزنید:\n"
+    else:
+        msg = "🏷️ *Tariff Management*\n\nTap a plan to edit:\n"
+
+    if not plans:
+        msg += "\n📭 پلنی وجود ندارد - پلن جدید بسازید."
+
+    inline_rows = []
+    for plan in plans:
+        status = "✅" if plan['enabled'] else "⚪"
+        dur = format_duration_fa(plan['duration_days'])
+        price = format_price_rial(plan['price_rial'])
+        label = f"{status} {plan['name']} | {dur} | {price}"
+        if len(label) > 70:
+            label = label[:67] + "..."
+        inline_rows.append([{"text": label, "callback_data": f"admin_plan_{plan['id']}"}])
+
+    inline_rows.append([{"text": t(chat_id, "add_new_plan"), "callback_data": "admin_plan_new"}])
+    inline_rows.append([{"text": t(chat_id, "broadcast_new_plan"), "callback_data": "admin_broadcast_tariffs"}])
+    inline_rows.append([{"text": t(chat_id, "back_to_admin_menu"), "callback_data": "admin_menu_back"}])
+
+    keyboard = {"inline_keyboard": inline_rows}
+    if edit_id:
+        edit_message(chat_id, edit_id, msg, keyboard)
+    else:
+        send_message(chat_id, msg, keyboard)
+
+
+def handle_plan_detail(chat_id, plan_id, edit_id=None):
+    """نمایش جزئیات یک پلن + دکمه‌های ویرایش"""
+    from auth_handlers import format_price_rial, format_duration_fa
+
+    plan = auth_manager.get_plan(plan_id)
+    if not plan:
+        send_message(chat_id, t(chat_id, "user_not_found"), create_admin_menu_keyboard(chat_id))
+        return
+
+    lang = get_user_lang(chat_id)
+    if lang == "fa":
+        status = "✅ فعال" if plan['enabled'] else "⚪ غیرفعال"
+        msg = (
+            f"🏷️ *پلن: {plan['name']}*\n\n"
+            f"💰 قیمت: {format_price_rial(plan['price_rial'])}\n"
+            f"⏱️ مدت: {format_duration_fa(plan['duration_days'])}\n"
+            f"📊 وضعیت: {status}\n"
+            f"🆔 ID: `{plan['id']}`\n"
+            f"📅 ایجاد: {plan.get('created_at') or '-'}\n\n"
+            f"برای ویرایش یکی از دکمه‌ها را بزنید:"
+        )
+    else:
+        status = "✅ Enabled" if plan['enabled'] else "⚪ Disabled"
+        dur = "Lifetime" if plan['duration_days'] is None else f"{plan['duration_days']} days"
+        toman = int(plan['price_rial']) // 10
+        msg = (
+            f"🏷️ *Plan: {plan['name']}*\n\n"
+            f"💰 Price: {toman:,} TOMAN\n"
+            f"⏱️ Duration: {dur}\n"
+            f"📊 Status: {status}\n"
+            f"🆔 ID: `{plan['id']}`\n\n"
+            f"Choose an action:"
+        )
+
+    toggle_label = "⚪ غیرفعال کن" if plan['enabled'] else "✅ فعال کن" if lang == "fa" else "⚪ Disable" if plan['enabled'] else "✅ Enable"
+    inline_rows = [
+        [
+            {"text": t(chat_id, "set_price"), "callback_data": f"admin_plan_price_{plan['id']}"},
+            {"text": t(chat_id, "set_duration"), "callback_data": f"admin_plan_dur_{plan['id']}"},
+        ],
+        [
+            {"text": toggle_label, "callback_data": f"admin_plan_toggle_{plan['id']}"},
+            {"text": t(chat_id, "delete_plan"), "callback_data": f"admin_plan_del_{plan['id']}"},
+        ],
+        [
+            {"text": t(chat_id, "broadcast_new_plan"), "callback_data": f"admin_plan_broadcast_{plan['id']}"},
+        ],
+        [
+            {"text": t(chat_id, "back_to_admin_menu"), "callback_data": "admin_tariffs_back"},
+        ],
+    ]
+
+    keyboard = {"inline_keyboard": inline_rows}
+    if edit_id:
+        edit_message(chat_id, edit_id, msg, keyboard)
+    else:
+        send_message(chat_id, msg, keyboard)
+
+
+def handle_plan_create_start(chat_id):
+    """شروع ویزارد ساخت پلن جدید"""
+    if not auth_manager.is_admin(chat_id):
+        return
+    send_message(chat_id, t(chat_id, "plan_name_prompt"))
+    set_state(chat_id, "awaiting_plan_name")
+
+
+def handle_broadcast_tariffs(chat_id):
+    """اطلاع‌رسانی تعرفه‌ها به همه کاربران"""
+    if not auth_manager.is_admin(chat_id):
+        return
+    try:
+        from auth_handlers import show_tariffs, get_active_plans
+        bot_token = config['messengers']['bale']['bot_token']
+        plans = get_active_plans()
+        if not plans:
+            send_message(chat_id, "📭 پلن فعالی وجود ندارد", create_admin_menu_keyboard(chat_id))
+            return
+        users = auth_manager.get_approved_users()
+        sent = 0
+        for user in users:
+            uid = user['chat_id']
+            if auth_manager.is_admin(uid):
+                continue
+            try:
+                from auth_handlers import build_tariffs_text, build_tariffs_keyboard, send_message as auth_send
+                msg = "🔔 *بروزرسانی تعرفه‌ها*\n\n" + build_tariffs_text("fa")
+                kb = build_tariffs_keyboard("fa")
+                if auth_send(uid, msg, kb, bot_token=bot_token):
+                    sent += 1
+            except Exception:
+                pass
+        send_message(chat_id, f"📣 اطلاع‌رسانی به {sent} کاربر ارسال شد", create_admin_menu_keyboard(chat_id))
+        auth_manager.log_activity(chat_id, "broadcast_tariffs", f"sent={sent}")
+    except Exception as e:
+        logger.error(f"❌ خطا در اطلاع‌رسانی تعرفه‌ها: {e}")
+        send_message(chat_id, f"❌ خطا: {e}", create_admin_menu_keyboard(chat_id))
+
+
+def handle_default_trial_days_prompt(chat_id):
+    """درخواست مدت تست پیش‌فرض"""
+    if not auth_manager.is_admin(chat_id):
+        return
+    current = auth_manager.get_default_trial_days()
+    lang = get_user_lang(chat_id)
+    if lang == "fa":
+        msg = f"⏱️ مدت تست رایگان پیش‌فرض فعلی: **{current} روز**\n\n" + t(chat_id, "trial_days_prompt")
+    else:
+        msg = f"⏱️ Current default trial: **{current} days**\n\n" + t(chat_id, "trial_days_prompt")
+    send_message(chat_id, msg)
+    set_state(chat_id, "awaiting_trial_days")
+
+
 # ========== تابع کمکی - مدیریت یکپارچه state ==========
 
 def get_state(chat_id):
@@ -1925,14 +2619,34 @@ def handle_message(message, callback_data=None):
         is_admin = False
 
     user_is_approved = user_info and user_info['status'] == 'approved'
-    # چک تست منقضی - اگر تست تمام شده، approved محسوب نمی‌شود
+    # چک انقضای دسترسی (تست یا محدود) - اگر تمام شده، approved محسوب نمی‌شود
     if user_info and user_info.get('is_trial') and user_info.get('trial_expired'):
         user_is_approved = False
         logger.info(f"⏰ تست کاربر {chat_id} منقضی شده - نیاز به پرداخت")
+    elif user_info and user_info.get('access_expired'):
+        user_is_approved = False
+        logger.info(f"⏰ دسترسی کاربر {chat_id} منقضی شده - نیاز به پرداخت")
 
     if not user_is_approved and not is_admin:
         if text == "/start":
             handle_unauthenticated_user(message, bot_token)
+
+        # ✅ تعرفه‌ها - حتی برای کاربران منقضی هم در دسترس
+        elif text == t(chat_id, "tariffs") or callback_data == "show_tariffs":
+            try:
+                from auth_handlers import show_tariffs
+                show_tariffs(chat_id, bot_token, lang=get_user_lang(chat_id))
+            except Exception as e:
+                logger.error(f"❌ خطا در نمایش تعرفه‌ها: {e}")
+
+        # ✅ خرید پلن مشخص - برای کاربران منقضی
+        elif callback_data and callback_data.startswith("buy_plan_"):
+            try:
+                plan_id = int(callback_data.replace("buy_plan_", ""))
+                from auth_handlers import handle_purchase_confirm
+                handle_purchase_confirm(chat_id, username, bot_token, plan_id=plan_id)
+            except ValueError:
+                pass
 
         elif callback_data and callback_data.startswith('auth_'):
 
@@ -2012,24 +2726,24 @@ def handle_message(message, callback_data=None):
             keyboard = create_language_keyboard()
             send_message(chat_id, LANGUAGES["en"]["welcome"], keyboard)
         else:
-            # اگر کاربر تستی است، باقی مانده تست را نمایش بده + دکمه خرید
+            # اگر کاربر تستی است، باقی مانده تست را نمایش بده + دکمه تعرفه‌ها
             trial_msg = ""
             extra_keyboard = None
             if user_info and user_info.get('is_trial') and not user_info.get('trial_expired'):
                 remaining_h = user_info.get('trial_remaining_hours', 24)
                 trial_end = user_info.get('trial_end', '')
                 if get_user_lang(chat_id) == "fa":
-                    trial_msg = f"\n\n🎁 *تست رایگان فعال:* {remaining_h:.1f} ساعت باقی مانده\n⏰ تا: {trial_end}\n💡 پس از اتمام، خرید 20 میلیون برای دائمی"
+                    trial_msg = f"\n\n🎁 *تست رایگان فعال:* {remaining_h:.1f} ساعت باقی مانده\n⏰ تا: {trial_end}\n💡 برای ادامه از بخش تعرفه‌ها اشتراک بخرید"
                     extra_keyboard = {
                         "inline_keyboard": [
-                            [{"text": "💳 خرید دسترسی دائمی - 20 میلیون", "callback_data": "auth_buy_access"}]
+                            [{"text": "🏷️ مشاهده تعرفه‌ها", "callback_data": "show_tariffs"}]
                         ]
                     }
                 else:
                     trial_msg = f"\n\n🎁 Trial: {remaining_h:.1f}h left until {trial_end}"
             send_message(chat_id, t(chat_id, "main_menu") + trial_msg, create_main_keyboard(chat_id))
             if extra_keyboard:
-                send_message(chat_id, "💳 برای خرید دائمی و حذف محدودیت تست:", extra_keyboard)
+                send_message(chat_id, "🏷️ برای مشاهده تعرفه‌ها و خرید اشتراک:", extra_keyboard)
         return
 
     elif callback_data and callback_data.startswith("lang_"):
@@ -2090,6 +2804,205 @@ def handle_message(message, callback_data=None):
 
     elif text == t(chat_id, "activity_logs"):
         handle_activity_logs(chat_id)
+        return
+
+    # ========== تعرفه‌ها - برای همه کاربران (دکمه اصلی روی کیبورد) ==========
+    elif text == t(chat_id, "tariffs") or callback_data == "show_tariffs":
+        try:
+            from auth_handlers import show_tariffs
+            show_tariffs(chat_id, bot_token, lang=get_user_lang(chat_id))
+        except Exception as e:
+            logger.error(f"❌ خطا در نمایش تعرفه‌ها: {e}")
+            send_message(chat_id, "❌ خطا در دریافت تعرفه‌ها", create_main_keyboard(chat_id))
+        return
+
+    # ========== خرید پلن مشخص (از لیست تعرفه‌ها) ==========
+    elif callback_data and callback_data.startswith("buy_plan_"):
+        try:
+            plan_id = int(callback_data.replace("buy_plan_", ""))
+            from auth_handlers import handle_purchase_confirm
+            handle_purchase_confirm(chat_id, username, bot_token, plan_id=plan_id)
+        except ValueError:
+            pass
+        return
+
+    # ========== مدیریت تعرفه‌ها (ادمین) ==========
+    elif text == t(chat_id, "manage_tariffs"):
+        handle_manage_tariffs(chat_id)
+        return
+
+    elif callback_data == "admin_tariffs_back":
+        handle_manage_tariffs(chat_id, edit_id=message_id)
+        return
+
+    elif callback_data and callback_data.startswith("admin_plan_") and not callback_data.startswith("admin_plan_new"):
+        if not auth_manager.is_admin(chat_id):
+            send_message(chat_id, t(chat_id, "unauthorized_access"), create_main_keyboard(chat_id))
+            return
+        # admin_plan_{id} | admin_plan_price_{id} | admin_plan_dur_{id} | admin_plan_toggle_{id} | admin_plan_del_{id} | admin_plan_broadcast_{id}
+        rest = callback_data.replace("admin_plan_", "")
+        if rest.startswith("price_"):
+            plan_id = int(rest.replace("price_", ""))
+            set_state(chat_id, "awaiting_plan_price", plan_id=plan_id)
+            send_message(chat_id, t(chat_id, "enter_price_new"))
+        elif rest.startswith("dur_"):
+            plan_id = int(rest.replace("dur_", ""))
+            set_state(chat_id, "awaiting_plan_duration", plan_id=plan_id)
+            send_message(chat_id, t(chat_id, "enter_duration_new"))
+        elif rest.startswith("toggle_"):
+            plan_id = int(rest.replace("toggle_", ""))
+            plan = auth_manager.get_plan(plan_id)
+            if plan:
+                auth_manager.update_plan(plan_id, enabled=0 if plan['enabled'] else 1)
+                handle_plan_detail(chat_id, plan_id, edit_id=message_id)
+        elif rest.startswith("del_"):
+            plan_id = int(rest.replace("del_", ""))
+            keyboard = {"inline_keyboard": [
+                [
+                    {"text": t(chat_id, "yes_delete"), "callback_data": f"admin_plan_delconfirm_{plan_id}"},
+                    {"text": t(chat_id, "no_keep"), "callback_data": f"admin_plan_{plan_id}"},
+                ]
+            ]}
+            edit_message(chat_id, message_id, t(chat_id, "confirm_delete_plan"), keyboard)
+        elif rest.startswith("delconfirm_"):
+            plan_id = int(rest.replace("delconfirm_", ""))
+            auth_manager.delete_plan(plan_id)
+            handle_manage_tariffs(chat_id)
+        elif rest.startswith("broadcast_"):
+            plan_id = int(rest.replace("broadcast_", ""))
+            plan = auth_manager.get_plan(plan_id)
+            if plan:
+                try:
+                    from auth_handlers import broadcast_new_plan
+                    bot_tk = config['messengers']['bale']['bot_token']
+                    sent, failed = broadcast_new_plan(plan, bot_tk)
+                    send_message(chat_id, f"{t(chat_id, 'broadcast_done')} ({sent} موفق، {failed} ناموفق)", create_admin_menu_keyboard(chat_id))
+                except Exception as e:
+                    send_message(chat_id, f"❌ {e}", create_admin_menu_keyboard(chat_id))
+        else:
+            plan_id = int(rest)
+            handle_plan_detail(chat_id, plan_id, edit_id=message_id)
+        return
+
+    elif callback_data == "admin_plan_new":
+        handle_plan_create_start(chat_id)
+        return
+
+    elif callback_data == "admin_broadcast_tariffs":
+        handle_broadcast_tariffs(chat_id)
+        return
+
+    # ========== تست پیش‌فرض (ادمین) ==========
+    elif text == t(chat_id, "default_trial_days"):
+        handle_default_trial_days_prompt(chat_id)
+        return
+
+    # ========== لیست کاربران - صفحه‌بندی و جزئیات ==========
+    elif callback_data and callback_data.startswith("admin_users_page_"):
+        if not auth_manager.is_admin(chat_id):
+            return
+        page = int(callback_data.replace("admin_users_page_", ""))
+        handle_manage_users(chat_id, page=page, edit_id=message_id)
+        return
+
+    elif callback_data == "admin_users_back":
+        if not auth_manager.is_admin(chat_id):
+            return
+        handle_manage_users(chat_id, page=0, edit_id=message_id)
+        return
+
+    elif callback_data == "admin_menu_back":
+        handle_admin_menu(chat_id, message_id)
+        return
+
+    elif callback_data and callback_data.startswith("admin_user_") and not callback_data.startswith("admin_users_"):
+        if not auth_manager.is_admin(chat_id):
+            send_message(chat_id, t(chat_id, "unauthorized_access"), create_main_keyboard(chat_id))
+            return
+        target_id = int(callback_data.replace("admin_user_", ""))
+        handle_user_detail(chat_id, target_id, edit_id=message_id)
+        return
+
+    # ========== اعطای دسترسی رایگان ==========
+    elif callback_data and callback_data.startswith("admin_grant_set_"):
+        if not auth_manager.is_admin(chat_id):
+            return
+        parts = callback_data.replace("admin_grant_set_", "").split("_")
+        target_id = int(parts[0])
+        days = int(parts[1])
+        handle_grant_free_set(chat_id, target_id, days)
+        return
+
+    elif callback_data and callback_data.startswith("admin_grant_custom_"):
+        if not auth_manager.is_admin(chat_id):
+            return
+        target_id = int(callback_data.replace("admin_grant_custom_", ""))
+        set_state(chat_id, "awaiting_custom_grant_days", target_id=target_id)
+        send_message(chat_id, t(chat_id, "custom_days_prompt"))
+        return
+
+    elif callback_data and callback_data.startswith("admin_grant_force_"):
+        if not auth_manager.is_admin(chat_id):
+            return
+        parts = callback_data.replace("admin_grant_force_", "").split("_")
+        target_id = int(parts[0])
+        days = int(parts[1])
+        handle_grant_force(chat_id, target_id, days)
+        return
+
+    elif callback_data and callback_data.startswith("admin_grant_"):
+        if not auth_manager.is_admin(chat_id):
+            return
+        target_id = int(callback_data.replace("admin_grant_", ""))
+        handle_grant_free_menu(chat_id, target_id, edit_id=message_id)
+        return
+
+    # ========== تمدید مدت دسترسی ==========
+    elif callback_data and callback_data.startswith("admin_extend_set_"):
+        if not auth_manager.is_admin(chat_id):
+            return
+        parts = callback_data.replace("admin_extend_set_", "").split("_")
+        target_id = int(parts[0])
+        days = int(parts[1])
+        handle_extend_set(chat_id, target_id, days)
+        return
+
+    elif callback_data and callback_data.startswith("admin_extend_custom_"):
+        if not auth_manager.is_admin(chat_id):
+            return
+        target_id = int(callback_data.replace("admin_extend_custom_", ""))
+        set_state(chat_id, "awaiting_custom_extend_days", target_id=target_id)
+        send_message(chat_id, t(chat_id, "custom_days_prompt"))
+        return
+
+    elif callback_data and callback_data.startswith("admin_extend_"):
+        if not auth_manager.is_admin(chat_id):
+            return
+        target_id = int(callback_data.replace("admin_extend_", ""))
+        handle_extend_menu(chat_id, target_id, edit_id=message_id)
+        return
+
+    # ========== دائمی کردن ==========
+    elif callback_data and callback_data.startswith("admin_perm_"):
+        if not auth_manager.is_admin(chat_id):
+            return
+        target_id = int(callback_data.replace("admin_perm_", ""))
+        handle_make_permanent(chat_id, target_id)
+        return
+
+    # ========== پرداخت‌ها و فعالیت کاربر ==========
+    elif callback_data and callback_data.startswith("admin_payments_"):
+        if not auth_manager.is_admin(chat_id):
+            return
+        target_id = int(callback_data.replace("admin_payments_", ""))
+        handle_user_payments(chat_id, target_id, edit_id=message_id)
+        return
+
+    elif callback_data and callback_data.startswith("admin_ulogs_"):
+        if not auth_manager.is_admin(chat_id):
+            return
+        target_id = int(callback_data.replace("admin_ulogs_", ""))
+        handle_user_logs(chat_id, target_id, edit_id=message_id)
         return
 
     # ========== تایید/رد درخواست‌های ادمین ==========
@@ -4209,8 +5122,196 @@ def handle_message(message, callback_data=None):
         current_state_name, current_state_data = get_state(chat_id)
         lang = get_user_lang(chat_id)
 
+        # ===== ویزارد ساخت پلن جدید: نام =====
+        if current_state_name == "awaiting_plan_name":
+            if not auth_manager.is_admin(chat_id):
+                clear_state(chat_id)
+                return
+            plan_name = (text or "").strip()
+            if not plan_name:
+                send_message(chat_id, t(chat_id, "invalid_days"))
+                return
+            user_states[chat_id] = {"state": "awaiting_plan_days", "plan_name": plan_name}
+            send_message(chat_id, t(chat_id, "plan_days_prompt"))
+            return
+
+        # ===== ویزارد ساخت پلن: مدت =====
+        elif current_state_name == "awaiting_plan_days":
+            if not auth_manager.is_admin(chat_id):
+                clear_state(chat_id)
+                return
+            raw = (text or "").strip().lower()
+            duration_days = None
+            if raw in ("permanent", "دائمی", "0", "inf", "lifetime"):
+                duration_days = None
+            else:
+                try:
+                    duration_days = int(raw)
+                    if duration_days <= 0:
+                        raise ValueError
+                except ValueError:
+                    send_message(chat_id, t(chat_id, "invalid_days"))
+                    return
+            saved_plan_name = current_state_data.get("plan_name", "")
+            user_states[chat_id] = {
+                "state": "awaiting_plan_price",
+                "plan_name": saved_plan_name,
+                "plan_days": duration_days,
+            }
+            send_message(chat_id, t(chat_id, "plan_price_prompt"))
+            return
+
+        # ===== ویزارد ساخت پلن: قیمت (ایجاد نهایی) =====
+        elif current_state_name == "awaiting_plan_price" and "plan_name" in current_state_data:
+            if not auth_manager.is_admin(chat_id):
+                clear_state(chat_id)
+                return
+            raw = (text or "").strip().replace(",", "").replace("،", "")
+            try:
+                price_toman = int(raw)
+                if price_toman <= 0:
+                    raise ValueError
+            except ValueError:
+                send_message(chat_id, t(chat_id, "invalid_days"))
+                return
+            plan_name = current_state_data.get("plan_name")
+            duration_days = current_state_data.get("plan_days")
+            price_rial = price_toman * 10
+            result = auth_manager.create_plan(plan_name, duration_days, price_rial)
+            clear_state(chat_id)
+            if result.get("success"):
+                try:
+                    from auth_handlers import broadcast_new_plan
+                    plan = auth_manager.get_plan(result["plan_id"])
+                    bot_tk = config['messengers']['bale']['bot_token']
+                    sent, failed = broadcast_new_plan(plan, bot_tk)
+                    send_message(
+                        chat_id,
+                        f"{t(chat_id, 'plan_created_success')} ✅\n📣 اطلاع‌رسانی به {sent} کاربر ارسال شد",
+                        {"inline_keyboard": [[{"text": t(chat_id, "back_to_admin_menu"), "callback_data": "admin_tariffs_back"}]]}
+                    )
+                except Exception as be:
+                    logger.error(f"❌ broadcast error: {be}")
+                    send_message(
+                        chat_id,
+                        t(chat_id, "plan_created_success"),
+                        {"inline_keyboard": [[{"text": t(chat_id, "back_to_admin_menu"), "callback_data": "admin_tariffs_back"}]]}
+                    )
+            else:
+                send_message(chat_id, f"❌ {result.get('error', 'خطا')}", create_admin_menu_keyboard(chat_id))
+            return
+
+        # ===== ویرایش قیمت پلن موجود =====
+        elif current_state_name == "awaiting_plan_price" and "plan_id" in current_state_data:
+            if not auth_manager.is_admin(chat_id):
+                clear_state(chat_id)
+                return
+            raw = (text or "").strip().replace(",", "").replace("،", "")
+            try:
+                price_toman = int(raw)
+                if price_toman <= 0:
+                    raise ValueError
+            except ValueError:
+                send_message(chat_id, t(chat_id, "invalid_days"))
+                return
+            plan_id = current_state_data.get("plan_id")
+            result = auth_manager.update_plan(plan_id, price_rial=price_toman * 10)
+            clear_state(chat_id)
+            if result.get("success"):
+                try:
+                    from auth_handlers import broadcast_new_plan
+                    plan = auth_manager.get_plan(plan_id)
+                    bot_tk = config['messengers']['bale']['bot_token']
+                    sent, failed = broadcast_new_plan(plan, bot_tk)
+                    send_message(chat_id, f"{t(chat_id, 'price_set_success')}\n📣 اطلاع‌رسانی به {sent} کاربر ارسال شد")
+                except Exception:
+                    send_message(chat_id, t(chat_id, "price_set_success"))
+                handle_plan_detail(chat_id, plan_id)
+            else:
+                send_message(chat_id, f"❌ {result.get('error', 'خطا')}")
+            return
+
+        # ===== ویرایش مدت پلن موجود =====
+        elif current_state_name == "awaiting_plan_duration":
+            if not auth_manager.is_admin(chat_id):
+                clear_state(chat_id)
+                return
+            raw = (text or "").strip().lower()
+            duration_days = None
+            if raw in ("permanent", "دائمی", "0", "inf", "lifetime"):
+                duration_days = None
+            else:
+                try:
+                    duration_days = int(raw)
+                    if duration_days <= 0:
+                        raise ValueError
+                except ValueError:
+                    send_message(chat_id, t(chat_id, "invalid_days"))
+                    return
+            plan_id = current_state_data.get("plan_id")
+            result = auth_manager.update_plan(plan_id, duration_days=duration_days)
+            clear_state(chat_id)
+            if result.get("success"):
+                send_message(chat_id, t(chat_id, "duration_set_success"))
+                handle_plan_detail(chat_id, plan_id)
+            else:
+                send_message(chat_id, f"❌ {result.get('error', 'خطا')}")
+            return
+
+        # ===== روزهای دلخواه - هدیه رایگان =====
+        elif current_state_name == "awaiting_custom_grant_days":
+            if not auth_manager.is_admin(chat_id):
+                clear_state(chat_id)
+                return
+            try:
+                days = int((text or "").strip())
+                if days <= 0 or days > 3650:
+                    raise ValueError
+            except ValueError:
+                send_message(chat_id, t(chat_id, "invalid_days"))
+                return
+            target_id = current_state_data.get("target_id")
+            clear_state(chat_id)
+            handle_grant_free_set(chat_id, target_id, days)
+            return
+
+        # ===== روزهای دلخواه - تمدید =====
+        elif current_state_name == "awaiting_custom_extend_days":
+            if not auth_manager.is_admin(chat_id):
+                clear_state(chat_id)
+                return
+            try:
+                days = int((text or "").strip())
+                if days <= 0 or days > 3650:
+                    raise ValueError
+            except ValueError:
+                send_message(chat_id, t(chat_id, "invalid_days"))
+                return
+            target_id = current_state_data.get("target_id")
+            clear_state(chat_id)
+            handle_extend_set(chat_id, target_id, days)
+            return
+
+        # ===== مدت تست پیش‌فرض =====
+        elif current_state_name == "awaiting_trial_days":
+            if not auth_manager.is_admin(chat_id):
+                clear_state(chat_id)
+                return
+            try:
+                days = int((text or "").strip())
+                if days < 0 or days > 365:
+                    raise ValueError
+            except ValueError:
+                send_message(chat_id, t(chat_id, "invalid_days"))
+                return
+            auth_manager.set_default_trial_days(days)
+            clear_state(chat_id)
+            send_message(chat_id, f"{t(chat_id, 'trial_days_success')}: {days} روز", create_admin_menu_keyboard(chat_id))
+            auth_manager.log_activity(chat_id, "trial_days_change", f"{days}d")
+            return
+
         # ===== اضافه کردن ادمین جدید =====
-        if current_state_name == "awaiting_new_admin_id":
+        elif current_state_name == "awaiting_new_admin_id":
             try:
                 new_admin_id = int(text)
 
