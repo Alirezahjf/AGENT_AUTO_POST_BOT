@@ -1062,15 +1062,23 @@ def create_language_keyboard():
 
 def create_main_keyboard(chat_id):
     """صفحه‌کلید منوی اصلی - دکمه‌های اصلی روی کیبورد (تحت کیبورد)"""
+    # Arrange the six common destinations in three balanced rows.
     keyboard_buttons = [
-        [{"text": t(chat_id, "settings")}],
-        [{"text": t(chat_id, "woocommerce_posts")}],
-        [{"text": t(chat_id, "posting_management")}],
-        [{"text": t(chat_id, "contents")}],
-        [{"text": t(chat_id, "tariffs")}],
-        [{"text": t(chat_id, "support_menu")}],
+        [
+            {"text": t(chat_id, "settings")},
+            {"text": t(chat_id, "woocommerce_posts")},
+        ],
+        [
+            {"text": t(chat_id, "posting_management")},
+            {"text": t(chat_id, "contents")},
+        ],
+        [
+            {"text": t(chat_id, "tariffs")},
+            {"text": t(chat_id, "support_menu")},
+        ],
     ]
 
+    # The admin-only destination remains isolated from the regular user actions.
     if auth_manager.is_admin(chat_id):
         keyboard_buttons.append([{"text": t(chat_id, "admin_menu")}])
 
@@ -1086,8 +1094,10 @@ def create_settings_keyboard(chat_id):
     """صفحه‌کلید تنظیمات"""
     return {
         "keyboard": [
-            [{"text": t(chat_id, "messengers")}],
-            [{"text": t(chat_id, "woocommerce_api")}],
+            [
+                {"text": t(chat_id, "messengers")},
+                {"text": t(chat_id, "woocommerce_api")},
+            ],
             [{"text": t(chat_id, "back_to_main")}]
         ],
         "resize_keyboard": True
@@ -1100,10 +1110,14 @@ def create_woocommerce_posts_keyboard(chat_id):
     """صفحه‌کلید پست‌های ووکامرس"""
     return {
         "keyboard": [
-            [{"text": t(chat_id, "config_autopost")}],
-            [{"text": t(chat_id, "check_products")}],
-            [{"text": t(chat_id, "test_product_posting")}],
-            [{"text": t(chat_id, "back_to_main")}]
+            [
+                {"text": t(chat_id, "config_autopost")},
+                {"text": t(chat_id, "check_products")},
+            ],
+            [
+                {"text": t(chat_id, "test_product_posting")},
+                {"text": t(chat_id, "back_to_main")},
+            ]
         ],
         "resize_keyboard": True
     }
@@ -1127,12 +1141,18 @@ def create_autopost_keyboard(chat_id, user_config):
     
     return {
         "keyboard": [
-            [{"text": f"{t(chat_id, 'toggle_autopost')} ({status})"}],
-            [{"text": f"{t(chat_id, 'toggle_live_new')} ({live_status})"}],
-            [{"text": t(chat_id, "posts_per_day")}],
-            [{"text": t(chat_id, "schedule_days")}],
-            [{"text": f"{t(chat_id, 'category_filter')} {cat_text}"}],
-            [{"text": t(chat_id, "back_to_wc_posts")}]
+            [
+                {"text": f"{t(chat_id, 'toggle_autopost')} ({status})"},
+                {"text": f"{t(chat_id, 'toggle_live_new')} ({live_status})"},
+            ],
+            [
+                {"text": t(chat_id, "posts_per_day")},
+                {"text": t(chat_id, "schedule_days")},
+            ],
+            [
+                {"text": f"{t(chat_id, 'category_filter')} {cat_text}"},
+                {"text": t(chat_id, "back_to_wc_posts")},
+            ]
         ],
         "resize_keyboard": True
     }
@@ -1208,26 +1228,34 @@ def create_admin_menu_keyboard(chat_id):
     """صفحه‌کلید منوی ادمین - دکمه‌های اصلی روی کیبورد (solid)"""
     is_super = auth_manager.is_super_admin(chat_id)
 
-    # ردیف اول: دو دکمه اصلی کنار هم
     keyboard_buttons = [
         [
             {"text": t(chat_id, "manage_users")},
             {"text": t(chat_id, "manage_tariffs")},
         ],
-        [{"text": t(chat_id, "view_access_requests")}],
-        [{"text": t(chat_id, "admin_support")}],
+        [
+            {"text": t(chat_id, "view_access_requests")},
+            {"text": t(chat_id, "admin_support")},
+        ],
     ]
 
     if is_super:
-        keyboard_buttons.append([{"text": t(chat_id, "manage_admins")}])
-
-    keyboard_buttons.extend([
-        [
+        keyboard_buttons.append([
+            {"text": t(chat_id, "manage_admins")},
             {"text": t(chat_id, "activity_logs")},
+        ])
+        keyboard_buttons.append([
             {"text": t(chat_id, "default_trial_days")},
-        ],
-        [{"text": t(chat_id, "back_to_main")}]
-    ])
+            {"text": t(chat_id, "back_to_main")},
+        ])
+    else:
+        keyboard_buttons.extend([
+            [
+                {"text": t(chat_id, "activity_logs")},
+                {"text": t(chat_id, "default_trial_days")},
+            ],
+            [{"text": t(chat_id, "back_to_main")}],
+        ])
 
     return {
         "keyboard": keyboard_buttons,
