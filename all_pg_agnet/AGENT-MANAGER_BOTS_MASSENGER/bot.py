@@ -11,6 +11,7 @@ import woocommerce
 import scheduler
 from database import PostDatabase
 from auth_manager import AuthManager
+import support_tickets as support_ui
 from auth_handlers import (
     handle_unauthenticated_user,
     handle_auth_callback,
@@ -123,6 +124,8 @@ LANGUAGES = {
 
         # ===== منوی ادمین =====
         "admin_menu": "👮 منوی ادمین",
+        "support_menu": "🎫 پشتیبانی و تیکت‌ها",
+        "admin_support": "🗂 مدیریت تیکت‌های پشتیبانی",
         "manage_users": "👥 مدیریت کاربران",
         "manage_admins": "👨‍💼 مدیریت ادمین‌ها",
         "view_access_requests": "📋 درخواست‌های دسترسی",
@@ -357,6 +360,8 @@ LANGUAGES = {
 
         # ===== منوی ادمین =====
         "admin_menu": "👮 Admin Menu",
+        "support_menu": "🎫 Support & tickets",
+        "admin_support": "🗂 Manage support tickets",
         "manage_users": "👥 Manage Users",
         "manage_admins": "👨‍💼 Manage Admins",
         "view_access_requests": "📋 Access Requests",
@@ -1063,6 +1068,7 @@ def create_main_keyboard(chat_id):
         [{"text": t(chat_id, "posting_management")}],
         [{"text": t(chat_id, "contents")}],
         [{"text": t(chat_id, "tariffs")}],
+        [{"text": t(chat_id, "support_menu")}],
     ]
 
     if auth_manager.is_admin(chat_id):
@@ -1209,6 +1215,7 @@ def create_admin_menu_keyboard(chat_id):
             {"text": t(chat_id, "manage_tariffs")},
         ],
         [{"text": t(chat_id, "view_access_requests")}],
+        [{"text": t(chat_id, "admin_support")}],
     ]
 
     if is_super:
@@ -3780,6 +3787,20 @@ def handle_message(message, callback_data=None):
         user_is_approved = False
         logger.info(f"⏰ دسترسی کاربر {chat_id} منقضی شده - نیاز به پرداخت")
 
+    # Support is deliberately available before access approval, so prospective and
+    # expired users can still contact the team. Every ticket action re-checks ownership/admin rights.
+    support_lang = get_user_lang(chat_id)
+    if support_ui.handle_support_text(chat_id, text, auth_manager, send_message, user_states,
+                                      support_lang, is_admin, username):
+        return
+    if callback_data and callback_data.startswith("support_"):
+        support_ui.handle_support_callback(chat_id, callback_data, auth_manager, send_message,
+                                           user_states, support_lang, is_admin, username)
+        return
+    if text in (t(chat_id, "support_menu"), "/support"):
+        support_ui.show_support_home(chat_id, auth_manager, send_message, support_lang, is_admin)
+        return
+
     if not user_is_approved and not is_admin:
         if text == "/start":
             handle_unauthenticated_user(message, bot_token)
@@ -4026,6 +4047,14 @@ def handle_message(message, callback_data=None):
             send_message(chat_id, t(chat_id, "unauthorized_access"), create_main_keyboard(chat_id))
             return
         handle_remove_admin(chat_id)
+        return
+
+    elif text == t(chat_id, "admin_support"):
+        if not auth_manager.is_admin(chat_id):
+            send_message(chat_id, t(chat_id, "unauthorized_access"))
+            return
+        support_ui.handle_support_callback(chat_id, "support_admin_home", auth_manager, send_message,
+                                           user_states, get_user_lang(chat_id), True, username)
         return
 
     elif text == t(chat_id, "view_access_requests") or callback_data == "admin_view_requests":

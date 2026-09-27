@@ -238,6 +238,50 @@ class AuthManager:
                 )
             ''')
 
+            # ========== پشتیبانی و تیکت‌ها (افزودنی و مستقل از داده‌های قبلی) ==========
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS support_tickets (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    owner_chat_id INTEGER NOT NULL,
+                    username TEXT,
+                    subject TEXT NOT NULL,
+                    category TEXT NOT NULL DEFAULT 'general',
+                    priority TEXT NOT NULL DEFAULT 'normal',
+                    status TEXT NOT NULL DEFAULT 'open',
+                    assigned_admin_id INTEGER,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    closed_at TEXT,
+                    user_unread INTEGER NOT NULL DEFAULT 0,
+                    admin_unread INTEGER NOT NULL DEFAULT 1
+                )
+            ''')
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS support_ticket_messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ticket_id INTEGER NOT NULL,
+                    sender_id INTEGER NOT NULL,
+                    sender_role TEXT NOT NULL CHECK(sender_role IN ('user', 'admin')),
+                    body TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY(ticket_id) REFERENCES support_tickets(id) ON DELETE CASCADE
+                )
+            ''')
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS support_ticket_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ticket_id INTEGER NOT NULL,
+                    actor_id INTEGER NOT NULL,
+                    event_type TEXT NOT NULL,
+                    details TEXT,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY(ticket_id) REFERENCES support_tickets(id) ON DELETE CASCADE
+                )
+            ''')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_support_owner_updated ON support_tickets(owner_chat_id, updated_at DESC)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_support_status_updated ON support_tickets(status, updated_at DESC)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_support_messages_ticket ON support_ticket_messages(ticket_id, id)')
+
             # ========== Migrations ==========
             # ⚠️ فقط ALTER ADD COLUMN - هرگز DROP/DELETE نکن
             migrations = [
@@ -2767,6 +2811,49 @@ class AuthManager:
 
         finally:
             conn.close()
+
+    # ========== پشتیبانی و تیکت‌ها ==========
+
+    def _ticket_connect(self):
+        conn = sqlite3.connect(self.auth_db_path, timeout=15, check_same_thread=False)
+        conn.execute("PRAGMA foreign_keys=ON")
+        return conn
+
+    def create_ticket(self, owner_chat_id, username, subject, body, category="other"):
+        from support_tickets import create_ticket
+        return create_ticket(self, owner_chat_id, username, subject, body, category)
+
+    def get_ticket(self, ticket_id, actor_chat_id=None, is_admin=False):
+        from support_tickets import get_ticket
+        return get_ticket(self, ticket_id, actor_chat_id, is_admin)
+
+    def list_tickets(self, owner_chat_id=None, status="active", limit=8, offset=0):
+        from support_tickets import list_tickets
+        return list_tickets(self, owner_chat_id, status, limit, offset)
+
+    def get_ticket_messages(self, ticket_id, limit=20):
+        from support_tickets import get_ticket_messages
+        return get_ticket_messages(self, ticket_id, limit)
+
+    def mark_ticket_read(self, ticket_id, actor_chat_id, is_admin=False):
+        from support_tickets import mark_ticket_read
+        return mark_ticket_read(self, ticket_id, actor_chat_id, is_admin)
+
+    def add_ticket_message(self, ticket_id, sender_id, body, is_admin=False):
+        from support_tickets import add_ticket_message
+        return add_ticket_message(self, ticket_id, sender_id, body, is_admin)
+
+    def set_ticket_status(self, ticket_id, actor_chat_id, status, is_admin=False):
+        from support_tickets import set_ticket_status
+        return set_ticket_status(self, ticket_id, actor_chat_id, status, is_admin)
+
+    def set_ticket_priority(self, ticket_id, admin_chat_id, priority):
+        from support_tickets import set_ticket_priority
+        return set_ticket_priority(self, ticket_id, admin_chat_id, priority)
+
+    def assign_ticket(self, ticket_id, admin_chat_id):
+        from support_tickets import assign_ticket
+        return assign_ticket(self, ticket_id, admin_chat_id)
 
     # ========== محیط کاربر ==========
 
