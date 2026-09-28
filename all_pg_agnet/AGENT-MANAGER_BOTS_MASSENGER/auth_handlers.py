@@ -137,6 +137,9 @@ def create_auth_keyboard_fa():
             ],
             [
                 {"text": "🏷️ تعرفه‌ها و خرید", "callback_data": "show_tariffs"}
+            ],
+            [
+                {"text": "🎫 پشتیبانی و ثبت تیکت", "callback_data": "support_home"}
             ]
         ]
     }
@@ -154,6 +157,9 @@ def create_auth_keyboard_en():
             ],
             [
                 {"text": "🏷️ Tariffs & Buy", "callback_data": "show_tariffs"}
+            ],
+            [
+                {"text": "🎫 Support & tickets", "callback_data": "support_home"}
             ]
         ]
     }
@@ -440,9 +446,10 @@ def handle_unauthenticated_user(message, bot_token):
                     f"💳 برای ادامه استفاده، یکی از پلن‌های زیر را انتخاب کنید:"
                 )
                 keyboard = build_tariffs_keyboard("fa")
-                keyboard["inline_keyboard"].append(
-                    [{"text": "📝 درخواست دسترسی به ادمین", "callback_data": "auth_request_access"}]
-                )
+                keyboard["inline_keyboard"].extend([
+                    [{"text": "📝 درخواست دسترسی به ادمین", "callback_data": "auth_request_access"}],
+                    [{"text": "🎫 پشتیبانی و ثبت تیکت", "callback_data": "support_home"}]
+                ])
                 send_message(chat_id, msg, keyboard, bot_token=bot_token)
                 return False
             # اگر تست فعال است، باقی مانده را نمایش بده در لاگ
@@ -457,7 +464,7 @@ def handle_unauthenticated_user(message, bot_token):
                 f"⏳ درخواست دسترسی شما در حال بررسی است.\n"
                 f"لطفاً منتظر تایید ادمین باشید."
             )
-            send_message(chat_id, msg, bot_token=bot_token)
+            send_message(chat_id, msg, {"inline_keyboard": [[{"text": "🎫 پشتیبانی", "callback_data": "support_home"}]]}, bot_token=bot_token)
             return False
 
         elif user_info['status'] == 'rejected':
@@ -466,6 +473,7 @@ def handle_unauthenticated_user(message, bot_token):
                 f"می‌توانید از طریق خرید اشتراک، دسترسی تهیه کنید:"
             )
             keyboard = build_tariffs_keyboard("fa")
+            keyboard["inline_keyboard"].append([{"text": "🎫 پشتیبانی", "callback_data": "support_home"}])
             send_message(chat_id, msg, keyboard, bot_token=bot_token)
             return False
 

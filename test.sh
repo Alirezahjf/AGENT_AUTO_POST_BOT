@@ -8,6 +8,13 @@ echo -e "\n${YELLOW}1️⃣ Python compile...${NC}"
 for file in all_pg_agnet/AGENT-MANAGER_BOTS_MASSENGER/*.py; do
     if python3 -m py_compile "$file" 2>/dev/null; then echo -e "${GREEN}✅ $(basename $file)${NC}"; else echo -e "${RED}❌ $(basename $file)${NC}"; FAILED=1; fi
 done
+echo -e "\n${YELLOW}🧾 Ticket subsystem regression tests...${NC}"
+if python3 "$SCRIPT_DIR/all_pg_agnet/AGENT-MANAGER_BOTS_MASSENGER/test_support_tickets.py"; then
+    echo -e "${GREEN}✅ Support ticket tests${NC}"
+else
+    echo -e "${RED}❌ Support ticket tests${NC}"
+    FAILED=1
+fi
 echo -e "\n${YELLOW}2️⃣ WhatsApp Service...${NC}"
 if curl -s http://localhost:3001/ | grep -q "ok"; then echo -e "${GREEN}✅ WhatsApp روشن${NC}"; else echo -e "${YELLOW}⚪ WhatsApp خاموش (برای تست واتساپ باید روشن باشد)${NC}"; fi
 echo -e "\n${YELLOW}3️⃣ Config...${NC}"

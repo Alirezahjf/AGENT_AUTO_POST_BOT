@@ -12,6 +12,7 @@ import woocommerce
 import scheduler
 from database import PostDatabase
 from auth_manager import AuthManager
+import support_tickets as support_ui
 from auth_handlers import (
     handle_unauthenticated_user,
     handle_auth_callback,
@@ -126,6 +127,8 @@ LANGUAGES = {
 
         # ===== منوی ادمین =====
         "admin_menu": "👮 منوی ادمین",
+        "support_menu": "🎫 پشتیبانی و تیکت‌ها",
+        "admin_support": "🗂 مدیریت تیکت‌های پشتیبانی",
         "manage_users": "👥 مدیریت کاربران",
         "manage_admins": "👨‍💼 مدیریت ادمین‌ها",
         "view_access_requests": "📋 درخواست‌های دسترسی",
@@ -366,6 +369,8 @@ LANGUAGES = {
 
         # ===== منوی ادمین =====
         "admin_menu": "👮 Admin Menu",
+        "support_menu": "🎫 Support & tickets",
+        "admin_support": "🗂 Manage support tickets",
         "manage_users": "👥 Manage Users",
         "manage_admins": "👨‍💼 Manage Admins",
         "view_access_requests": "📋 Access Requests",
@@ -1084,14 +1089,23 @@ def create_settings_language_keyboard(chat_id):
 
 def create_main_keyboard(chat_id):
     """صفحه‌کلید منوی اصلی - دکمه‌های اصلی روی کیبورد (تحت کیبورد)"""
+    # Arrange the six common destinations in three balanced rows.
     keyboard_buttons = [
-        [{"text": t(chat_id, "settings")}],
-        [{"text": t(chat_id, "woocommerce_posts")}],
-        [{"text": t(chat_id, "posting_management")}],
-        [{"text": t(chat_id, "contents")}],
-        [{"text": t(chat_id, "tariffs")}],
+        [
+            {"text": t(chat_id, "settings")},
+            {"text": t(chat_id, "woocommerce_posts")},
+        ],
+        [
+            {"text": t(chat_id, "posting_management")},
+            {"text": t(chat_id, "contents")},
+        ],
+        [
+            {"text": t(chat_id, "tariffs")},
+            {"text": t(chat_id, "support_menu")},
+        ],
     ]
 
+    # The admin-only destination remains isolated from the regular user actions.
     if auth_manager.is_admin(chat_id):
         keyboard_buttons.append([{"text": t(chat_id, "admin_menu")}])
 
@@ -1107,8 +1121,10 @@ def create_settings_keyboard(chat_id):
     """صفحه‌کلید تنظیمات"""
     return {
         "keyboard": [
-            [{"text": t(chat_id, "messengers")}],
-            [{"text": t(chat_id, "woocommerce_api")}],
+            [
+                {"text": t(chat_id, "messengers")},
+                {"text": t(chat_id, "woocommerce_api")},
+            ],
             [{"text": t(chat_id, "change_language")}],
             [{"text": t(chat_id, "back_to_main")}]
         ],
@@ -1122,10 +1138,14 @@ def create_woocommerce_posts_keyboard(chat_id):
     """صفحه‌کلید پست‌های ووکامرس"""
     return {
         "keyboard": [
-            [{"text": t(chat_id, "config_autopost")}],
-            [{"text": t(chat_id, "check_products")}],
-            [{"text": t(chat_id, "test_product_posting")}],
-            [{"text": t(chat_id, "back_to_main")}]
+            [
+                {"text": t(chat_id, "config_autopost")},
+                {"text": t(chat_id, "check_products")},
+            ],
+            [
+                {"text": t(chat_id, "test_product_posting")},
+                {"text": t(chat_id, "back_to_main")},
+            ]
         ],
         "resize_keyboard": True
     }
@@ -1149,12 +1169,18 @@ def create_autopost_keyboard(chat_id, user_config):
     
     return {
         "keyboard": [
-            [{"text": f"{t(chat_id, 'toggle_autopost')} ({status})"}],
-            [{"text": f"{t(chat_id, 'toggle_live_new')} ({live_status})"}],
-            [{"text": t(chat_id, "posts_per_day")}],
-            [{"text": t(chat_id, "schedule_days")}],
-            [{"text": f"{t(chat_id, 'category_filter')} {cat_text}"}],
-            [{"text": t(chat_id, "back_to_wc_posts")}]
+            [
+                {"text": f"{t(chat_id, 'toggle_autopost')} ({status})"},
+                {"text": f"{t(chat_id, 'toggle_live_new')} ({live_status})"},
+            ],
+            [
+                {"text": t(chat_id, "posts_per_day")},
+                {"text": t(chat_id, "schedule_days")},
+            ],
+            [
+                {"text": f"{t(chat_id, 'category_filter')} {cat_text}"},
+                {"text": t(chat_id, "back_to_wc_posts")},
+            ]
         ],
         "resize_keyboard": True
     }
@@ -1230,26 +1256,40 @@ def create_admin_menu_keyboard(chat_id):
     """صفحه‌کلید منوی ادمین - دکمه‌های اصلی روی کیبورد (solid)"""
     is_super = auth_manager.is_super_admin(chat_id)
 
-    # ردیف اول: دو دکمه اصلی کنار هم
     keyboard_buttons = [
         [
             {"text": t(chat_id, "manage_users")},
             {"text": t(chat_id, "manage_tariffs")},
         ],
-        [{"text": t(chat_id, "view_access_requests")}],
+        [
+            {"text": t(chat_id, "view_access_requests")},
+            {"text": t(chat_id, "admin_support")},
+        ],
     ]
 
     if is_super:
-        keyboard_buttons.append([{"text": t(chat_id, "manage_admins")}])
-
-    keyboard_buttons.extend([
-        [
+        keyboard_buttons.append([
+            {"text": t(chat_id, "manage_admins")},
             {"text": t(chat_id, "activity_logs")},
+        ])
+        keyboard_buttons.append([
             {"text": t(chat_id, "default_trial_days")},
-        ],
-        [{"text": t(chat_id, "system_logs")}],
-        [{"text": t(chat_id, "back_to_main")}]
-    ])
+        ])
+        keyboard_buttons.append([
+            {"text": t(chat_id, "system_logs")},
+        ])
+        keyboard_buttons.append([
+            {"text": t(chat_id, "back_to_main")},
+        ])
+    else:
+        keyboard_buttons.extend([
+            [
+                {"text": t(chat_id, "activity_logs")},
+                {"text": t(chat_id, "default_trial_days")},
+            ],
+            [{"text": t(chat_id, "system_logs")}],
+            [{"text": t(chat_id, "back_to_main")}],
+        ])
 
     return {
         "keyboard": keyboard_buttons,
@@ -3809,6 +3849,20 @@ def handle_message(message, callback_data=None):
         user_is_approved = False
         logger.info(f"⏰ دسترسی کاربر {chat_id} منقضی شده - نیاز به پرداخت")
 
+    # Support is deliberately available before access approval, so prospective and
+    # expired users can still contact the team. Every ticket action re-checks ownership/admin rights.
+    support_lang = get_user_lang(chat_id)
+    if support_ui.handle_support_text(chat_id, text, auth_manager, send_message, user_states,
+                                      support_lang, is_admin, username):
+        return
+    if callback_data and callback_data.startswith("support_"):
+        support_ui.handle_support_callback(chat_id, callback_data, auth_manager, send_message,
+                                           user_states, support_lang, is_admin, username)
+        return
+    if text in (t(chat_id, "support_menu"), "/support"):
+        support_ui.show_support_home(chat_id, auth_manager, send_message, support_lang, is_admin)
+        return
+
     if not user_is_approved and not is_admin:
         if text == "/start":
             handle_unauthenticated_user(message, bot_token)
@@ -4068,6 +4122,14 @@ def handle_message(message, callback_data=None):
             send_message(chat_id, t(chat_id, "unauthorized_access"), create_main_keyboard(chat_id))
             return
         handle_remove_admin(chat_id)
+        return
+
+    elif text == t(chat_id, "admin_support"):
+        if not auth_manager.is_admin(chat_id):
+            send_message(chat_id, t(chat_id, "unauthorized_access"))
+            return
+        support_ui.handle_support_callback(chat_id, "support_admin_home", auth_manager, send_message,
+                                           user_states, get_user_lang(chat_id), True, username)
         return
 
     elif text == t(chat_id, "view_access_requests") or callback_data == "admin_view_requests":
