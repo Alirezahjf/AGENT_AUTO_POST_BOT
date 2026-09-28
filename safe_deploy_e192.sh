@@ -22,6 +22,11 @@
 #   ./safe_deploy_e192.sh --dry-run   # فقط بررسی؛ هیچ چیزی تغییر نمی‌کند
 #   ./safe_deploy_e192.sh             # preflight + backup + deploy + verify
 #
+# اجرا از بیرون رپو (برای اولین deploy که اسکریپت هنوز روی سرور نیست):
+#   DEPLOY_DIR=/path/to/repo bash /tmp/safe_deploy_e192.sh --dry-run
+#   DEPLOY_DIR=/path/to/repo bash /tmp/safe_deploy_e192.sh
+#   (DEPLOY_DIR مسیر ریشهٔ رپو است؛ خود deploy اسکریپت را در رپو ثبت می‌کند)
+#
 # ابزارها: فقط bash، git، grep، sed، tar، curl، python3 (نه ripgrep).
 # ============================================================================
 set -u
@@ -49,8 +54,8 @@ die()  { echo -e "${RED}⛔ $*${NC}"; echo -e "${RED}   deploy لغو شد؛ ه�
 
 # ---------- مرحله 0: sanity ----------
 say "🔎 Preflight — مرحله 0: sanity"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR" || die "نمی‌توان به پوشهٔ اسکریپت رفت"
+SCRIPT_DIR="${DEPLOY_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
+cd "$SCRIPT_DIR" || die "نمی‌توان به پوشهٔ رپو رفت: $SCRIPT_DIR"
 git rev-parse --git-dir >/dev/null 2>&1 || die "این یک git repository نیست: $SCRIPT_DIR"
 command -v git >/dev/null     || die "git پیدا نشد"
 command -v python3 >/dev/null || die "python3 پیدا نشد"
@@ -287,7 +292,7 @@ else
     echo -e "${YELLOW}   بکاپ کامل (شامل config.json و auth.db قبل از deploy): $BK${NC}"
     echo -e "${YELLOW}   اگر علت، config.json است: مقایسه $MASSENGER/config.json با $BK/config.json و اصلاح دستی.${NC}"
     echo -e "${YELLOW}   rollback دستی (فقط با تصمیم خودت، اسکریپت هیچ‌چیز را خودکار revert نمی‌کند):${NC}"
-    echo -e "${YELLOW}     git reset --hard $HEAD_SHA && ${PYTHON_BIN} $MASSENGER/bot.py ... (بعد از بررسی کامل دلیل خرابی)${NC}"
+    echo -e "${YELLOW}     git reset --hard $HEAD_SHA (بعد از بررسی کامل دلیل خرابی)${NC}"
     exit 1
 fi
 
@@ -296,7 +301,7 @@ say "🔍 Verify — مرحله 6"
 FAIL=0
 # 6.1 WhatsApp همان PID قبل
 if [ -n "$WA_PID" ]; then
-    if kill -0 "$WA_PID" 2>/dev/null; then ok "WhatsApp همان PID قبل ($WA_PID) — قطع نشد"; else FAIL=1; warn "PID واتساپ ($WA_PID) پیدا نشد!"; fi
+    if kill -0 "$WA_PID" 2>/dev/null; then ok "WhatsApp همان PID قبل ($WA_PID) — قطع نشد"; else FAIL=1; warn "PID واتساپ پیدا نشد!"; fi
 fi
 curl -s --max-time 5 http://localhost:3001/ 2>/dev/null | grep -q "ok" && ok "WhatsApp http://localhost:3001 = ok" || { FAIL=1; warn "واکنش localhost:3001 دریافت نشد"; }
 # 6.2 Bale زنده
