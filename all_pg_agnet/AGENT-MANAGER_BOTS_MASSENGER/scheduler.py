@@ -26,6 +26,8 @@ import messenger_rubika
 import messenger_eitaa
 import messenger_telegram
 import messenger_whatsapp
+import group_posting
+import media_group
 
 # Cache AuthManager to avoid recreating every 30s
 _auth_manager_instance = None
@@ -126,6 +128,7 @@ def notify_post_success(notify_chat_id, post_tuple, platforms_sent, is_owner=Tru
 
     try:
         post_id = post_tuple[0]
+        media_path = post_tuple[1] if len(post_tuple) > 1 else ""
         media_type = post_tuple[2] if len(post_tuple) > 2 else "unknown"
         caption = post_tuple[3] if len(post_tuple) > 3 else ""
         scheduled_date = post_tuple[5] if len(post_tuple) > 5 else ""
@@ -142,7 +145,7 @@ def notify_post_success(notify_chat_id, post_tuple, platforms_sent, is_owner=Tru
         if is_owner:
             message = "✅ *پست شما با موفقیت ارسال شد!*\n\n"
             message += f"🆔 شناسه پست: #{post_id}\n"
-            message += f"📋 نوع: {'📸 عکس' if media_type == 'photo' else '🎥 ویدیو'}\n"
+            message += f"📋 نوع: {media_group.type_label(media_type, media_path, 'fa')}\n"
             message += f"📅 زمان‌بندی: {scheduled_date} ساعت {scheduled_time}\n"
             message += f"⏰ ارسال شده در: {tehran_now().strftime('%Y-%m-%d %H:%M')}\n\n"
 
@@ -160,7 +163,7 @@ def notify_post_success(notify_chat_id, post_tuple, platforms_sent, is_owner=Tru
             message = "📢 *گزارش ارسال پست زمان‌بندی شده*\n\n"
             message += f"👤 کاربر: `{owner_chat_id}`\n"
             message += f"🆔 شناسه پست: #{post_id}\n"
-            message += f"📋 نوع: {'📸 Photo' if media_type == 'photo' else '🎥 Video'}\n"
+            message += f"📋 نوع: {media_group.type_label(media_type, media_path, 'en')}\n"
             message += f"📅 Scheduled: {scheduled_date} at {scheduled_time}\n"
             message += f"⏰ Posted at: {tehran_now().strftime('%Y-%m-%d %H:%M')}\n\n"
 
@@ -676,7 +679,8 @@ def post_scheduled_posts_for_user(user_chat_id, global_config):
 
             media_content = None
             needs_download = (
-                media_path
+                not group_posting.handles(media_type, caption, media_path)
+                and media_path
                 and not media_path.startswith(("http://", "https://", "/"))
                 and (
                     len(selected_messengers) > 1
@@ -793,6 +797,14 @@ def _send_to_platforms(
     user_config, global_config
 ):
     """ارسال پست به پلتفرم‌های انتخابی"""
+    # Group media, text-only and media-only posts use the new engine; single media with a
+    # caption continues through the unchanged code below.
+    if group_posting.handles(media_type, caption, media_path):
+        return group_posting.send_to_platforms(
+            post_id, media_path, media_type, caption, selected_messengers,
+            user_config, global_config, downloader=download_bale_file
+        )
+
     platforms_sent = []
     base_caption = caption or ""
 

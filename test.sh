@@ -15,6 +15,16 @@ else
     echo -e "${RED}❌ Support ticket tests${NC}"
     FAILED=1
 fi
+echo -e "\n${YELLOW}🧪 Migration / group media / single-instance / bot flow tests...${NC}"
+for t in test_access_upgrade.py test_media_group_upgrade.py test_media_group_dispatch.py test_instance_lock.py test_bot_flows.py; do
+    OUT="$(mktemp)"
+    if python3 "$SCRIPT_DIR/all_pg_agnet/AGENT-MANAGER_BOTS_MASSENGER/$t" > "$OUT" 2>&1; then
+        echo -e "${GREEN}✅ $t${NC}"
+    else
+        echo -e "${RED}❌ $t${NC}"; tail -n 25 "$OUT"; FAILED=1
+    fi
+    rm -f "$OUT"
+done
 echo -e "\n${YELLOW}2️⃣ WhatsApp Service...${NC}"
 if curl -s http://localhost:3001/ | grep -q "ok"; then echo -e "${GREEN}✅ WhatsApp روشن${NC}"; else echo -e "${YELLOW}⚪ WhatsApp خاموش (برای تست واتساپ باید روشن باشد)${NC}"; fi
 echo -e "\n${YELLOW}3️⃣ Config...${NC}"

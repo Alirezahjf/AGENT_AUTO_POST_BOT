@@ -25,6 +25,7 @@ users/
 *.log
 logs/
 *.pid
+bot.lock
 whatsapp.log
 bot.log
 

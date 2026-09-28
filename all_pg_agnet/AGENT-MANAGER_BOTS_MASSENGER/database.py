@@ -314,6 +314,37 @@ class PostDatabase:
         conn.close()
         return media_id
     
+    def add_media_group(self, items, title=None):
+        """Group media: ONE content_media row, media_type 'media_group', file_id = JSON item list.
+
+        No schema change; existing rows are never touched.
+        """
+        import media_group
+        return self.add_media_content(media_group.encode_items(items), media_group.MEDIA_GROUP, title)
+
+    def append_media_group_items(self, media_id, items):
+        """Add album items that arrived late to an existing group; returns the new count or None."""
+        import media_group
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            cursor.execute('BEGIN IMMEDIATE')
+            cursor.execute('SELECT file_id FROM content_media WHERE id = ? AND media_type = ?',
+                           (media_id, media_group.MEDIA_GROUP))
+            row = cursor.fetchone()
+            if not row:
+                conn.rollback()
+                return None
+            merged = media_group.decode_items(row[0])
+            known = {item['file_id'] for item in merged}
+            merged += [item for item in media_group.decode_items(items) if item['file_id'] not in known]
+            cursor.execute('UPDATE content_media SET file_id = ? WHERE id = ?',
+                           (media_group.encode_items(merged), media_id))
+            conn.commit()
+            return len(merged)
+        finally:
+            conn.close()
+
     def get_media_contents(self, limit=50):
         conn = self._connect()
         cursor = conn.cursor()

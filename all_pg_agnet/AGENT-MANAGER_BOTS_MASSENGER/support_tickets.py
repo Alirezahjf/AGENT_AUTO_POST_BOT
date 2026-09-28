@@ -6,6 +6,8 @@ existing users, access, payment, and per-user posting data are untouched.
 from datetime import datetime
 import sqlite3
 
+from logger import logger
+
 
 STATUSES = ("open", "in_progress", "waiting_user", "closed")
 CATEGORIES_FA = {
@@ -283,6 +285,12 @@ def _labels(lang):
         "no_tickets": "هنوز تیکتی ثبت نشده است." if fa else "No tickets yet.",
         "unauthorized": "⛔ دسترسی مجاز نیست." if fa else "⛔ Not authorized.",
         "missing": "این تیکت در دسترس نیست." if fa else "Ticket not found or unavailable.",
+        "error": ("⚠️ خطایی در پشتیبانی رخ داد؛ لطفاً دوباره تلاش کنید." if fa
+                  else "⚠️ Something went wrong in support. Please try again."),
+        "choose_category": ("لطفاً موضوع تیکت را با یکی از دکمه‌های زیر انتخاب کنید:" if fa
+                            else "Please choose the ticket category with one of the buttons below:"),
+        "action_failed": ("این عملیات انجام نشد؛ وضعیت تیکت را دوباره بررسی کنید." if fa
+                          else "That action could not be completed. Please check the ticket again."),
         "closed_hint": "این تیکت بسته است؛ ابتدا آن را بازگشایی کنید." if fa else "This ticket is closed. Reopen it before replying.",
         "created": "✅ تیکت شما با شماره #{id} ثبت شد. پاسخ پشتیبانی در همین گفتگو ارسال می‌شود." if fa else "✅ Ticket #{id} created. Support will reply here.",
         "reply_user": "پشتیبانی به تیکت #{id} پاسخ داده است." if fa else "Support replied to ticket #{id}.",
@@ -388,30 +396,67 @@ def _notify_admins(auth, send, ticket_id, body):
             pass
 
 
+def _category_keyboard(labels):
+    rows = [[{"text": label, "callback_data": f"support_category_{key}"}]
+            for key, label in labels["category"].items()]
+    rows.append([{"text": labels["cancel"], "callback_data": "support_cancel"}])
+    return _keyboard(rows)
+
+
+def abandon_support_form(chat_id, states):
+    """Drop an unfinished ticket form (the user pressed a non-support button)."""
+    state = states.get(chat_id)
+    if isinstance(state, dict) and str(state.get("state", "")).startswith("support_"):
+        states.pop(chat_id, None)
+        return True
+    return False
+
+
 def handle_support_callback(chat_id, callback, auth, send, states, lang="fa", is_admin=False, username="unknown"):
-    """Consume support_* callbacks. Returns True when handled."""
+    """Consume support_* callbacks. Returns True when handled.
+
+    Every support_* button gets a visible answer, including unknown/stale buttons and
+    internal errors; nothing is ever silently ignored.
+    """
     if not callback or not callback.startswith("support_"):
         return False
+    try:
+        return _dispatch_support_callback(chat_id, callback, auth, send, states, lang, is_admin, username)
+    except Exception:
+        logger.error(f"❌ support callback failed chat={chat_id} data={callback!r}", exc_info=True)
+        labels = _labels(lang)
+        try:
+            send(chat_id, labels["error"],
+                 _keyboard([[{"text": labels["back"], "callback_data": "support_home"}]]))
+        except Exception:
+            logger.error(f"❌ could not report the support error to chat={chat_id}", exc_info=True)
+        return True
+
+
+def _dispatch_support_callback(chat_id, callback, auth, send, states, lang, is_admin, username):
     labels = _labels(lang)
     parts = callback.split("_")
     action = parts[1] if len(parts) > 1 else ""
+    ticket_id = int(parts[2]) if len(parts) == 3 and parts[2].isdigit() else None
     if action in ("home", "start"):
         states.pop(chat_id, None)
         show_support_home(chat_id, auth, send, lang, is_admin)
     elif action == "new":
         states[chat_id] = {"state": "support_new_category"}
-        rows = [[{"text": label, "callback_data": f"support_category_{key}"}]
-                for key, label in labels["category"].items()]
-        rows.append([{"text": labels["cancel"], "callback_data": "support_cancel"}])
-        send(chat_id, "موضوع تیکت را انتخاب کنید:" if lang == "fa" else "Choose a ticket category:", _keyboard(rows))
-    elif action == "category" and len(parts) == 3 and parts[2] in labels["category"]:
-        states[chat_id] = {"state": "support_new_subject", "category": parts[2]}
-        send(chat_id, labels["prompt_subject"], _keyboard([[{"text": labels["cancel"], "callback_data": "support_cancel"}]]))
+        send(chat_id, "موضوع تیکت را انتخاب کنید:" if lang == "fa" else "Choose a ticket category:",
+             _category_keyboard(labels))
+    elif action == "category":
+        if len(parts) == 3 and parts[2] in labels["category"]:
+            states[chat_id] = {"state": "support_new_subject", "category": parts[2]}
+            send(chat_id, labels["prompt_subject"], _keyboard([[{"text": labels["cancel"], "callback_data": "support_cancel"}]]))
+        else:  # stale or malformed button: ask again instead of ignoring the tap
+            states[chat_id] = {"state": "support_new_category"}
+            send(chat_id, labels["choose_category"], _category_keyboard(labels))
     elif action == "mine":
         status = parts[2] if len(parts) > 3 and parts[2] in ("active", "closed") else "active"
         page = int(parts[-1]) if parts[-1].isdigit() else 0
         show_ticket_list(chat_id, auth, send, lang, False, page, status)
-    elif action == "admin" and len(parts) == 3 and parts[2] == "home":
+    elif action == "admin":
         if not is_admin:
             send(chat_id, labels["unauthorized"])
         else:
@@ -422,13 +467,18 @@ def handle_support_callback(chat_id, callback, auth, send, states, lang="fa", is
                 rows.append([{"text": label, "callback_data": f"support_adminlist_{key}_0"}])
             rows.append([{"text": labels["back"], "callback_data": "support_home"}])
             send(chat_id, labels["admin"], _keyboard(rows))
-    elif action == "adminlist" and is_admin:
-        status = parts[2] if len(parts) > 2 else "active"
-        page = int(parts[3]) if len(parts) > 3 and parts[3].isdigit() else 0
-        show_ticket_list(chat_id, auth, send, lang, True, page, status)
-    elif action == "ticket" and len(parts) == 3 and parts[2].isdigit():
-        show_ticket_detail(chat_id, int(parts[2]), auth, send, lang, is_admin)
-    elif action == "reply" and len(parts) == 3 and parts[2].isdigit():
+    elif action == "adminlist":
+        if not is_admin:
+            send(chat_id, labels["unauthorized"])
+        else:
+            status = parts[2] if len(parts) > 2 else "active"
+            page = int(parts[3]) if len(parts) > 3 and parts[3].isdigit() else 0
+            show_ticket_list(chat_id, auth, send, lang, True, page, status)
+    elif action in ("ticket", "reply", "close", "reopen", "progress", "priority", "assign") and ticket_id is None:
+        send(chat_id, labels["missing"])
+    elif action == "ticket":
+        show_ticket_detail(chat_id, ticket_id, auth, send, lang, is_admin)
+    elif action == "reply":
         ticket = auth.get_ticket(int(parts[2]), actor_chat_id=chat_id, is_admin=is_admin)
         if not ticket:
             send(chat_id, labels["missing"])
@@ -437,8 +487,7 @@ def handle_support_callback(chat_id, callback, auth, send, states, lang="fa", is
         else:
             states[chat_id] = {"state": "support_reply", "ticket_id": int(parts[2])}
             send(chat_id, labels["prompt_reply"], _keyboard([[{"text": labels["cancel"], "callback_data": "support_cancel"}]]))
-    elif action in ("close", "reopen", "progress") and len(parts) == 3 and parts[2].isdigit():
-        ticket_id = int(parts[2])
+    elif action in ("close", "reopen", "progress"):
         ticket = auth.get_ticket(ticket_id, actor_chat_id=chat_id, is_admin=is_admin)
         if not ticket:
             send(chat_id, labels["missing"])
@@ -460,11 +509,12 @@ def handle_support_callback(chat_id, callback, auth, send, states, lang="fa", is
                                    f"وضعیت تیکت #{ticket_id} توسط کاربر تغییر کرد: {labels['status'][next_status]}" if lang == "fa" else
                                    f"Customer changed ticket #{ticket_id} status to {labels['status'][next_status]}.")
                 show_ticket_detail(chat_id, ticket_id, auth, send, lang, is_admin)
-    elif action == "priority" and len(parts) == 3 and parts[2].isdigit():
+            else:
+                send(chat_id, labels["missing"] if result.get("error") == "ticket_not_found" else labels["action_failed"])
+    elif action == "priority":
         if not is_admin:
             send(chat_id, labels["unauthorized"])
         else:
-            ticket_id = int(parts[2])
             ticket = auth.get_ticket(ticket_id, is_admin=True)
             if not ticket:
                 send(chat_id, labels["missing"])
@@ -472,22 +522,33 @@ def handle_support_callback(chat_id, callback, auth, send, states, lang="fa", is
                 cycle = ("normal", "high", "urgent", "low")
                 current = ticket.get("priority", "normal")
                 next_priority = cycle[(cycle.index(current) + 1) % len(cycle)] if current in cycle else "normal"
-                auth.set_ticket_priority(ticket_id, chat_id, next_priority)
+                result = auth.set_ticket_priority(ticket_id, chat_id, next_priority)
+                if not result.get("success"):
+                    send(chat_id, labels["unauthorized"] if result.get("error") == "unauthorized" else labels["action_failed"])
                 show_ticket_detail(chat_id, ticket_id, auth, send, lang, True)
-    elif action == "assign" and len(parts) == 3 and parts[2].isdigit():
+    elif action == "assign":
         if not is_admin:
             send(chat_id, labels["unauthorized"])
-        elif auth.assign_ticket(int(parts[2]), chat_id):
-            show_ticket_detail(chat_id, int(parts[2]), auth, send, lang, True)
+        elif auth.assign_ticket(ticket_id, chat_id):
+            show_ticket_detail(chat_id, ticket_id, auth, send, lang, True)
+        else:
+            send(chat_id, labels["action_failed"])
     elif action == "cancel":
         states.pop(chat_id, None)
         show_support_home(chat_id, auth, send, lang, is_admin)
-    else:
-        return False
+    else:  # unknown / outdated support button: show the support menu instead of silence
+        states.pop(chat_id, None)
+        show_support_home(chat_id, auth, send, lang, is_admin)
     return True
 
 
-def handle_support_text(chat_id, text, auth, send, states, lang="fa", is_admin=False, username="unknown"):
+def handle_support_text(chat_id, text, auth, send, states, lang="fa", is_admin=False, username="unknown",
+                        nav_texts=()):
+    """Feed a typed message into an open ticket form. Returns True when consumed.
+
+    Must only be called for real messages, never for button presses. Main-menu buttons
+    (``nav_texts``) leave the form and are handled normally; nothing is swallowed silently.
+    """
     state = states.get(chat_id)
     if not isinstance(state, dict) or not str(state.get("state", "")).startswith("support_"):
         return False
@@ -498,6 +559,16 @@ def handle_support_text(chat_id, text, auth, send, states, lang="fa", is_admin=F
         states.pop(chat_id, None)
         show_support_home(chat_id, auth, send, lang, is_admin)
         return True
+    if text in nav_texts:
+        states.pop(chat_id, None)
+        return False
+    if state_name == "support_new_category":
+        # The category is chosen with buttons; typed text gets the buttons again.
+        send(chat_id, labels["choose_category"], _category_keyboard(labels))
+        return True
+    if state_name not in ("support_new_subject", "support_new_body", "support_reply"):
+        states.pop(chat_id, None)  # unknown leftover state: never swallow the message
+        return False
     if state_name == "support_new_subject":
         if not 3 <= len(value) <= 120:
             send(chat_id, labels["invalid_subject"])
