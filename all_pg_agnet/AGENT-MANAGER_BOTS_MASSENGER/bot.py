@@ -2,6 +2,7 @@
 import requests
 import time
 import re
+import os
 from datetime import datetime
 import jdatetime
 import pytz
@@ -51,6 +52,8 @@ LANGUAGES = {
         # ===== تنظیمات =====
         "messengers": "📱 پیام‌رسان‌ها",
         "woocommerce_api": "🛒 API ووکامرس",
+        "change_language": "🌐 تغییر زبان",
+        "select_language": "🌐 زبان موردنظر را انتخاب کنید:",
 
         # ===== پست‌های ووکامرس =====
         "config_autopost": "⏰ تنظیم پست خودکار",
@@ -130,6 +133,10 @@ LANGUAGES = {
         "manage_admins": "👨‍💼 مدیریت ادمین‌ها",
         "view_access_requests": "📋 درخواست‌های دسترسی",
         "activity_logs": "📊 گزارش فعالیت",
+        "system_logs": "🧾 لاگ‌های سیستم",
+        "logs_all": "📄 همهٔ لاگ‌ها",
+        "logs_errors": "🚨 خطاها",
+        "logs_empty": "📭 لاگی برای نمایش وجود ندارد.",
         "add_admin": "➕ اضافه کردن ادمین جدید",
         "remove_admin": "❌ حذف کردن ادمین",
         "approve": "✅ تایید",
@@ -287,6 +294,8 @@ LANGUAGES = {
         # ===== تنظیمات =====
         "messengers": "📱 Messengers",
         "woocommerce_api": "🛒 WooCommerce API",
+        "change_language": "🌐 Change language",
+        "select_language": "🌐 Select your language:",
 
         # ===== پست‌های ووکامرس =====
         "config_autopost": "⏰ Config Auto Post",
@@ -366,6 +375,10 @@ LANGUAGES = {
         "manage_admins": "👨‍💼 Manage Admins",
         "view_access_requests": "📋 Access Requests",
         "activity_logs": "📊 Activity Logs",
+        "system_logs": "🧾 System Logs",
+        "logs_all": "📄 All logs",
+        "logs_errors": "🚨 Error logs",
+        "logs_empty": "📭 No log entries found.",
         "add_admin": "➕ Add Admin",
         "remove_admin": "❌ Remove Admin",
         "approve": "✅ Approve",
@@ -1058,6 +1071,20 @@ def create_language_keyboard():
     }
 
 
+def create_settings_language_keyboard(chat_id):
+    """انتخاب زبان از تنظیمات، همراه با نمایش زبان فعلی و راه بازگشت."""
+    current_lang = get_user_lang(chat_id)
+    return {
+        "inline_keyboard": [
+            [
+                {"text": "🇮🇷 فارسی" + (" ✓" if current_lang == "fa" else ""), "callback_data": "lang_settings_fa"},
+                {"text": "🇬🇧 English" + (" ✓" if current_lang == "en" else ""), "callback_data": "lang_settings_en"}
+            ],
+            [{"text": t(chat_id, "back_to_settings"), "callback_data": "language_back_settings"}]
+        ]
+    }
+
+
 # ========== صفحه‌کلیدها - منوی اصلی ==========
 
 def create_main_keyboard(chat_id):
@@ -1098,6 +1125,7 @@ def create_settings_keyboard(chat_id):
                 {"text": t(chat_id, "messengers")},
                 {"text": t(chat_id, "woocommerce_api")},
             ],
+            [{"text": t(chat_id, "change_language")}],
             [{"text": t(chat_id, "back_to_main")}]
         ],
         "resize_keyboard": True
@@ -1246,6 +1274,11 @@ def create_admin_menu_keyboard(chat_id):
         ])
         keyboard_buttons.append([
             {"text": t(chat_id, "default_trial_days")},
+        ])
+        keyboard_buttons.append([
+            {"text": t(chat_id, "system_logs")},
+        ])
+        keyboard_buttons.append([
             {"text": t(chat_id, "back_to_main")},
         ])
     else:
@@ -1254,6 +1287,7 @@ def create_admin_menu_keyboard(chat_id):
                 {"text": t(chat_id, "activity_logs")},
                 {"text": t(chat_id, "default_trial_days")},
             ],
+            [{"text": t(chat_id, "system_logs")}],
             [{"text": t(chat_id, "back_to_main")}],
         ])
 
@@ -4025,8 +4059,21 @@ def handle_message(message, callback_data=None):
                 send_message(chat_id, "🏷️ برای مشاهده تعرفه‌ها و خرید اشتراک:", extra_keyboard)
         return
 
+    elif callback_data in ("lang_settings_fa", "lang_settings_en"):
+        selected_lang = callback_data.rsplit("_", 1)[1]
+        set_user_lang(chat_id, selected_lang)
+        confirmation = "✅ زبان ربات با موفقیت به فارسی تغییر کرد." if selected_lang == "fa" else "✅ Bot language changed to English."
+        send_message(chat_id, confirmation, create_settings_keyboard(chat_id))
+        return
+
+    elif callback_data == "language_back_settings":
+        send_message(chat_id, t(chat_id, "settings"), create_settings_keyboard(chat_id))
+        return
+
     elif callback_data and callback_data.startswith("lang_"):
         selected_lang = callback_data.replace("lang_", "")
+        if selected_lang not in LANGUAGES:
+            return
         set_user_lang(chat_id, selected_lang)
 
         welcome_text = (
@@ -4091,6 +4138,46 @@ def handle_message(message, callback_data=None):
 
     elif text == t(chat_id, "activity_logs"):
         handle_activity_logs(chat_id)
+        return
+
+    elif text == t(chat_id, "system_logs"):
+        if not auth_manager.is_admin(chat_id):
+            send_message(chat_id, t(chat_id, "unauthorized_access"))
+            return
+        send_message(chat_id, t(chat_id, "system_logs"), {
+            "inline_keyboard": [
+                [{"text": t(chat_id, "logs_all"), "callback_data": "system_logs_all"}],
+                [{"text": t(chat_id, "logs_errors"), "callback_data": "system_logs_errors"}],
+                [{"text": t(chat_id, "back_to_admin_menu"), "callback_data": "admin_menu_back"}]
+            ]
+        })
+        return
+
+    elif callback_data in ("system_logs_all", "system_logs_errors"):
+        if not auth_manager.is_admin(chat_id):
+            send_message(chat_id, t(chat_id, "unauthorized_access"))
+            return
+        path = "errors.log" if callback_data.endswith("errors") else "bot.log"
+        try:
+            if not os.path.isfile(path):
+                content = ""
+            else:
+                with open(path, "r", encoding="utf-8", errors="replace") as log_file:
+                    content = "".join(log_file.readlines()[-30:]).strip()
+            if not content:
+                content = t(chat_id, "logs_empty")
+            # Telegram text cap is 4096; keep a safe margin and avoid Markdown parsing.
+            content = content[-3500:]
+            send_message(chat_id, f"{t(chat_id, 'system_logs')} — {os.path.basename(path)}\n\n{content}", {
+                "inline_keyboard": [
+                    [{"text": t(chat_id, "logs_all"), "callback_data": "system_logs_all"},
+                     {"text": t(chat_id, "logs_errors"), "callback_data": "system_logs_errors"}],
+                    [{"text": t(chat_id, "back_to_admin_menu"), "callback_data": "admin_menu_back"}]
+                ]
+            })
+        except Exception as exc:
+            logger.exception("Unable to read system log file")
+            send_message(chat_id, f"❌ Could not read logs: {exc}")
         return
 
     # ========== تعرفه‌ها - برای همه کاربران (دکمه اصلی روی کیبورد) ==========
@@ -4967,6 +5054,10 @@ def handle_message(message, callback_data=None):
 
     elif text == t(chat_id, "back_to_settings"):
         send_message(chat_id, t(chat_id, "settings"), create_settings_keyboard(chat_id))
+        return
+
+    elif text == t(chat_id, "change_language"):
+        send_message(chat_id, t(chat_id, "select_language"), create_settings_language_keyboard(chat_id))
         return
 
     elif text == t(chat_id, "messengers"):
@@ -9034,6 +9125,26 @@ def get_updates(offset=None):
 
 # ========== تابع اصلی ==========
 
+def notify_admins_about_error(error_text):
+    """Best-effort alert for uncaught polling-loop failures; never raises into the loop."""
+    try:
+        token = config.get("messengers", {}).get("bale", {}).get("bot_token")
+        if not token:
+            return
+        admins = auth_manager.get_all_admins()
+        safe_text = f"🚨 خطای مهم در ربات\n{str(error_text)[:1200]}"
+        for admin in admins:
+            try:
+                requests.post(
+                    f"https://tapi.bale.ai/bot{token}/sendMessage",
+                    json={"chat_id": admin["chat_id"], "text": safe_text}, timeout=5
+                )
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+
 def run():
     """تابع اصلی اجرای ربات"""
     global config
@@ -9152,6 +9263,7 @@ def run():
             break
         except Exception as e:
             logger.error(f"❌ خطا در حلقه اصلی: {e}", exc_info=True)
+            notify_admins_about_error(e)
             time.sleep(5)
 
 

@@ -42,6 +42,7 @@ known_product_ids.json
 sent_product_ids.json
 
 # Backups & Zips
+backups/
 *.zip
 *.tar.gz
 AGENT_AUTO_POST_BOT_*.zip
