@@ -3,6 +3,7 @@ import requests
 import time
 import re
 import os
+import traceback
 from datetime import datetime
 import jdatetime
 import pytz
@@ -13,6 +14,9 @@ import scheduler
 from database import PostDatabase
 from auth_manager import AuthManager
 import support_tickets as support_ui
+import media_group
+import group_posting
+import instance_lock
 from auth_handlers import (
     handle_unauthenticated_user,
     handle_auth_callback,
@@ -27,6 +31,8 @@ config = load_config()
 user_states = {}
 db = PostDatabase()
 auth_manager = AuthManager()
+album_registry = media_group.AlbumRegistry()  # recently saved albums, so late items join them
+_INSTANCE_LOCK = None  # held for the whole process lifetime once acquired (see instance_lock)
 
 
 # ========== زبان‌ها ==========
@@ -851,6 +857,30 @@ def send_photo(chat_id, photo_id, caption=None, keyboard=None):
     return False
 
 
+def send_media_group_preview(chat_id, items_json, title=None, created_at=None):
+    """Show a saved group media to the user as one album (falls back to item by item)."""
+    items = media_group.decode_items(items_json)
+    lang = get_user_lang(chat_id)
+    if not items:
+        send_message(chat_id, "❌ این مدیا گروهی خالی یا خراب است." if lang == "fa"
+                     else "❌ This group media is empty or damaged.")
+        return False
+    kind = "مدیا گروهی" if lang == "fa" else "Group media"
+    caption = f"📸 {title or kind} · {kind} ({len(items)})"
+    if created_at:
+        caption += f"\n📅 {created_at}"
+    token = config['messengers']['bale']['bot_token']
+    if group_posting.bale_send_album(token, chat_id, items, caption):
+        return True
+    for index, item in enumerate(items):
+        item_caption = caption if index == 0 else None
+        if item["type"] == "photo":
+            send_photo(chat_id, item["file_id"], item_caption)
+        else:
+            send_video(chat_id, item["file_id"], item_caption)
+    return True
+
+
 def send_video(chat_id, video_id, caption=None, keyboard=None):
     """ارسال ویدیو - با retry"""
     global config
@@ -1636,6 +1666,18 @@ def create_calendar_keyboard(chat_id, year, month):
 
 # ========== صفحه‌کلیدها - انتخاب رسانه ==========
 
+def _no_media_button(chat_id):
+    """«بدون مدیا»: the post is sent as text only."""
+    text = "📝 بدون مدیا (فقط متن)" if get_user_lang(chat_id) == "fa" else "📝 No media (text only)"
+    return {"text": text, "callback_data": "post_no_media"}
+
+
+def _no_caption_button(chat_id):
+    """«بدون کپشن»: only the selected media is sent."""
+    text = "🚫 بدون کپشن (فقط رسانه)" if get_user_lang(chat_id) == "fa" else "🚫 No caption (media only)"
+    return {"text": text, "callback_data": "post_no_caption"}
+
+
 def create_media_content_keyboard(chat_id, user_db):
     """صفحه‌کلید انتخاب رسانه با جستجو - Inline"""
     media_contents = user_db.get_media_contents()
@@ -1650,13 +1692,13 @@ def create_media_content_keyboard(chat_id, user_db):
             else "📤 Upload New Media"
         )
         keyboard.append([{"text": upload_text, "callback_data": "upload_new_media_inline"}])
+        keyboard.append([_no_media_button(chat_id)])
         keyboard.append([{"text": t(chat_id, "back_to_main"), "callback_data": "main_menu"}])
         return {"inline_keyboard": keyboard}
 
+    lang = get_user_lang(chat_id)
     for content_id, media_type, file_id, title, created_at in media_contents:
-        icon = "🖼️" if media_type == "photo" else "🎥"
-        display_title = title if title else f"ID:{content_id}"
-        button_text = f"{icon} {display_title}"
+        button_text = media_group.library_button_text(content_id, media_type, file_id, title, lang)
         keyboard.append([
             {"text": button_text, "callback_data": f"select_media_{content_id}"},
             {"text": "👁️", "callback_data": f"view_media_{content_id}"}
@@ -1668,13 +1710,14 @@ def create_media_content_keyboard(chat_id, user_db):
         else "📤 Upload New"
     )
     keyboard.append([{"text": upload_text, "callback_data": "upload_new_media_inline"}])
+    keyboard.append([_no_media_button(chat_id)])
     keyboard.append([{"text": t(chat_id, "back_to_main"), "callback_data": "main_menu"}])
 
     return {"inline_keyboard": keyboard}
 
 
-def create_text_content_keyboard(chat_id, user_db):
-    """صفحه‌کلید انتخاب متن - Inline"""
+def create_text_content_keyboard(chat_id, user_db, allow_no_caption=False):
+    """صفحه‌کلید انتخاب متن - Inline (allow_no_caption: a media is selected, offer «بدون کپشن»)"""
     text_contents = user_db.get_text_contents()
 
     if not text_contents:
@@ -1683,12 +1726,11 @@ def create_text_content_keyboard(chat_id, user_db):
             if get_user_lang(chat_id) == "fa"
             else "✍️ Write New Caption"
         )
-        return {
-            "inline_keyboard": [
-                [{"text": write_text, "callback_data": "write_new_caption"}],
-                [{"text": t(chat_id, "back_to_main"), "callback_data": "main_menu"}]
-            ]
-        }
+        rows = [[{"text": write_text, "callback_data": "write_new_caption"}]]
+        if allow_no_caption:
+            rows.append([_no_caption_button(chat_id)])
+        rows.append([{"text": t(chat_id, "back_to_main"), "callback_data": "main_menu"}])
+        return {"inline_keyboard": rows}
 
     keyboard = []
     for content_id, text_preview, created_at in text_contents:
@@ -1705,6 +1747,8 @@ def create_text_content_keyboard(chat_id, user_db):
         else "✍️ Write New"
     )
     keyboard.append([{"text": write_text, "callback_data": "write_new_caption"}])
+    if allow_no_caption:
+        keyboard.append([_no_caption_button(chat_id)])
     keyboard.append([{"text": t(chat_id, "back_to_main"), "callback_data": "main_menu"}])
 
     return {"inline_keyboard": keyboard}
@@ -1731,10 +1775,9 @@ def create_media_list_keyboard(chat_id, user_db):
         }
 
     keyboard = []
+    lang = get_user_lang(chat_id)
     for content_id, media_type, file_id, title, created_at in media_contents:
-        icon = "🖼️" if media_type == "photo" else "🎥"
-        display_title = title if title else f"ID:{content_id}"
-        button_text = f"{icon} {display_title}"
+        button_text = media_group.library_button_text(content_id, media_type, file_id, title, lang)
         keyboard.append([
             {"text": button_text, "callback_data": "ignore"},
             {"text": "👁️", "callback_data": f"show_media_{content_id}"},
@@ -1843,7 +1886,7 @@ def create_drafts_keyboard(chat_id, user_db):
         scheduled_date = draft[5] if len(draft) > 5 else ""
         scheduled_time = draft[6] if len(draft) > 6 else ""
 
-        icon = "📸" if media_type == "photo" else "🎥"
+        icon = media_group.post_icon(media_type)
         time_info = (
             f"{scheduled_date} {scheduled_time}"
             if scheduled_date and scheduled_time
@@ -1891,7 +1934,7 @@ def create_archive_posts_keyboard(chat_id, user_db):
         scheduled_date = post[5] if len(post) > 5 else ""
         scheduled_time = post[6] if len(post) > 6 else ""
 
-        icon = "📸" if media_type == "photo" else "🎥"
+        icon = media_group.post_icon(media_type)
         time_info = (
             f"{scheduled_date} {scheduled_time}"
             if scheduled_date and scheduled_time
@@ -3815,6 +3858,72 @@ def clear_buy_code_state(chat_id):
         pass
 
 
+def _save_uploaded_album(chat_id, message, items, state_data, user_db, lang):
+    """Store an uploaded album as ONE «مدیا گروهی» item; returns its content id."""
+    if not items:
+        send_message(chat_id, "❌ لطفاً عکس یا ویدیو ارسال کنید." if lang == "fa"
+                     else "❌ Please send photos or videos.")
+        return None
+    title = state_data.get('title')
+    content_id = user_db.add_media_group(items, title)
+    album_registry.remember(chat_id, message.get("media_group_id"), content_id, title)
+    logger.info(f"📸 media group saved chat={chat_id} content={content_id} items={len(items)}")
+    send_message(chat_id, (
+        f"✅ مدیا گروهی «{title}» با {len(items)} مورد ذخیره شد!\n🆔 ID: {content_id}"
+        if lang == "fa"
+        else f"✅ Group media '{title}' saved with {len(items)} item(s)!\n🆔 ID: {content_id}"
+    ))
+    return content_id
+
+
+def _album_fold_eligible(message):
+    """Album items are folded only while an upload is expected or to complete a saved album."""
+    key = media_group.album_key(message)
+    if key is None:
+        return False
+    if album_registry.lookup(*key):
+        return True
+    state_name, _ = get_state(key[0])
+    return state_name in media_group.ALBUM_UPLOAD_STATES
+
+
+def handle_late_album_items(message):
+    """Items of an already saved album that arrived later: append them to the same group."""
+    key = media_group.album_key(message)
+    entry = album_registry.lookup(*key) if key else None
+    if not entry:
+        return False
+    chat_id = key[0]
+    items = media_group.items_from_messages(message.get("_media_group") or [message])
+    if not items:
+        return True
+    user_db = get_user_db(chat_id)
+    total = user_db.append_media_group_items(entry["content_id"], items)
+    if total is None:
+        return True
+    state = user_states.get(chat_id)
+    if (isinstance(state, dict) and state.get("content_id") == entry["content_id"]
+            and state.get("media_type") == media_group.MEDIA_GROUP):
+        row = user_db.get_content_by_id(entry["content_id"])
+        if row:
+            state["media_id"] = row[1]  # keep the post being built in sync with the stored group
+    lang = get_user_lang(chat_id)
+    logger.info(f"📸 media group completed chat={chat_id} content={entry['content_id']} total={total}")
+    send_message(chat_id, (
+        f"➕ {len(items)} مورد دیگر به مدیا گروهی «{entry.get('title')}» اضافه شد (مجموع {total})."
+        if lang == "fa"
+        else f"➕ {len(items)} more item(s) added to group media '{entry.get('title')}' (total {total})."
+    ))
+    return True
+
+
+def _menu_navigation_texts(chat_id):
+    """Main-menu buttons always navigate, even while a ticket form is waiting for text."""
+    keys = ("settings", "woocommerce_posts", "posting_management", "contents",
+            "tariffs", "support_menu", "admin_menu", "back_to_main")
+    return {t(chat_id, key) for key in keys} | {"/start", "/support"}
+
+
 # ========== هندلر اصلی ==========
 
 def handle_message(message, callback_data=None):
@@ -3852,14 +3961,22 @@ def handle_message(message, callback_data=None):
     # Support is deliberately available before access approval, so prospective and
     # expired users can still contact the team. Every ticket action re-checks ownership/admin rights.
     support_lang = get_user_lang(chat_id)
-    if support_ui.handle_support_text(chat_id, text, auth_manager, send_message, user_states,
-                                      support_lang, is_admin, username):
+    # For a button press `text` is the text of the bot message that carries the keyboard, not
+    # user input. Only real messages may feed the ticket form: before, a category tap was read
+    # as text and swallowed, and the user got no reply to anything until the bot restarted.
+    if not callback_data and support_ui.handle_support_text(
+            chat_id, text, auth_manager, send_message, user_states, support_lang, is_admin,
+            username, nav_texts=_menu_navigation_texts(chat_id)):
         return
     if callback_data and callback_data.startswith("support_"):
         support_ui.handle_support_callback(chat_id, callback_data, auth_manager, send_message,
                                            user_states, support_lang, is_admin, username)
         return
-    if text in (t(chat_id, "support_menu"), "/support"):
+    if callback_data:
+        # Any other button means the user left an unfinished ticket form; it must not
+        # capture the next text message.
+        support_ui.abandon_support_form(chat_id, user_states)
+    if not callback_data and text in (t(chat_id, "support_menu"), "/support"):
         support_ui.show_support_home(chat_id, auth_manager, send_message, support_lang, is_admin)
         return
 
@@ -5525,6 +5642,8 @@ def handle_message(message, callback_data=None):
                 send_photo(chat_id, file_id, caption)
             elif media_type == "video":
                 send_video(chat_id, file_id, caption)
+            elif media_type == media_group.MEDIA_GROUP:
+                send_media_group_preview(chat_id, file_id, title, created_at)
         return
 
     # ========== حذف رسانه ==========
@@ -5637,7 +5756,7 @@ def handle_message(message, callback_data=None):
                 scheduled_date = post[5]
                 scheduled_time = post[6]
 
-                post_type_icon = "📸 عکس" if media_type == 'photo' else "🎥 ویدیو"
+                post_type_icon = media_group.type_label(media_type, post[1], "fa")
                 display_date = format_date_for_user(chat_id, scheduled_date)
                 msg += f"🆔 ID: {post_id}\n{post_type_icon}\n📅 {display_date} ساعت {scheduled_time}\n"
                 if caption:
@@ -5734,7 +5853,7 @@ def handle_message(message, callback_data=None):
                 else "📊 *Posting History (Last 20):*\n\n"
             )
             for record in history:
-                post_type_icon = "📸 عکس" if record[2] == 'photo' else "🎥 ویدیو"
+                post_type_icon = media_group.type_label(record[2], record[1], "fa")
                 msg += f"{post_type_icon} | 📅 {record[5]}\n"
                 if record[3]:
                     msg += f"📝 {record[3][:40]}...\n"
@@ -6540,9 +6659,8 @@ def handle_message(message, callback_data=None):
             else "🖼️ *Archived Media*\n\n"
         )
         for content_id, media_type, file_id, title, created_at in archived:
-            icon = "🖼️" if media_type == "photo" else "🎥"
-            display_title = title if title else f"ID:{content_id}"
-            msg += f"{icon} {display_title} - {created_at}\n"
+            label = media_group.library_button_text(content_id, media_type, file_id, title, lang)
+            msg += f"{label} - {created_at}\n"
 
         send_message(chat_id, msg, create_main_keyboard(chat_id))
         return
@@ -6584,6 +6702,67 @@ def handle_message(message, callback_data=None):
         send_message(chat_id, prompt)
         return
 
+    # ========== «بدون مدیا»: پست فقط متنی ==========
+    elif callback_data == "post_no_media":
+        lang = get_user_lang(chat_id)
+        current_state_name, current_state_data = get_state(chat_id)
+        user_states[chat_id] = {
+            **current_state_data,
+            "state": "select_caption",
+            "new_post": True,
+            "media_id": "",
+            "media_type": media_group.TEXT_ONLY,
+            "content_id": None
+        }
+        keyboard = create_text_content_keyboard(chat_id, user_db)
+        msg = (
+            "📝 *پست بدون مدیا (فقط متن)*\n\nمتن پست را از کپشن‌های آپلود شده انتخاب کنید یا جدید بنویسید:"
+            if lang == "fa"
+            else "📝 *Post without media (text only)*\n\nChoose the post text from your captions or write new:"
+        )
+        if message_id:
+            edit_message(chat_id, message_id, msg, keyboard)
+        else:
+            send_message(chat_id, msg, keyboard)
+        return
+
+    # ========== «بدون کپشن»: فقط رسانه ==========
+    elif callback_data == "post_no_caption":
+        lang = get_user_lang(chat_id)
+        current_state_name, current_state_data = get_state(chat_id)
+        chosen_type = current_state_data.get("media_type")
+        if current_state_name != "select_caption" or chosen_type not in (
+                "photo", "video", media_group.MEDIA_GROUP):
+            if chosen_type == media_group.TEXT_ONLY and current_state_name == "select_caption":
+                msg = (
+                    "❌ پست بدون مدیا حتماً متن لازم دارد؛ یک کپشن انتخاب کنید یا بنویسید."
+                    if lang == "fa"
+                    else "❌ A post without media needs a text; choose or write a caption."
+                )
+                send_message(chat_id, msg, create_text_content_keyboard(chat_id, user_db))
+            else:
+                msg = (
+                    "❌ این دکمه منقضی شده است؛ پست را از ابتدا بسازید."
+                    if lang == "fa"
+                    else "❌ This button has expired; please start the post again."
+                )
+                send_message(chat_id, msg, create_posting_keyboard(chat_id))
+            return
+        user_states[chat_id]["caption"] = ""
+        user_states[chat_id]["state"] = "awaiting_date"
+        year, month = get_calendar_year_month(chat_id)
+        keyboard = create_calendar_keyboard(chat_id, year, month)
+        msg = (
+            "✅ بدون کپشن — فقط رسانه ارسال می‌شود.\n\n📅 *تاریخ ارسال را انتخاب کنید*"
+            if lang == "fa"
+            else "✅ No caption — only the media will be posted.\n\n📅 *Select Date for Posting*"
+        )
+        if message_id:
+            edit_message(chat_id, message_id, msg, keyboard)
+        else:
+            send_message(chat_id, msg, keyboard)
+        return
+
     elif callback_data and callback_data.startswith("select_media_"):
         content_id = int(callback_data.replace("select_media_", ""))
         media_content = user_db.get_content_by_id(content_id)
@@ -6604,7 +6783,7 @@ def handle_message(message, callback_data=None):
                 "content_id": content_id
             }
 
-            keyboard = create_text_content_keyboard(chat_id, user_db)
+            keyboard = create_text_content_keyboard(chat_id, user_db, allow_no_caption=True)
             msg = (
                 "📝 *انتخاب کپشن*\n\nاز کپشن‌های آپلود شده انتخاب کنید یا جدید بنویسید:"
                 if lang == "fa"
@@ -6636,6 +6815,8 @@ def handle_message(message, callback_data=None):
                 send_photo(chat_id, file_id, caption)
             elif media_type == "video":
                 send_video(chat_id, file_id, caption)
+            elif media_type == media_group.MEDIA_GROUP:
+                send_media_group_preview(chat_id, file_id, title, created_at)
         return
 
     # ========== انتخاب متن برای پست جدید ==========
@@ -7885,9 +8066,7 @@ def handle_message(message, callback_data=None):
 
             keyboard_rows = []
             for content_id, media_type, file_id, title, created_at in results:
-                icon = "🖼️" if media_type == "photo" else "🎥"
-                display_title = title if title else f"ID:{content_id}"
-                button_text = f"{icon} {display_title}"
+                button_text = media_group.library_button_text(content_id, media_type, file_id, title, lang)
                 keyboard_rows.append([
                     {"text": button_text, "callback_data": f"select_media_{content_id}"},
                     {"text": "👁️", "callback_data": f"view_media_{content_id}"}
@@ -7925,6 +8104,15 @@ def handle_message(message, callback_data=None):
 
         # ===== آپلود رسانه - فایل =====
         elif current_state_name == "awaiting_media_file":
+            album_items = media_group.album_items_from_message(message)
+            if album_items is not None:
+                # «مدیا گروهی»: the whole album becomes ONE item of the media library
+                content_id = _save_uploaded_album(chat_id, message, album_items, current_state_data, user_db, lang)
+                if content_id:
+                    send_message(chat_id, "📂 *مدیریت محتوا*" if lang == "fa" else "📂 *Contents Management*",
+                                 create_contents_keyboard(chat_id))
+                    clear_state(chat_id)
+                return
             if message.get("photo"):
                 file_id = message["photo"][-1]["file_id"]
                 media_type = "photo"
@@ -8064,6 +8252,21 @@ def handle_message(message, callback_data=None):
 
         # ===== پست جدید - فایل رسانه =====
         elif current_state_name == "awaiting_media_file_for_post":
+            album_items = media_group.album_items_from_message(message)
+            if album_items is not None:
+                content_id = _save_uploaded_album(chat_id, message, album_items, current_state_data, user_db, lang)
+                if content_id:
+                    user_states[chat_id]["media_id"] = media_group.encode_items(album_items)
+                    user_states[chat_id]["media_type"] = media_group.MEDIA_GROUP
+                    user_states[chat_id]["content_id"] = content_id
+                    user_states[chat_id]["state"] = "select_caption"
+                    msg = (
+                        "📝 *انتخاب کپشن*\n\nیک کپشن برای کل مدیا گروهی انتخاب کنید یا جدید بنویسید:"
+                        if lang == "fa"
+                        else "📝 *Select Caption*\n\nOne caption for the whole group — choose or write new:"
+                    )
+                    send_message(chat_id, msg, create_text_content_keyboard(chat_id, user_db, allow_no_caption=True))
+                return
             if message.get("photo"):
                 file_id = message["photo"][-1]["file_id"]
                 media_type = "photo"
@@ -8087,7 +8290,7 @@ def handle_message(message, callback_data=None):
             user_states[chat_id]["content_id"] = content_id
             user_states[chat_id]["state"] = "select_caption"
 
-            keyboard = create_text_content_keyboard(chat_id, user_db)
+            keyboard = create_text_content_keyboard(chat_id, user_db, allow_no_caption=True)
 
             if lang == "fa":
                 msg = (
@@ -9101,17 +9304,17 @@ def handle_message(message, callback_data=None):
 
 # ========== دریافت آپدیت‌ها ==========
 
-def get_updates(offset=None):
-    """دریافت update‌های جدید - با retry مقاوم"""
+def get_updates(offset=None, timeout=30):
+    """دریافت update‌های جدید - با retry مقاوم (timeout=0: short poll)"""
     global config
     api = f"https://tapi.bale.ai/bot{config['messengers']['bale']['bot_token']}"
-    params = {"timeout": 30}
+    params = {"timeout": timeout}
     if offset:
         params["offset"] = offset
 
     for attempt in range(3):
         try:
-            response = requests.get(f"{api}/getUpdates", params=params, timeout=35)
+            response = requests.get(f"{api}/getUpdates", params=params, timeout=timeout + 5)
             return response.json()
         except Exception as e:
             if attempt == 0:
@@ -9145,13 +9348,189 @@ def notify_admins_about_error(error_text):
         pass
 
 
+_answer_callback_warned = False
+
+
+def answer_callback_query(callback_query_id):
+    """Release the pressed inline button.
+
+    Bale keeps a pressed inline button in its waiting state until answerCallbackQuery is
+    called (docs.bale.ai), so every callback is answered. Best effort: short timeout, no
+    retries, never raises into the polling loop.
+    """
+    global _answer_callback_warned
+    if not callback_query_id:
+        return False
+    try:
+        token = config["messengers"]["bale"]["bot_token"]
+        resp = requests.post(f"https://tapi.bale.ai/bot{token}/answerCallbackQuery",
+                             json={"callback_query_id": str(callback_query_id)}, timeout=(3, 5))
+        ok = resp.status_code == 200 and bool(resp.json().get("ok"))
+        reason = f"HTTP {resp.status_code}"
+    except Exception as e:
+        ok, reason = False, type(e).__name__
+    if not ok:
+        # Old Bale clients do not support it; warn once, then stay quiet.
+        (logger.debug if _answer_callback_warned else logger.warning)(
+            f"⚠️ answerCallbackQuery failed ({reason}); button may stay pressed on old clients")
+        _answer_callback_warned = True
+    return ok
+
+
+_UI_LABELS = None
+_COMMAND_RE = re.compile(r"/[A-Za-z_\u0600-\u06FF]{1,32}(?=\s|@|$)")  # command names only, never arguments
+
+
+def _describe_message_for_log(msg):
+    """Kind of message for bot.log; never the typed text itself (it may be a token/secret)."""
+    global _UI_LABELS
+    if _UI_LABELS is None:
+        _UI_LABELS = frozenset(v for lang_map in LANGUAGES.values() for v in lang_map.values()
+                               if isinstance(v, str) and len(v) <= 64)
+    label = next((kind for kind in ("photo", "video", "document", "voice", "audio", "sticker",
+                                    "animation", "contact", "location") if msg.get(kind)), None)
+    if label is None:
+        text = msg.get("text")
+        if msg.get("successful_payment"):
+            label = "payment"
+        elif isinstance(text, str) and _COMMAND_RE.match(text):
+            label = f"command={_COMMAND_RE.match(text).group(0)}"
+        elif isinstance(text, str) and text in _UI_LABELS:
+            label = f"button={text!r}"
+        elif isinstance(text, str):
+            label = f"text(len={len(text)})"
+        else:
+            label = "other"
+    if msg.get("media_group_id"):
+        label += f" album={msg['media_group_id']}"
+    if msg.get("_media_group"):
+        label += f" items={len(msg['_media_group'])}"
+    return label
+
+
+ALBUM_QUIET_SECONDS = 1.5
+ALBUM_MAX_WAIT_SECONDS = 6.0
+
+
+def _await_album_tail(batch, offset):
+    """Let an album that is still arriving finish before it is saved as one group.
+
+    Only when the batch holds album items of a user who is uploading: re-read the SAME
+    window (nothing is acknowledged early) until no new album item arrived for
+    ALBUM_QUIET_SECONDS, at most ALBUM_MAX_WAIT_SECONDS. Other users are unaffected
+    otherwise; items that still come later are appended by handle_late_album_items.
+    """
+    count = media_group.count_album_items(batch, _album_fold_eligible)
+    if not count:
+        return batch
+    deadline = time.monotonic() + ALBUM_MAX_WAIT_SECONDS
+    while time.monotonic() < deadline:
+        time.sleep(ALBUM_QUIET_SECONDS)
+        fresh = get_updates(offset, timeout=0)
+        result = fresh.get("result") if fresh.get("ok") else None
+        if not result or len(result) < len(batch):
+            break
+        new_count = media_group.count_album_items(result, _album_fold_eligible)
+        batch = result
+        if new_count <= count:
+            break
+        count = new_count
+    return batch
+
+
+def process_update(update, bot_token, album_messages=None):
+    """One update of the polling loop (message / callback / pre-checkout)."""
+    # ========== پیام معمولی ==========
+    if "message" in update:
+        msg = update["message"]
+        if album_messages:
+            msg = dict(msg, _media_group=album_messages)
+        chat_id = msg.get("chat", {}).get("id")
+        logger.info(f"📥 update={update.get('update_id')} message chat={chat_id} "
+                    f"{_describe_message_for_log(msg)} state={get_state(chat_id)[0] or '-'}")
+
+        # ✅ پرداخت موفق - قبل از handle_message بررسی کن
+        if msg.get("successful_payment"):
+            payment_chat_id = msg["chat"]["id"]
+            payment_username = msg.get("from", {}).get("username", "unknown")
+            payment_info = msg["successful_payment"]
+
+            from auth_handlers import handle_successful_payment
+            handle_successful_payment(
+                payment_chat_id,
+                payment_username,
+                payment_info,
+                bot_token
+            )
+            return  # ✅ از handle_message رد کن
+
+        # ✅ تنظیم admin_chat_id اگر هنوز ست نشده
+        if config.get("admin_chat_id") is None:
+            first_chat_id = msg["chat"]["id"]
+            if auth_manager.is_admin(first_chat_id):
+                config["admin_chat_id"] = first_chat_id
+                save_config(config)
+                logger.info(f"✅ admin_chat_id تنظیم شد: {first_chat_id}")
+
+        # 📸 rest of an album that was already saved as one «مدیا گروهی»
+        if handle_late_album_items(msg):
+            return
+
+        handle_message(msg)
+
+    # ========== callback query ==========
+    elif "callback_query" in update:
+        callback = update["callback_query"]
+        chat_id = (callback.get("message") or {}).get("chat", {}).get("id")
+        logger.info(f"📥 update={update.get('update_id')} callback chat={chat_id} "
+                    f"data={callback.get('data')!r} state={get_state(chat_id)[0] or '-'}")
+        answer_callback_query(callback.get("id"))
+        message_with_user = callback["message"].copy()
+        message_with_user["from"] = callback["from"]
+
+        handle_message(
+            message_with_user,
+            callback_data=callback.get("data")
+        )
+
+    # ========== pre checkout query ==========
+    elif "pre_checkout_query" in update:
+        pcq = update["pre_checkout_query"]
+        from auth_handlers import handle_pre_checkout
+        handle_pre_checkout(
+            pcq["id"],
+            pcq["from"]["id"],
+            bot_token  # ✅ حالا در دسترسه
+        )
+
+
+def _report_update_failure(update, error):
+    """A failing handler must not look like a frozen bot: log, alert admins, tell the user."""
+    safe = group_posting.safe_error(error)
+    logger.error(f"❌ خطا در پردازش update={update.get('update_id')}: {safe}\n"
+                 f"{group_posting.redact(traceback.format_exc())}")
+    notify_admins_about_error(safe)
+    chat_id = None
+    if isinstance(update.get("message"), dict):
+        chat_id = update["message"].get("chat", {}).get("id")
+    elif isinstance(update.get("callback_query"), dict):
+        chat_id = (update["callback_query"].get("message") or {}).get("chat", {}).get("id")
+    if chat_id:
+        try:
+            send_message(chat_id, "⚠️ خطایی رخ داد؛ لطفاً دوباره تلاش کنید یا از منو استفاده کنید."
+                         if get_user_lang(chat_id) == "fa"
+                         else "⚠️ Something went wrong. Please try again or use the menu.")
+        except Exception:
+            pass
+
+
 def run():
     """تابع اصلی اجرای ربات"""
     global config
     config = load_config()
 
     if not config["messengers"]["bale"]["bot_token"]:
-        print("❌ لطفاً ابتدا توکن ربات Bale را در config.json تنظیم کنید!")
+        print("❌ لطفاً ابتدا توکن ربات Bale را در config.json تنظیم کنید!", flush=True)
         return
 
     logger.info("🤖 ربات شروع به کار کرد!")
@@ -9194,7 +9573,8 @@ def run():
         )
 
     scheduler.start_scheduler(config)
-    print("🤖 ربات در حال اجراست... برای توقف Ctrl+C را بزنید.")
+    print("🤖 ربات در حال اجراست... برای توقف Ctrl+C را بزنید.", flush=True)
+    logger.info(f"🤖 polling started (PID {os.getpid()})")
 
     last_update_id = 0
 
@@ -9203,58 +9583,27 @@ def run():
             updates = get_updates(last_update_id)
 
             if updates.get("ok") and updates.get("result"):
-                for update in updates["result"]:
+                batch = _await_album_tail(updates["result"], last_update_id)
+                folded_update_ids = set()
+                for index, update in enumerate(batch):
                     last_update_id = update["update_id"] + 1
+                    if update["update_id"] in folded_update_ids:
+                        continue  # handled together with the first item of its album
 
-                    # ========== پیام معمولی ==========
-                    if "message" in update:
-                        msg = update["message"]
+                    album_messages = None
+                    message = update.get("message")
+                    if media_group.album_key(message) and _album_fold_eligible(message):
+                        album_messages, later_ids = media_group.collect_album(batch, index)
+                        folded_update_ids |= later_ids
 
-                        # ✅ پرداخت موفق - قبل از handle_message بررسی کن
-                        if msg.get("successful_payment"):
-                            payment_chat_id = msg["chat"]["id"]
-                            payment_username = msg.get("from", {}).get("username", "unknown")
-                            payment_info = msg["successful_payment"]
-
-                            from auth_handlers import handle_successful_payment
-                            handle_successful_payment(
-                                payment_chat_id,
-                                payment_username,
-                                payment_info,
-                                bot_token
-                            )
-                            continue  # ✅ از handle_message رد کن
-
-                        # ✅ تنظیم admin_chat_id اگر هنوز ست نشده
-                        if config.get("admin_chat_id") is None:
-                            first_chat_id = msg["chat"]["id"]
-                            if auth_manager.is_admin(first_chat_id):
-                                config["admin_chat_id"] = first_chat_id
-                                save_config(config)
-                                logger.info(f"✅ admin_chat_id تنظیم شد: {first_chat_id}")
-
-                        handle_message(msg)
-
-                    # ========== callback query ==========
-                    elif "callback_query" in update:
-                        callback = update["callback_query"]
-                        message_with_user = callback["message"].copy()
-                        message_with_user["from"] = callback["from"]
-
-                        handle_message(
-                            message_with_user,
-                            callback_data=callback.get("data")
-                        )
-
-                    # ========== pre checkout query ==========
-                    elif "pre_checkout_query" in update:
-                        pcq = update["pre_checkout_query"]
-                        from auth_handlers import handle_pre_checkout
-                        handle_pre_checkout(
-                            pcq["id"],
-                            pcq["from"]["id"],
-                            bot_token  # ✅ حالا در دسترسه
-                        )
+                    started = time.monotonic()
+                    try:
+                        process_update(update, bot_token, album_messages)
+                    except Exception as e:
+                        _report_update_failure(update, e)
+                    elapsed = time.monotonic() - started
+                    if elapsed > 10:
+                        logger.warning(f"🐢 update={update['update_id']} took {elapsed:.1f}s")
 
             time.sleep(1)
 
@@ -9267,5 +9616,36 @@ def run():
             time.sleep(5)
 
 
+def _log_once_to_redirected_bot_log():
+    """start.sh / safe_deploy run `nohup python3 bot.py > bot.log 2>&1` while logger.py also
+    appends to bot.log. stdout/stderr then write the same file through a second descriptor
+    WITHOUT O_APPEND, so lines of any other writer (e.g. a refused duplicate) were overwritten
+    at a stale offset. When stderr is bot.log: log each line once (file handler only) and put
+    the redirected descriptors in append mode. A terminal run is left exactly as before."""
+    import fcntl
+    import logging
+    import stat
+    import sys
+    try:
+        err, log_file = os.fstat(2), os.stat("bot.log")
+        if not stat.S_ISREG(err.st_mode) or (err.st_dev, err.st_ino) != (log_file.st_dev, log_file.st_ino):
+            return
+        root = logging.getLogger()
+        for handler in list(root.handlers):
+            if type(handler) is logging.StreamHandler and handler.stream in (sys.stderr, sys.__stderr__):
+                root.removeHandler(handler)
+        for fd in (1, 2):
+            if stat.S_ISREG(os.fstat(fd).st_mode):
+                fcntl.fcntl(fd, fcntl.F_SETFL, fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_APPEND)
+    except OSError:
+        pass
+
+
 if __name__ == "__main__":
+    _log_once_to_redirected_bot_log()
+    # Exactly one poller per token: a duplicate exits here, before touching Bale.
+    _INSTANCE_LOCK = instance_lock.ensure_single_instance(__file__, logger)
+    if _INSTANCE_LOCK is None:
+        print("⛔ bot.py is already running — this duplicate exits (see bot.log).", flush=True)
+        raise SystemExit(3)
     run()
